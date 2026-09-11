@@ -269,6 +269,31 @@
       padding: 80px 0 60px;
       text-align: center;
       position: relative;
+      overflow: hidden;
+    }
+    .hero-ambient-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-width: 1100px;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.16;
+      filter: saturate(1.2) contrast(1.1);
+      mask-image: radial-gradient(ellipse 65% 55% at 50% 45%, black 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 45%, black 20%, transparent 80%);
+    }
+    .hero-ambient-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
     }
     .hero-badge {
       display: inline-flex;
@@ -443,19 +468,42 @@
       color: #fff;
       overflow: hidden;
     }
+    .viewport-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      transition: opacity 0.5s ease, filter 0.5s ease;
+    }
     .viewport-canvas {
       position: absolute;
       inset: 0;
-      opacity: 0.9;
+      opacity: 0.85;
       background-size: cover;
       background-position: center;
       transition: all 0.4s ease;
+      z-index: 1;
+      mix-blend-mode: multiply;
     }
     .viewport-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.7) 100%);
       pointer-events: none;
+      z-index: 2;
+    }
+    .viewport-reticle {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background: 
+        radial-gradient(circle at center, transparent 90px, rgba(34, 197, 94, 0.08) 91px, transparent 92px),
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 36px 36px, 36px 36px;
     }
     .viewport-top {
       position: relative;
@@ -866,7 +914,12 @@
 
   <!-- Hero Section -->
   <section class="hero">
-    <div class="container">
+    <div class="hero-ambient-wrap" aria-hidden="true">
+      <video class="hero-ambient-video" autoplay loop muted playsinline poster="assets/hero-earth-poster.jpg">
+        <source src="assets/hero-earth.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="container hero-content">
       <div class="hero-badge">
         <span class="pulse-dot"></span>
         <span>Open Source Alternative to Closed Vendor Dashboards</span>
@@ -915,7 +968,8 @@
         </div>
 
         <div class="stage-tabs">
-          <button class="stage-tab active" onclick="switchDemo('ndvi')">Sentinel-2 NDVI</button>
+          <button class="stage-tab active" onclick="switchDemo('orbit')">ISS 4K Orbit</button>
+          <button class="stage-tab" onclick="switchDemo('ndvi')">Sentinel-2 NDVI</button>
           <button class="stage-tab" onclick="switchDemo('sar')">Sentinel-1 Flood SAR</button>
           <button class="stage-tab" onclick="switchDemo('dem')">Copernicus DEM</button>
           <button class="stage-tab" onclick="switchDemo('script')">Agent Script Sandbox</button>
@@ -929,24 +983,28 @@
       <div class="stage-body">
         <!-- Visual Simulation Viewport -->
         <div class="visual-viewport" id="viewport-container">
-          <div class="viewport-canvas" id="demo-bg" style="background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%);"></div>
+          <video id="demo-video" class="viewport-video" autoplay loop muted playsinline poster="assets/hero-earth-poster.jpg">
+            <source src="assets/hero-earth.mp4" type="video/mp4">
+          </video>
+          <div class="viewport-canvas" id="demo-bg" style="background: transparent;"></div>
+          <div class="viewport-reticle"></div>
           <div class="viewport-overlay"></div>
 
           <div class="viewport-top">
-            <span class="sensor-tag" id="demo-sensor">SENTINEL-2 L2A (10m)</span>
-            <span class="live-coords" id="demo-coords">AOI: [39.38, -0.42, 39.52, -0.31]</span>
+            <span class="sensor-tag" id="demo-sensor">ISS HDEV (EXPEDITION 71)</span>
+            <span class="live-coords" id="demo-coords">LAT 28.52° N, LON 80.68° W • ALT 408 KM</span>
           </div>
 
           <div class="viewport-center">
             <div class="center-hud">
-              <div class="hud-title" id="demo-hud-title">VEGETATION HEALTH INDEX (NDVI)</div>
-              <div class="hud-stat" id="demo-hud-stat">0.74 ± 0.08</div>
-              <div class="hud-desc" id="demo-hud-desc">Cloud cover: 1.2% • Windowed COG Range Stream: 1.4s</div>
+              <div class="hud-title" id="demo-hud-title">REAL-TIME PLANETARY TIME-LAPSE</div>
+              <div class="hud-stat" id="demo-hud-stat">7.66 km/s Orbital Velocity</div>
+              <div class="hud-desc" id="demo-hud-desc">Zero-download STAC frame telemetry • 100% optical visibility</div>
             </div>
           </div>
 
           <div class="viewport-bottom">
-            <span>Band Math: (B08 - B04) / (B08 + B04)</span>
+            <span id="demo-math">4K ISS Orbital Pass • Direct Stream</span>
             <span style="color: var(--accent);">✓ Zero-Download COG Streaming</span>
           </div>
         </div>
@@ -956,28 +1014,27 @@
           <div class="console-log">
             <div>
               <span class="agent-prompt">User &gt;</span>
-              <span id="demo-user-query">Check crop vigor and NDVI anomalies across Huerta de Valencia for the past 14 days.</span>
+              <span id="demo-user-query">Stream planetary orbital telemetry and extract optical surface frames for sensor tasking.</span>
             </div>
 
             <div class="mcp-call" id="demo-mcp-code">
               <span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
-              <span class="json-key">"tool"</span>: <span class="json-str">"calculate_spectral_index"</span>,<br>
+              <span class="json-key">"tool"</span>: <span class="json-str">"stream_planetary_telemetry"</span>,<br>
               <span class="json-key">"arguments"</span>: {<br>
-              &nbsp;&nbsp;<span class="json-key">"collection"</span>: <span class="json-str">"sentinel-2-l2a"</span>,<br>
-              &nbsp;&nbsp;<span class="json-key">"index"</span>: <span class="json-str">"NDVI"</span>,<br>
-              &nbsp;&nbsp;<span class="json-key">"bbox"</span>: [-0.42, 39.38, -0.31, 39.52],<br>
-              &nbsp;&nbsp;<span class="json-key">"max_cloud_cover"</span>: <span class="json-num">15</span><br>
+              &nbsp;&nbsp;<span class="json-key">"source"</span>: <span class="json-str">"iss-time-lapse"</span>,<br>
+              &nbsp;&nbsp;<span class="json-key">"orbit_track"</span>: <span class="json-str">"equatorial-ascending"</span>,<br>
+              &nbsp;&nbsp;<span class="json-key">"resolution"</span>: <span class="json-str">"4k"</span><br>
               }
             </div>
 
             <div style="color: #a1a1aa; font-size: 11.5px;" id="demo-agent-analysis">
-              <span style="color: var(--accent);">● Agent Insight:</span> High photosynthetic activity detected in citrus orchards. Bounding box extracted in 1.4s using HTTP range requests from AWS Earth Search archive.
+              <span style="color: var(--accent);">● Agent Insight:</span> Orbital trajectory synchronized. Sub-satellite point tracking across active daylight quadrant with zero frame loss.
             </div>
           </div>
 
-          <div class="console-footer">
-            <span>Latency: 1420ms</span>
-            <span>Bandwidth: 2.8 MB (saved 98.7% vs 1.1GB full tile)</span>
+          <div class="console-footer" id="demo-console-footer">
+            <span>Latency: 48ms</span>
+            <span>Zero Ingestion • Raw STAC Telemetry Stream</span>
           </div>
         </div>
       </div>
@@ -1388,13 +1445,40 @@
     }
 
     const demoScenarios = {
+      orbit: {
+        bg: "transparent",
+        videoFilter: "none",
+        videoOpacity: "1",
+        sensor: "ISS HDEV (EXPEDITION 71)",
+        coords: "LAT 28.52° N, LON 80.68° W • ALT 408 KM",
+        hudTitle: "REAL-TIME PLANETARY TIME-LAPSE",
+        hudStat: "7.66 km/s Orbital Velocity",
+        hudDesc: "Zero-download STAC frame telemetry • 100% optical visibility",
+        math: "4K ISS Orbital Pass • Direct Stream",
+        footerLatency: "48ms",
+        footerBandwidth: "Zero Ingestion • Raw STAC Telemetry Stream",
+        userQuery: "Stream planetary orbital telemetry and extract optical surface frames for sensor tasking.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"stream_planetary_telemetry"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"source"</span>: <span class="json-str">"iss-time-lapse"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"orbit_track"</span>: <span class="json-str">"equatorial-ascending"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"resolution"</span>: <span class="json-str">"4k"</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Orbital trajectory synchronized. Sub-satellite point tracking across active daylight quadrant with zero frame loss.`
+      },
       ndvi: {
-        bg: "linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)",
+        bg: "linear-gradient(135deg, rgba(6, 78, 59, 0.7) 0%, rgba(4, 120, 87, 0.7) 50%, rgba(16, 185, 129, 0.7) 100%)",
+        videoFilter: "saturate(2) contrast(1.2) hue-rotate(-25deg)",
+        videoOpacity: "0.55",
         sensor: "SENTINEL-2 L2A (10m)",
         coords: "AOI: [39.38, -0.42, 39.52, -0.31]",
         hudTitle: "VEGETATION HEALTH INDEX (NDVI)",
         hudStat: "0.74 ± 0.08",
         hudDesc: "Cloud cover: 1.2% • Windowed COG Range Stream: 1.4s",
+        math: "Band Math: (B08 - B04) / (B08 + B04)",
+        footerLatency: "1420ms",
+        footerBandwidth: "Bandwidth: 2.8 MB (saved 98.7% vs 1.1GB full tile)",
         userQuery: "Check crop vigor and NDVI anomalies across Huerta de Valencia for the past 14 days.",
         toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
 <span class="json-key">"tool"</span>: <span class="json-str">"calculate_spectral_index"</span>,<br>
@@ -1407,12 +1491,17 @@
         analysis: `<span style="color: var(--accent);">● Agent Insight:</span> High photosynthetic activity detected in citrus orchards. Bounding box extracted in 1.4s using HTTP range requests from AWS Earth Search archive.`
       },
       sar: {
-        bg: "linear-gradient(135deg, #1e1b4b 0%, #1e3a8a 50%, #0284c7 100%)",
+        bg: "linear-gradient(135deg, rgba(30, 27, 75, 0.75) 0%, rgba(30, 58, 138, 0.75) 50%, rgba(2, 132, 199, 0.75) 100%)",
+        videoFilter: "contrast(2.2) grayscale(0.6) hue-rotate(185deg)",
+        videoOpacity: "0.45",
         sensor: "SENTINEL-1 GRD (C-BAND SAR)",
         coords: "AOI: [29.85, -95.50, 30.10, -95.20]",
         hudTitle: "RADAR FLOOD INUNDATION",
         hudStat: "18.4% Area Flooded",
         hudDesc: "All-weather cloud penetration • VV/VH backscatter &lt; -16 dB",
+        math: "Radar Backscatter: Sigma0 VV &lt; -16dB Threshold",
+        footerLatency: "2150ms",
+        footerBandwidth: "Bandwidth: 4.1 MB (saved 97.6% vs 950MB GRD)",
         userQuery: "Detect surface water expansion during hurricane rainfall using radar backscatter.",
         toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
 <span class="json-key">"tool"</span>: <span class="json-str">"detect_water_sar"</span>,<br>
@@ -1424,12 +1513,17 @@
         analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Cloud cover was 100% optical overcast, but Sentinel-1 radar penetrated cloud ceiling, identifying 4,200 hectares of newly submerged land.`
       },
       dem: {
-        bg: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #d97706 100%)",
+        bg: "linear-gradient(135deg, rgba(69, 26, 3, 0.75) 0%, rgba(120, 53, 15, 0.75) 50%, rgba(217, 119, 6, 0.75) 100%)",
+        videoFilter: "contrast(1.6) sepia(0.8) hue-rotate(-35deg)",
+        videoOpacity: "0.4",
         sensor: "COPERNICUS DEM GLO-30 (30m)",
         coords: "AOI: [45.80, 6.80, 45.95, 6.95]",
         hudTitle: "ELEVATION & SLOPE PROFILE",
         hudStat: "4,808m Peak Elevation",
         hudDesc: "Mont Blanc Massif • Mean Slope: 34.2° • Gold standard terrain",
+        math: "Topographic Grid: Horn's Algorithm (30m GLO-30)",
+        footerLatency: "890ms",
+        footerBandwidth: "Bandwidth: 1.2 MB (Copernicus DEM 30m Stream)",
         userQuery: "Extract digital elevation profile and slope gradient for avalanche risk assessment.",
         toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
 <span class="json-key">"tool"</span>: <span class="json-str">"get_elevation_profile"</span>,<br>
@@ -1440,12 +1534,17 @@
         analysis: `<span style="color: var(--accent);">● Agent Insight:</span> 3D surface grid computed with zero local elevation files stored. Streamed Copernicus DEM GLO-30 tile over HTTP.`
       },
       script: {
-        bg: "linear-gradient(135deg, #18181b 0%, #27272a 50%, #3f3f46 100%)",
+        bg: "linear-gradient(135deg, rgba(24, 24, 27, 0.85) 0%, rgba(39, 39, 42, 0.85) 50%, rgba(63, 63, 70, 0.85) 100%)",
+        videoFilter: "grayscale(1) brightness(0.3)",
+        videoOpacity: "0.25",
         sensor: "PYTHON GEOSPATIAL SANDBOX",
         coords: "Virtual Sandbox Context",
         hudTitle: "AGENTIC SCRIPT EXECUTION",
         hudStat: "200 OK • Processed",
         hudDesc: "rasterio + xarray + geopandas pre-injected in memory",
+        math: "Dynamic Python Subprocess: Safe In-Memory Band Math",
+        footerLatency: "310ms",
+        footerBandwidth: "Sandboxed Memory Execution • Zero Disk Footprint",
         userQuery: "Write and execute a custom script to compute Normalized Burn Ratio (NBR) and delta-NBR.",
         toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
 <span class="json-key">"tool"</span>: <span class="json-str">"run_geospatial_script"</span>,<br>
@@ -1463,15 +1562,29 @@
       document.querySelectorAll(".stage-tab").forEach(tab => tab.classList.remove("active"));
       event.target.classList.add("active");
 
+      const video = document.getElementById("demo-video");
+      if (video) {
+        video.style.filter = data.videoFilter || "none";
+        video.style.opacity = data.videoOpacity || "1";
+      }
+
       document.getElementById("demo-bg").style.background = data.bg;
       document.getElementById("demo-sensor").innerText = data.sensor;
       document.getElementById("demo-coords").innerText = data.coords;
       document.getElementById("demo-hud-title").innerText = data.hudTitle;
       document.getElementById("demo-hud-stat").innerText = data.hudStat;
       document.getElementById("demo-hud-desc").innerText = data.hudDesc;
+      if (document.getElementById("demo-math")) {
+        document.getElementById("demo-math").innerText = data.math;
+      }
       document.getElementById("demo-user-query").innerText = data.userQuery;
       document.getElementById("demo-mcp-code").innerHTML = data.toolCall;
       document.getElementById("demo-agent-analysis").innerHTML = data.analysis;
+
+      const footer = document.getElementById("demo-console-footer");
+      if (footer && data.footerLatency) {
+        footer.innerHTML = `<span>Latency: ${data.footerLatency}</span><span>${data.footerBandwidth}</span>`;
+      }
     }
 
     // Attach nav bar to top on scroll
