@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>eo-mcp — The Open Source Agentic Earth Observation Protocol</title>
+  <meta name="description" content="Open-source Model Context Protocol (MCP) server connecting AI agents to free Copernicus, Landsat, Sentinel-1 SAR, and global DEM satellite archives with zero vendor lock-in.">
+  <meta property="og:title" content="eo-mcp — Open Source Agentic Earth Observation">
+  <meta property="og:description" content="Connect Claude, Cursor, and AI coding agents directly to planetary-scale Earth Observation data. Stream Sentinel-2, Landsat, and SAR directly from cloud COGs.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#fafafa">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --paper: #fafafa;
+      --paper-warm: #f5f5f5;
+      --paper-dark: #efefef;
+      --ink: #1f1f1f;
+      --ink-soft: #383838;
+      --ink-mute: #666666;
+      --ink-faint: #999999;
+      --accent: #22c55e;
+      --accent-bright: #10b981;
+      --accent-soft: #bbf7d0;
+      --accent-glow: rgba(34, 197, 94, 0.25);
+      --bone: #ffffff;
+      --line: #e2e2e2;
+      --line-hover: #c4c4c4;
+      --line-soft: #eeeeee;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --font-sans: "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Subtle background noise texture */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 99;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(220, 220, 220, 0.35) 0%, transparent 25%),
+        radial-gradient(circle at 90% 80%, rgba(210, 210, 210, 0.35) 0%, transparent 25%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.8;
+    }
+
+    /* Side rails */
+    .side-rail {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 42px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .side-rail.left {
+      left: 0;
+      border-right: 1px solid var(--line-soft);
+    }
+    .side-rail.right {
+      right: 0;
+      border-left: 1px solid var(--line-soft);
+    }
+    .side-rail-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      writing-mode: vertical-rl;
+      white-space: nowrap;
+    }
+    .side-rail.left .side-rail-text {
+      transform: rotate(180deg);
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+    }
+
+    /* Top Announcement Bar */
+    .topbar {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 9px 0;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .topbar-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 var(--accent-glow);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Floating Navigation */
+    .site-nav {
+      position: sticky;
+      top: 14px;
+      z-index: 50;
+      margin-top: 12px;
+    }
+    .nav-pill {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-pill);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm), 0 8px 24px -6px rgba(0, 0, 0, 0.04);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    .nav-link:hover {
+      color: var(--accent-bright);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+    }
+    .btn-dark {
+      background: var(--ink);
+      color: #fff;
+      box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.25);
+    }
+    .btn-dark:hover {
+      background: #333;
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-outline:hover {
+      background: rgba(0, 0, 0, 0.03);
+      border-color: var(--line-hover);
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #052e16;
+      font-weight: 700;
+    }
+    .btn-accent:hover {
+      background: #16a34a;
+      color: #fff;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero-title-box {
+      display: inline-block;
+      position: relative;
+      padding: 24px 36px;
+      border: 1.5px solid var(--accent);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(8px);
+      margin-bottom: 28px;
+    }
+    .corner-mark {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+    }
+    .corner-mark.tl { top: -4px; left: -4px; }
+    .corner-mark.tr { top: -4px; right: -4px; }
+    .corner-mark.bl { bottom: -4px; left: -4px; }
+    .corner-mark.br { bottom: -4px; right: -4px; }
+
+    .hero h1 {
+      font-size: clamp(34px, 5.2vw, 68px);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.06;
+      color: var(--ink);
+    }
+    .hero h1 span.gradient {
+      background: linear-gradient(135deg, #1f1f1f 30%, #15803d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      max-width: 680px;
+      margin: 0 auto 36px;
+      font-size: 19px;
+      line-height: 1.5;
+      color: var(--ink-soft);
+      font-weight: 450;
+    }
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .install-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      padding: 6px 14px 6px 20px;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+    .install-pill code {
+      font-weight: 600;
+    }
+    .copy-btn {
+      background: var(--paper-warm);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--ink-soft);
+      transition: all 0.15s ease;
+    }
+    .copy-btn:hover {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    /* Interactive Showcase Stage */
+    .showcase-stage {
+      max-width: 1100px;
+      margin: 0 auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: var(--bone);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      position: relative;
+    }
+    .stage-header {
+      background: var(--paper-warm);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stage-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .stage-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #d4d4d4;
+    }
+    .stage-dot.red { background: #ff5f56; }
+    .stage-dot.yellow { background: #ffbd2e; }
+    .stage-dot.green { background: #27c93f; }
+    
+    .stage-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.04);
+      padding: 4px;
+      border-radius: var(--radius-pill);
+    }
+    .stage-tab {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .stage-tab.active {
+      background: var(--bone);
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stage-body {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      min-height: 480px;
+    }
+    @media (max-width: 900px) {
+      .stage-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .visual-viewport {
+      position: relative;
+      background: #09090b;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      color: #fff;
+      overflow: hidden;
+    }
+    .viewport-canvas {
+      position: absolute;
+      inset: 0;
+      opacity: 0.9;
+      background-size: cover;
+      background-position: center;
+      transition: all 0.4s ease;
+    }
+    .viewport-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%);
+      pointer-events: none;
+    }
+    .viewport-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sensor-tag {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+    .live-coords {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #a1a1aa;
+    }
+    .viewport-center {
+      position: relative;
+      z-index: 2;
+      margin: auto 0;
+      text-align: center;
+    }
+    .center-hud {
+      display: inline-block;
+      padding: 16px 24px;
+      background: rgba(18, 18, 20, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      text-align: left;
+    }
+    .hud-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .hud-stat {
+      font-size: 28px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+    }
+    .hud-desc {
+      font-size: 12px;
+      color: #a1a1aa;
+    }
+    .viewport-bottom {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #d4d4d8;
+    }
+
+    /* Code & Agent Console Side */
+    .console-pane {
+      background: #18181b;
+      color: #e4e4e7;
+      padding: 24px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-left: 1px solid #27272a;
+    }
+    .console-log {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .agent-prompt {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .mcp-call {
+      background: #27272a;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+      font-size: 11.5px;
+    }
+    .json-key { color: #f472b6; }
+    .json-str { color: #a7f3d0; }
+    .json-num { color: #fbbf24; }
+    
+    .console-footer {
+      border-top: 1px solid #27272a;
+      padding-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #71717a;
+      font-size: 11px;
+    }
+
+    /* Bento Feature Grid */
+    .section {
+      padding: 90px 0;
+    }
+    .section-head {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 50px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-bright);
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+    .section-title {
+      font-size: clamp(28px, 3.8vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 14px;
+    }
+    .section-desc {
+      font-size: 17px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .bento-card {
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .bento-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--line-hover);
+    }
+    .bento-card.wide {
+      grid-column: span 2;
+    }
+    @media (max-width: 960px) {
+      .bento-card.wide {
+        grid-column: span 1;
+      }
+    }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #f0fdf4;
+      border: 1px solid #dcfce7;
+      color: #15803d;
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+    .card-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      margin-bottom: 10px;
+      color: var(--ink);
+    }
+    .card-body {
+      font-size: 14.5px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--paper-warm);
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: var(--ink-mute);
+    }
+
+    /* Architecture Diagram */
+    .arch-box {
+      background: #111827;
+      color: #f3f4f6;
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      border: 1px solid #1f2937;
+    }
+    .arch-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 16px;
+      margin-top: 30px;
+    }
+    @media (max-width: 800px) {
+      .arch-flow {
+        grid-template-columns: 1fr;
+      }
+    }
+    .arch-node {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+    }
+    .arch-arrow {
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    /* Comparison Table */
+    .compare-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--bone);
+      box-shadow: var(--shadow-sm);
+    }
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14.5px;
+    }
+    .compare-table th, .compare-table td {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .compare-table th {
+      background: var(--paper-warm);
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .compare-table tr:last-child td {
+      border-bottom: none;
+    }
+    .check { color: #16a34a; font-weight: bold; }
+    .cross { color: #dc2626; font-weight: bold; }
+
+    /* FAQ Accordion */
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .faq-item {
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .faq-item summary {
+      padding: 18px 24px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+    .faq-item summary::after {
+      content: "+";
+      font-size: 20px;
+      color: var(--ink-faint);
+    }
+    .faq-item[open] summary::after {
+      content: "−";
+    }
+    .faq-item p {
+      padding: 0 24px 20px;
+      color: var(--ink-soft);
+      font-size: 14.5px;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 60px 0 40px;
+      background: var(--paper-warm);
+      font-size: 13.5px;
+      color: var(--ink-mute);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+    .footer-links a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: var(--ink);
+    }
+
+    @media (max-width: 768px) {
+      .side-rail { display: none; }
+      .container { padding: 0 20px; }
+      .nav-menu { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Decorative Side Rails -->
+  <aside class="side-rail left" aria-hidden="true">
+    <div class="side-rail-text">EO-MCP // PLANETARY OBSERVATION PROTOCOL</div>
+  </aside>
+  <aside class="side-rail right" aria-hidden="true">
+    <div class="side-rail-text">OPEN SOURCE • APACHE 2.0 • ZERO LOCK-IN</div>
+  </aside>
+
+  <!-- Global Top Status Bar -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="status-pulse">
+        <span class="pulse-dot"></span>
+        <span>Copernicus &amp; Landsat STAC APIs Live</span>
+      </div>
+      <div>Standardized Model Context Protocol for Earth Science</div>
+      <div>V0.1.0 Released</div>
+    </div>
+  </div>
+
+  <!-- Sticky Floating Navigation -->
+  <header class="site-nav">
+    <div class="container">
+      <nav class="nav-pill" aria-label="Main navigation">
+        <a href="#" class="brand">
+          <div class="brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <span>eo-mcp</span>
+        </a>
+
+        <ul class="nav-menu">
+          <li><a href="#demo" class="nav-link">Interactive Demo</a></li>
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="#comparison" class="nav-link">Why eo-mcp</a></li>
+          <li><a href="#quickstart" class="nav-link">Quickstart</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-outline" style="padding: 8px 16px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>GitHub</span>
+          </a>
+          <a href="#quickstart" class="btn btn-dark" style="padding: 8px 16px;">
+            <span>Get Started</span>
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        <span>Open Source Alternative to Closed Vendor Dashboards</span>
+      </div>
+
+      <div class="hero-title-box">
+        <div class="corner-mark tl"></div>
+        <div class="corner-mark tr"></div>
+        <div class="corner-mark bl"></div>
+        <div class="corner-mark br"></div>
+        <h1>
+          The Agentic Protocol for<br>
+          <span class="gradient">Planetary Earth Observation</span>
+        </h1>
+      </div>
+
+      <p class="hero-subtitle">
+        Empower AI agents to autonomously discover, stream, and compute satellite analytics from free government archives. Plug directly into Claude Desktop, Cursor, and custom Python agents with zero proprietary lock-in.
+      </p>
+
+      <div class="hero-ctas">
+        <div class="install-pill">
+          <span>$</span>
+          <code id="cmd-uvx">uvx eo-mcp</code>
+          <button class="copy-btn" onclick="copyText('uvx eo-mcp', this)">Copy</button>
+        </div>
+        <a href="#quickstart" class="btn btn-dark">
+          <span>Configure Claude &amp; Cursor</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Demo Showcase -->
+  <section id="demo" class="container" style="margin-bottom: 90px;">
+    <div class="showcase-stage">
+      <div class="stage-header">
+        <div class="stage-dots">
+          <div class="stage-dot red"></div>
+          <div class="stage-dot yellow"></div>
+          <div class="stage-dot green"></div>
+        </div>
+
+        <div class="stage-tabs">
+          <button class="stage-tab active" onclick="switchDemo('ndvi')">Sentinel-2 NDVI</button>
+          <button class="stage-tab" onclick="switchDemo('sar')">Sentinel-1 Flood SAR</button>
+          <button class="stage-tab" onclick="switchDemo('dem')">Copernicus DEM</button>
+          <button class="stage-tab" onclick="switchDemo('script')">Agent Script Sandbox</button>
+        </div>
+
+        <div style="font-size: 11px; font-family: var(--font-mono); color: var(--ink-faint);">
+          JSON-RPC 2.0 • STDIO
+        </div>
+      </div>
+
+      <div class="stage-body">
+        <!-- Visual Simulation Viewport -->
+        <div class="visual-viewport" id="viewport-container">
+          <div class="viewport-canvas" id="demo-bg" style="background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%);"></div>
+          <div class="viewport-overlay"></div>
+
+          <div class="viewport-top">
+            <span class="sensor-tag" id="demo-sensor">SENTINEL-2 L2A (10m)</span>
+            <span class="live-coords" id="demo-coords">AOI: [39.38, -0.42, 39.52, -0.31]</span>
+          </div>
+
+          <div class="viewport-center">
+            <div class="center-hud">
+              <div class="hud-title" id="demo-hud-title">VEGETATION HEALTH INDEX (NDVI)</div>
+              <div class="hud-stat" id="demo-hud-stat">0.74 ± 0.08</div>
+              <div class="hud-desc" id="demo-hud-desc">Cloud cover: 1.2% • Windowed COG Range Stream: 1.4s</div>
+            </div>
+          </div>
+
+          <div class="viewport-bottom">
+            <span>Band Math: (B08 - B04) / (B08 + B04)</span>
+            <span style="color: var(--accent);">✓ Zero-Download COG Streaming</span>
+          </div>
+        </div>
+
+        <!-- Terminal Console Viewport -->
+        <div class="console-pane">
+          <div class="console-log">
+            <div>
+              <span class="agent-prompt">User &gt;</span>
+              <span id="demo-user-query">Check crop vigor and NDVI anomalies across Huerta de Valencia for the past 14 days.</span>
+            </div>
+
+            <div class="mcp-call" id="demo-mcp-code">
+              <span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+              <span class="json-key">"tool"</span>: <span class="json-str">"calculate_spectral_index"</span>,<br>
+              <span class="json-key">"arguments"</span>: {<br>
+              &nbsp;&nbsp;<span class="json-key">"collection"</span>: <span class="json-str">"sentinel-2-l2a"</span>,<br>
+              &nbsp;&nbsp;<span class="json-key">"index"</span>: <span class="json-str">"NDVI"</span>,<br>
+              &nbsp;&nbsp;<span class="json-key">"bbox"</span>: [-0.42, 39.38, -0.31, 39.52],<br>
+              &nbsp;&nbsp;<span class="json-key">"max_cloud_cover"</span>: <span class="json-num">15</span><br>
+              }
+            </div>
+
+            <div style="color: #a1a1aa; font-size: 11.5px;" id="demo-agent-analysis">
+              <span style="color: var(--accent);">● Agent Insight:</span> High photosynthetic activity detected in citrus orchards. Bounding box extracted in 1.4s using HTTP range requests from AWS Earth Search archive.
+            </div>
+          </div>
+
+          <div class="console-footer">
+            <span>Latency: 1420ms</span>
+            <span>Bandwidth: 2.8 MB (saved 98.7% vs 1.1GB full tile)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section id="features" class="section" style="background: var(--paper-warm);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-label">Engineered for Autonomous Agents</span>
+        <h2 class="section-title">Everything you need to give LLMs eyes on Earth</h2>
+        <p class="section-desc">
+          Built from the ground up for agentic loops, code execution, and planetary data streaming.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        <!-- Card 1 -->
+        <div class="bento-card wide">
+          <div>
+            <div class="card-icon">⚡</div>
+            <h3 class="card-title">Zero-Config Free Government STAC Catalogs</h3>
+            <p class="card-body">
+              Works instantly out of the box with zero API keys required. Queries AWS Earth Search, NASA CMR, and Copernicus public STAC endpoints for Sentinel-2, Landsat 8/9, and Copernicus DEM. Optional CDSE credentials for direct full-granule downloads.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">STAC API v1.0.0 • SpatioTemporal Asset Catalogs</span>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">📡</div>
+            <h3 class="card-title">Cloud-Native COG Subsetting</h3>
+            <p class="card-body">
+              Never download 1GB satellite granules again. Using GDAL <code>/vsicurl/</code> range requests, <code>eo-mcp</code> extracts only the exact bounding box pixels of your farm, city, or river in seconds.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">HTTP Range Reads • 98% Bandwidth Reduction</span>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">🌊</div>
+            <h3 class="card-title">Sentinel-1 Radar SAR (All-Weather)</h3>
+            <p class="card-body">
+              Penetrate clouds and storm covers with synthetic aperture radar. Automatic backscatter amplitude/dB calibration and thresholding for real-time flood inundation mapping.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">GRD • VV / VH Polarization</span>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">🏔️</div>
+            <h3 class="card-title">Copernicus DEM 30m Global Elevation</h3>
+            <p class="card-body">
+              Instant terrain profiling, slope calculation, aspect, and hillshade anywhere on Earth from the gold-standard Copernicus GLO-30 dataset.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">GLO-30 • 30m Resolution</span>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">🐍</div>
+            <h3 class="card-title">Agentic Geospatial Python Sandbox</h3>
+            <p class="card-body">
+              Autonomous agents can write and execute custom <code>rasterio</code>, <code>xarray</code>, and <code>geopandas</code> scripts on demand when complex custom spatial logic is needed.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">Safe Execution • Pre-injected EO Libraries</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture Section -->
+  <section id="architecture" class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-label">System Architecture</span>
+        <h2 class="section-title">How eo-mcp Bridges Agents to Orbit</h2>
+        <p class="section-desc">
+          Universal Model Context Protocol interface between conversational reasoning models and petabytes of cloud-native geospatial data.
+        </p>
+      </div>
+
+      <div class="arch-box">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <span style="font-family: var(--font-mono); font-size: 13px; color: var(--accent);">CLIENT-SERVER ARCHITECTURE OVER STDIO / SSE</span>
+        </div>
+
+        <div class="arch-flow">
+          <div class="arch-node">
+            <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+            <strong style="display: block; font-size: 16px; margin-bottom: 6px;">AI Agent Clients</strong>
+            <p style="font-size: 12px; color: #9ca3af;">Claude Desktop, Cursor, Antigravity, Open WebUI, AutoGen, CrewAI</p>
+          </div>
+
+          <div class="arch-arrow">➔</div>
+
+          <div class="arch-node" style="border-color: var(--accent); background: #064e3b33;">
+            <div style="font-size: 24px; margin-bottom: 8px;">🛰️</div>
+            <strong style="display: block; font-size: 16px; margin-bottom: 6px; color: var(--accent);">eo-mcp Server</strong>
+            <p style="font-size: 12px; color: #9ca3af;">FastMCP • Catalog Router • COG Window Streamer • Band Math</p>
+          </div>
+
+          <div class="arch-arrow">➔</div>
+
+          <div class="arch-node">
+            <div style="font-size: 24px; margin-bottom: 8px;">🌐</div>
+            <strong style="display: block; font-size: 16px; margin-bottom: 6px;">Free Government Clouds</strong>
+            <p style="font-size: 12px; color: #9ca3af;">Copernicus CDSE, AWS Earth Search, NASA CMR, Planetary Computer</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Section -->
+  <section id="comparison" class="section" style="background: var(--paper-warm);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-label">Vendor Independence</span>
+        <h2 class="section-title">Open Standards vs. Proprietary Dashboards</h2>
+        <p class="section-desc">
+          Compare <code>eo-mcp</code> against closed, locked-in satellite agent platforms.
+        </p>
+      </div>
+
+      <div class="compare-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>eo-mcp (Open Source)</th>
+              <th>Planet Labs Agent Dashboard</th>
+              <th>Google Earth Engine</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Open Model Context Protocol</strong></td>
+              <td><span class="check">✓ Standard MCP (JSON-RPC)</span></td>
+              <td><span class="cross">✗ Closed Proprietary UI</span></td>
+              <td><span class="cross">✗ Proprietary API</span></td>
+            </tr>
+            <tr>
+              <td><strong>Client Interoperability</strong></td>
+              <td><span class="check">✓ Claude, Cursor, Any Agent</span></td>
+              <td><span class="cross">✗ Locked to Planet Platform</span></td>
+              <td><span class="cross">✗ Locked to GEE Console</span></td>
+            </tr>
+            <tr>
+              <td><strong>Data Access Cost</strong></td>
+              <td><span class="check">✓ 100% Free Public Gov Data</span></td>
+              <td><span class="cross">✗ High Enterprise Paywall</span></td>
+              <td>Commercial tiers apply</td>
+            </tr>
+            <tr>
+              <td><strong>Cloud-Native COG Streaming</strong></td>
+              <td><span class="check">✓ Native Windowed HTTP Reads</span></td>
+              <td>Proprietary streaming</td>
+              <td>Proprietary tiling</td>
+            </tr>
+            <tr>
+              <td><strong>Custom Python Script Execution</strong></td>
+              <td><span class="check">✓ Full In-Agent Execution</span></td>
+              <td><span class="cross">✗ Fixed UI Prompts</span></td>
+              <td>Code Editor / EE Python</td>
+            </tr>
+            <tr>
+              <td><strong>License</strong></td>
+              <td><span class="check">✓ Apache 2.0 (Open Source)</span></td>
+              <td><span class="cross">✗ Proprietary Closed Source</span></td>
+              <td><span class="cross">✗ Proprietary Closed Source</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quickstart Section -->
+  <section id="quickstart" class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-label">Instant Setup</span>
+        <h2 class="section-title">Connect your agent in 60 seconds</h2>
+        <p class="section-desc">
+          Add <code>eo-mcp</code> to your favorite AI environment with zero configuration.
+        </p>
+      </div>
+
+      <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+        <!-- Claude Desktop Config -->
+        <div style="background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <strong style="font-size: 16px;">Claude Desktop Configuration (claude_desktop_config.json)</strong>
+            <button class="copy-btn" onclick="copyClaudeConfig(this)">Copy JSON</button>
+          </div>
+          <pre style="background: #18181b; color: #f4f4f5; padding: 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; overflow-x: auto;"><code id="claude-json">{
+  "mcpServers": {
+    "eo-mcp": {
+      "command": "uvx",
+      "args": ["eo-mcp"]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <!-- Cursor Configuration -->
+        <div style="background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <strong style="font-size: 16px;">Cursor IDE Setup</strong>
+            <button class="copy-btn" onclick="copyText('uvx eo-mcp', this)">Copy Command</button>
+          </div>
+          <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 10px;">
+            Go to <strong>Settings &gt; Cursor Settings &gt; Features &gt; MCP</strong>, click <strong>+ Add New MCP Server</strong>, name it <code>eo-mcp</code>, and set command to <code>uvx eo-mcp</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section" style="background: var(--paper-warm);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-label">Questions &amp; Answers</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary>Do I need an account or API key to use eo-mcp?</summary>
+          <p>
+            No! Out of the box, <code>eo-mcp</code> queries public open data hosted on AWS Earth Search, Microsoft Planetary Computer, and NASA CMR STAC without requiring any login or credentials. If you want direct bulk downloads from the official Copernicus Data Space Ecosystem (CDSE), you can optionally provide your free CDSE username and password.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>How does windowed COG streaming save bandwidth?</summary>
+          <p>
+            Standard satellite scenes are 500MB to 1.5GB each. When an agent requests NDVI or imagery for a specific city or field polygon, <code>eo-mcp</code> reads the Cloud Optimized GeoTIFF (COG) header and fetches only the byte ranges corresponding to that bounding box over HTTP. Typical requests transfer only 2 to 5 MB instead of a gigabyte.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Which satellite collections are supported?</summary>
+          <p>
+            V1 supports Sentinel-2 Level-2A (surface reflectance), Landsat 8/9 Collection 2 Level-2, Copernicus DEM GLO-30 (global elevation), Sentinel-1 GRD (radar backscatter for flood detection), Sentinel-5P TROPOMI (atmospheric NO2/aerosol), and MODIS/VIIRS.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Can I use this commercially?</summary>
+          <p>
+            Yes! <code>eo-mcp</code> is licensed under the permissive Apache License 2.0. You are free to build proprietary agentic workflows, enterprise platforms, or commercial tools on top of it.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink);">
+        <div class="brand-icon" style="width: 22px; height: 22px; font-size: 11px;">🛰️</div>
+        <span>eo-mcp</span>
+        <span style="font-weight: normal; color: var(--ink-faint); margin-left: 8px;">— The Open Earth Observation Protocol</span>
+      </div>
+
+      <ul class="footer-links">
+        <li><a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener">GitHub Repository</a></li>
+        <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Specification</a></li>
+        <li><a href="https://dataspace.copernicus.eu" target="_blank" rel="noopener">Copernicus Data Space</a></li>
+        <li><a href="https://stacspec.org" target="_blank" rel="noopener">STAC Spec</a></li>
+      </ul>
+
+      <div>
+        Apache-2.0 License • Founded by Dr. M. Anwar Sounny-Slitine &amp; Sri Varshini Budi
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text);
+      const original = btn.innerText;
+      btn.innerText = "Copied!";
+      btn.style.background = "#22c55e";
+      btn.style.color = "#fff";
+      setTimeout(() => {
+        btn.innerText = original;
+        btn.style.background = "";
+        btn.style.color = "";
+      }, 2000);
+    }
+
+    function copyClaudeConfig(btn) {
+      const code = document.getElementById("claude-json").innerText;
+      copyText(code, btn);
+    }
+
+    const demoScenarios = {
+      ndvi: {
+        bg: "linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)",
+        sensor: "SENTINEL-2 L2A (10m)",
+        coords: "AOI: [39.38, -0.42, 39.52, -0.31]",
+        hudTitle: "VEGETATION HEALTH INDEX (NDVI)",
+        hudStat: "0.74 ± 0.08",
+        hudDesc: "Cloud cover: 1.2% • Windowed COG Range Stream: 1.4s",
+        userQuery: "Check crop vigor and NDVI anomalies across Huerta de Valencia for the past 14 days.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"calculate_spectral_index"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"collection"</span>: <span class="json-str">"sentinel-2-l2a"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"index"</span>: <span class="json-str">"NDVI"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"bbox"</span>: [-0.42, 39.38, -0.31, 39.52],<br>
+&nbsp;&nbsp;<span class="json-key">"max_cloud_cover"</span>: <span class="json-num">15</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> High photosynthetic activity detected in citrus orchards. Bounding box extracted in 1.4s using HTTP range requests from AWS Earth Search archive.`
+      },
+      sar: {
+        bg: "linear-gradient(135deg, #1e1b4b 0%, #1e3a8a 50%, #0284c7 100%)",
+        sensor: "SENTINEL-1 GRD (C-BAND SAR)",
+        coords: "AOI: [29.85, -95.50, 30.10, -95.20]",
+        hudTitle: "RADAR FLOOD INUNDATION",
+        hudStat: "18.4% Area Flooded",
+        hudDesc: "All-weather cloud penetration • VV/VH backscatter &lt; -16 dB",
+        userQuery: "Detect surface water expansion during hurricane rainfall using radar backscatter.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"detect_water_sar"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"bbox"</span>: [-95.50, 29.85, -95.20, 30.10],<br>
+&nbsp;&nbsp;<span class="json-key">"threshold_db"</span>: <span class="json-num">-16.0</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"polarization"</span>: <span class="json-str">"VV"</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Cloud cover was 100% optical overcast, but Sentinel-1 radar penetrated cloud ceiling, identifying 4,200 hectares of newly submerged land.`
+      },
+      dem: {
+        bg: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #d97706 100%)",
+        sensor: "COPERNICUS DEM GLO-30 (30m)",
+        coords: "AOI: [45.80, 6.80, 45.95, 6.95]",
+        hudTitle: "ELEVATION & SLOPE PROFILE",
+        hudStat: "4,808m Peak Elevation",
+        hudDesc: "Mont Blanc Massif • Mean Slope: 34.2° • Gold standard terrain",
+        userQuery: "Extract digital elevation profile and slope gradient for avalanche risk assessment.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"get_elevation_profile"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"bbox"</span>: [6.80, 45.80, 6.95, 45.95],<br>
+&nbsp;&nbsp;<span class="json-key">"calculate_slope"</span>: <span class="json-str">true</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> 3D surface grid computed with zero local elevation files stored. Streamed Copernicus DEM GLO-30 tile over HTTP.`
+      },
+      script: {
+        bg: "linear-gradient(135deg, #18181b 0%, #27272a 50%, #3f3f46 100%)",
+        sensor: "PYTHON GEOSPATIAL SANDBOX",
+        coords: "Virtual Sandbox Context",
+        hudTitle: "AGENTIC SCRIPT EXECUTION",
+        hudStat: "200 OK • Processed",
+        hudDesc: "rasterio + xarray + geopandas pre-injected in memory",
+        userQuery: "Write and execute a custom script to compute Normalized Burn Ratio (NBR) and delta-NBR.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"run_geospatial_script"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"script"</span>: <span class="json-str">"import rasterio\nimport numpy as np\n# Custom band math..."</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Script executed in isolated sandbox. Outputted burn severity classification GeoTIFF and returned color-coded histogram to client.`
+      }
+    };
+
+    function switchDemo(key) {
+      const data = demoScenarios[key];
+      if (!data) return;
+
+      document.querySelectorAll(".stage-tab").forEach(tab => tab.classList.remove("active"));
+      event.target.classList.add("active");
+
+      document.getElementById("demo-bg").style.background = data.bg;
+      document.getElementById("demo-sensor").innerText = data.sensor;
+      document.getElementById("demo-coords").innerText = data.coords;
+      document.getElementById("demo-hud-title").innerText = data.hudTitle;
+      document.getElementById("demo-hud-stat").innerText = data.hudStat;
+      document.getElementById("demo-hud-desc").innerText = data.hudDesc;
+      document.getElementById("demo-user-query").innerText = data.userQuery;
+      document.getElementById("demo-mcp-code").innerHTML = data.toolCall;
+      document.getElementById("demo-agent-analysis").innerHTML = data.analysis;
+    }
+  </script>
+</body>
+</html>
