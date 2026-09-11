@@ -16,7 +16,7 @@ Plugs directly into **Claude Desktop**, **Cursor**, **Codex**, **Antigravity**, 
 [Website & Live Interactive Demo](https://eo-mcp.github.io/) • [Quickstart](#quickstart) • [Tools Reference](#tools-reference) • [Architecture](#architecture)
 
 <p align="center">
-  <img src="assets/hero-earth.gif" alt="eo-mcp Planetary Earth Observation Live ISS Orbital Telemetry" width="720" style="max-width: 100%; border-radius: 8px;" />
+  <img src="assets/hero-earth.gif" alt="eo-mcp — Autonomous Planetary Earth Observation Protocol" width="720" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
 </div>
