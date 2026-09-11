@@ -264,32 +264,22 @@
       color: #fff;
     }
 
-    /* Hero Section */
+    /* Hero Section — Engineering Calculation Pad Styling */
     .hero {
-      padding: 80px 0 60px;
+      padding: 85px 0 65px;
       text-align: center;
       position: relative;
-      overflow: hidden;
-    }
-    .hero-ambient-wrap {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      max-width: 1100px;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.16;
-      filter: saturate(1.2) contrast(1.1);
-      mask-image: radial-gradient(ellipse 65% 55% at 50% 45%, black 20%, transparent 80%);
-      -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 45%, black 20%, transparent 80%);
-    }
-    .hero-ambient-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      background-color: var(--canvas);
+      background-image: 
+        /* Major technical quad lines (80px) */
+        linear-gradient(to right, rgba(34, 197, 94, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(34, 197, 94, 0.08) 1px, transparent 1px),
+        /* Minor millimeter subdivisions (16px) */
+        linear-gradient(to right, rgba(20, 20, 19, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(20, 20, 19, 0.035) 1px, transparent 1px);
+      background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+      background-position: center top;
+      border-bottom: 1px solid var(--line);
     }
     .hero-content {
       position: relative;
@@ -494,16 +484,131 @@
       pointer-events: none;
       z-index: 2;
     }
-    .viewport-reticle {
+    /* Engineering Paper Grid & Cartographic Framing */
+    .viewport-eng-grid {
       position: absolute;
       inset: 0;
       pointer-events: none;
       z-index: 2;
-      background: 
-        radial-gradient(circle at center, transparent 90px, rgba(34, 197, 94, 0.08) 91px, transparent 92px),
-        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 36px 36px, 36px 36px;
+      background-image: 
+        /* Major technical quad lines (64px) */
+        linear-gradient(to right, rgba(34, 197, 94, 0.22) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(34, 197, 94, 0.22) 1px, transparent 1px),
+        /* Minor millimeter subdivisions (16px) */
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 64px 64px, 64px 64px, 16px 16px, 16px 16px;
+    }
+
+    .viewport-neatline {
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(34, 197, 94, 0.28);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .neatline-corner {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-color: var(--accent);
+      border-style: solid;
+    }
+    .neatline-corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .neatline-corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .neatline-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .neatline-corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    .viewport-ruler-top {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: rgba(34, 197, 94, 0.65);
+      pointer-events: none;
+      z-index: 3;
+      letter-spacing: 0.05em;
+    }
+
+    /* Engineering Title Block Stamp */
+    .eng-title-block {
+      background: rgba(10, 16, 13, 0.88);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-family: var(--font-mono);
+      text-align: left;
+    }
+    .eng-block-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+      padding-bottom: 2px;
+    }
+    .eng-meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 8.5px;
+      color: #a1a1aa;
+      line-height: 1.35;
+    }
+    .eng-meta-row span.lbl {
+      color: rgba(34, 197, 94, 0.85);
+      font-weight: 600;
+    }
+
+    /* Scale & North Indicator */
+    .eng-scale-compass {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+    }
+    .eng-north {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-weight: 700;
+      font-size: 9px;
+      color: var(--accent);
+      background: rgba(0, 0, 0, 0.45);
+      padding: 3px 6px;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 4px;
+    }
+    .eng-scale {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .eng-scale-bar {
+      display: flex;
+      width: 56px;
+      height: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    .eng-scale-bar .bar-seg { flex: 1; }
+    .eng-scale-bar .bar-seg.dark { background: #fff; }
+    .eng-scale-bar .bar-seg.light { background: rgba(34, 197, 94, 0.4); }
+    .eng-scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5px;
+      color: #a1a1aa;
     }
     .viewport-top {
       position: relative;
@@ -914,11 +1019,6 @@
 
   <!-- Hero Section -->
   <section class="hero">
-    <div class="hero-ambient-wrap" aria-hidden="true">
-      <video class="hero-ambient-video" autoplay loop muted playsinline poster="assets/hero-earth-poster.jpg">
-        <source src="assets/hero-earth.mp4" type="video/mp4">
-      </video>
-    </div>
     <div class="container hero-content">
       <div class="hero-badge">
         <span class="pulse-dot"></span>
@@ -980,18 +1080,32 @@
       </div>
 
       <div class="stage-body">
-        <!-- Visual Simulation Viewport -->
+        <!-- Visual Simulation Viewport with Engineering Paper Aesthetic -->
         <div class="visual-viewport" id="viewport-container">
           <video id="demo-video" class="viewport-video" autoplay loop muted playsinline poster="assets/hero-earth-poster.jpg" style="filter: saturate(2) contrast(1.2) hue-rotate(-25deg); opacity: 0.55;">
             <source src="assets/hero-earth.mp4" type="video/mp4">
           </video>
           <div class="viewport-canvas" id="demo-bg" style="background: linear-gradient(135deg, rgba(6, 78, 59, 0.7) 0%, rgba(4, 120, 87, 0.7) 50%, rgba(16, 185, 129, 0.7) 100%);"></div>
-          <div class="viewport-reticle"></div>
+          
+          <!-- Engineering Paper Grid & Drafting Neatline -->
+          <div class="viewport-eng-grid" aria-hidden="true"></div>
+          <div class="viewport-neatline" aria-hidden="true">
+            <div class="neatline-corner tl"></div>
+            <div class="neatline-corner tr"></div>
+            <div class="neatline-corner bl"></div>
+            <div class="neatline-corner br"></div>
+          </div>
+          <div class="viewport-ruler-top" aria-hidden="true">
+            <span>-0°25'W</span>
+            <span>-0°22'W</span>
+            <span>-0°19'W</span>
+            <span>-0°16'W</span>
+          </div>
           <div class="viewport-overlay"></div>
 
           <div class="viewport-top">
             <span class="sensor-tag" id="demo-sensor">SENTINEL-2 L2A (10m)</span>
-            <span class="live-coords" id="demo-coords">AOI: [39.38, -0.42, 39.52, -0.31]</span>
+            <span class="live-coords" id="demo-coords">AOI: [39.38, -0.42, 39.52, -0.31] • EPSG:32630</span>
           </div>
 
           <div class="viewport-center">
@@ -1003,8 +1117,43 @@
           </div>
 
           <div class="viewport-bottom">
-            <span id="demo-math">Band Math: (B08 - B04) / (B08 + B04)</span>
-            <span style="color: var(--accent);">✓ Zero-Download COG Streaming</span>
+            <div class="eng-scale-compass">
+              <div class="eng-north">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="12,2 19,21 12,17 5,21"/>
+                </svg>
+                <span>TRUE N</span>
+              </div>
+              <div class="eng-scale">
+                <div class="eng-scale-bar">
+                  <span class="bar-seg dark"></span>
+                  <span class="bar-seg light"></span>
+                  <span class="bar-seg dark"></span>
+                  <span class="bar-seg light"></span>
+                </div>
+                <div class="eng-scale-labels">
+                  <span>0</span>
+                  <span>2.5km</span>
+                  <span>5km</span>
+                </div>
+              </div>
+              <span id="demo-math" style="font-size: 11px; color: #d4d4d8; margin-left: 8px;">Band Math: (B08 - B04) / (B08 + B04)</span>
+            </div>
+
+            <div class="eng-title-block">
+              <div class="eng-block-head">
+                <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: inline-block;"></span>
+                <span>CALCULATED FIELD SURVEY // EO-MCP</span>
+              </div>
+              <div class="eng-meta-row">
+                <span><span class="lbl">CRS:</span> EPSG:32630</span>
+                <span><span class="lbl">DATUM:</span> WGS 84</span>
+              </div>
+              <div class="eng-meta-row">
+                <span><span class="lbl">STREAM:</span> HTTP 206 COG</span>
+                <span><span class="lbl">STATUS:</span> CALIBRATED</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1450,7 +1599,8 @@
         videoFilter: "saturate(2) contrast(1.2) hue-rotate(-25deg)",
         videoOpacity: "0.55",
         sensor: "SENTINEL-2 L2A (10m)",
-        coords: "AOI: [39.38, -0.42, 39.52, -0.31]",
+        coords: "AOI: [39.38, -0.42, 39.52, -0.31] • EPSG:32630",
+        crs: "EPSG:32630",
         hudTitle: "VEGETATION HEALTH INDEX (NDVI)",
         hudStat: "0.74 ± 0.08",
         hudDesc: "Cloud cover: 1.2% • Windowed COG Range Stream: 1.4s",
@@ -1473,7 +1623,8 @@
         videoFilter: "contrast(2.2) grayscale(0.6) hue-rotate(185deg)",
         videoOpacity: "0.45",
         sensor: "SENTINEL-1 GRD (C-BAND SAR)",
-        coords: "AOI: [29.85, -95.50, 30.10, -95.20]",
+        coords: "AOI: [29.85, -95.50, 30.10, -95.20] • EPSG:32615",
+        crs: "EPSG:32615",
         hudTitle: "RADAR FLOOD INUNDATION",
         hudStat: "18.4% Area Flooded",
         hudDesc: "All-weather cloud penetration • VV/VH backscatter &lt; -16 dB",
@@ -1495,7 +1646,8 @@
         videoFilter: "contrast(1.6) sepia(0.8) hue-rotate(-35deg)",
         videoOpacity: "0.4",
         sensor: "COPERNICUS DEM GLO-30 (30m)",
-        coords: "AOI: [45.80, 6.80, 45.95, 6.95]",
+        coords: "AOI: [45.80, 6.80, 45.95, 6.95] • EPSG:32632",
+        crs: "EPSG:32632",
         hudTitle: "ELEVATION & SLOPE PROFILE",
         hudStat: "4,808m Peak Elevation",
         hudDesc: "Mont Blanc Massif • Mean Slope: 34.2° • Gold standard terrain",
@@ -1516,7 +1668,8 @@
         videoFilter: "grayscale(1) brightness(0.3)",
         videoOpacity: "0.25",
         sensor: "PYTHON GEOSPATIAL SANDBOX",
-        coords: "Virtual Sandbox Context",
+        coords: "Virtual Sandbox Context • EPSG:4326",
+        crs: "EPSG:4326",
         hudTitle: "AGENTIC SCRIPT EXECUTION",
         hudStat: "200 OK • Processed",
         hudDesc: "rasterio + xarray + geopandas pre-injected in memory",
@@ -1554,6 +1707,9 @@
       document.getElementById("demo-hud-desc").innerText = data.hudDesc;
       if (document.getElementById("demo-math")) {
         document.getElementById("demo-math").innerText = data.math;
+      }
+      if (document.getElementById("demo-crs")) {
+        document.getElementById("demo-crs").innerText = data.crs || "EPSG:32630";
       }
       document.getElementById("demo-user-query").innerText = data.userQuery;
       document.getElementById("demo-mcp-code").innerHTML = data.toolCall;
