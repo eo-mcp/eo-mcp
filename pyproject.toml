@@ -9,8 +9,7 @@ description = "The Open Source Model Context Protocol (MCP) for Planetary Earth 
 readme = "README.md"
 license = "Apache-2.0"
 authors = [
-    { name = "M. Anwar Sounny-Slitine, PhD", email = "anwar@geographerscraft.com" },
-    { name = "Sri Varshini Budi" }
+    { name = "M. Anwar Sounny-Slitine, PhD", email = "anwar@geographerscraft.com" }
 ]
 requires-python = ">=3.10"
 keywords = [

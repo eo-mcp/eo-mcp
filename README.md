@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛰️ `eo-mcp`
+# `eo-mcp`
 
 ### The Open Source Model Context Protocol (MCP) for Planetary Earth Observation
 
@@ -11,7 +11,7 @@
 [![Zero Config](https://img.shields.io/badge/Zero--Config-Free%20Gov%20APIs-emerald.svg)](#free-government-catalogs)
 
 **Empower AI agents to autonomously discover, stream, and compute satellite analytics from free government archives.**  
-Plugs directly into **Claude Desktop**, **Cursor**, **Antigravity**, and autonomous Python agent loops with zero vendor lock-in and zero proprietary API costs.
+Plugs directly into **Claude Desktop**, **Cursor**, **Codex**, **Antigravity**, and autonomous Python agent loops with zero vendor lock-in and zero proprietary API costs.
 
 [Website & Live Interactive Demo](https://eo-mcp.github.io/) • [Quickstart](#quickstart) • [Tools Reference](#tools-reference) • [Architecture](#architecture)
 
@@ -19,7 +19,7 @@ Plugs directly into **Claude Desktop**, **Cursor**, **Antigravity**, and autonom
 
 ---
 
-## 🌍 Why `eo-mcp`?
+## Why `eo-mcp`?
 
 Proprietary platforms (like Planet Labs' agentic dashboard or Google Earth Engine) build walled gardens that trap users in closed user interfaces and expensive recurring subscription paywalls. 
 
@@ -31,7 +31,7 @@ Proprietary platforms (like Planet Labs' agentic dashboard or Google Earth Engin
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### 1. Instant Run with `uvx` (Recommended)
 
@@ -52,7 +52,7 @@ eo-mcp run
 
 ### 2. Configure Your AI Agent
 
-#### 🟣 Claude Desktop
+#### Claude Desktop
 Add this to your `claude_desktop_config.json`:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -68,7 +68,7 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-#### ⚡ Cursor IDE
+#### Cursor IDE
 1. Open **Cursor Settings** (`Ctrl+Shift+J` or `Cmd+Shift+J`).
 2. Navigate to **Features** > **MCP**.
 3. Click **+ Add New MCP Server**:
@@ -76,9 +76,30 @@ Add this to your `claude_desktop_config.json`:
    - **Type**: `command`
    - **Command**: `uvx eo-mcp`
 
+#### Codex
+Register `eo-mcp` into your Codex environment with a single command:
+
+```bash
+codex mcp add eo-mcp -- uvx eo-mcp
+```
+
+#### Google Antigravity
+Add to your workspace or global `.antigravity/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "eo-mcp": {
+      "command": "uvx",
+      "args": ["eo-mcp"]
+    }
+  }
+}
+```
+
 ---
 
-## 🛰️ Supported Satellite Collections
+## Supported Satellite Collections
 
 | Mission / Sensor | Resolution | Spectral Domain | Primary Applications | Free STAC Source |
 | :--- | :--- | :--- | :--- | :--- |
@@ -91,7 +112,7 @@ Add this to your `claude_desktop_config.json`:
 
 ---
 
-## 🧰 Tools Reference
+## Tools Reference
 
 `eo-mcp` exposes high-level turnkey tools designed specifically for LLM reasoning and agent tool use:
 
@@ -113,14 +134,14 @@ Returns summary statistics (mean, min, max, std), histogram, and optional GeoTIF
 Queries the gold-standard Copernicus DEM GLO-30 (30m) dataset. Extracts minimum/maximum/mean elevation, terrain slope gradients, and aspect orientation without downloading the global raster.
 
 ### 5. `detect_water_sar(bbox: list, date: str, threshold_db: float = -16.0) -> dict`
-Extracts Sentinel-1 C-Band SAR radar backscatter ($ \sigma^0 $ in dB). Radar signals scatter away from calm surface water, producing distinct dark backscatter signatures unaffected by optical cloud cover.
+Extracts Sentinel-1 C-Band SAR radar backscatter (sigma0 in dB). Radar signals scatter away from calm surface water, producing distinct dark backscatter signatures unaffected by optical cloud cover.
 
 ### 6. `run_geospatial_script(script: str) -> dict`
 Allows autonomous coding agents to write and execute arbitrary Python geospatial workflows in a sandbox pre-loaded with `rasterio`, `numpy`, `shapely`, `xarray`, and `pystac`.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -165,7 +186,7 @@ flowchart TD
 
 ---
 
-## ⚡ Cloud-Native COG Streaming (How it works)
+## Cloud-Native COG Streaming (How it works)
 
 Traditional GIS downloads entire satellite scenes (often 800MB to 1.5GB) before clipping to the study area. When interacting with an AI agent over the internet, downloading gigabytes of data per query creates latency and exhausts disk space.
 
@@ -177,7 +198,7 @@ Traditional GIS downloads entire satellite scenes (often 800MB to 1.5GB) before 
 
 ---
 
-## 🔐 Optional Authentication
+## Optional Authentication
 
 No API keys are required for standard operation. However, if you require full-granule downloads from the official Copernicus Data Space Ecosystem (CDSE) or NASA Earthdata, provide them in your environment:
 
@@ -189,14 +210,14 @@ export EARTHDATA_TOKEN="your-nasa-token"
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-`eo-mcp` is an open-source project founded by **Dr. M. Anwar Sounny-Slitine** and **Sri Varshini Budi** to establish an open standard for agentic Earth Observation.
+`eo-mcp` is an open-source project by [sounny.com](https://sounny.com) to establish an open standard for agentic Earth Observation.
 
-Contributions are warmly welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) to get started with local development using `uv`.
+Contributions are warmly welcome!
 
 ---
 
-## 📜 License
+## License
 
 Licensed under the **Apache License, Version 2.0**. See [LICENSE](LICENSE) for details.

@@ -113,7 +113,13 @@
 
     /* Top Announcement Bar */
     .topbar {
-      border-bottom: 1px solid var(--line-soft);
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: rgba(250, 250, 250, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
       padding: 9px 0;
       font-size: 11px;
       letter-spacing: 0.14em;
@@ -148,9 +154,9 @@
     /* Floating Navigation */
     .site-nav {
       position: sticky;
-      top: 14px;
+      top: 44px;
       z-index: 50;
-      margin-top: 12px;
+      margin-top: 10px;
     }
     .nav-pill {
       background: rgba(255, 255, 255, 0.82);
@@ -868,7 +874,7 @@
       </div>
 
       <p class="hero-subtitle">
-        Empower AI agents to autonomously discover, stream, and compute satellite analytics from free government archives. Plug directly into Claude Desktop, Cursor, and custom Python agents with zero proprietary lock-in.
+        Empower AI agents to autonomously discover, stream, and compute satellite analytics from free government archives. Plug directly into Claude Desktop, Cursor, Codex, Antigravity, and autonomous Python agents with zero proprietary lock-in.
       </p>
 
       <div class="hero-ctas">
@@ -983,7 +989,13 @@
         <!-- Card 1 -->
         <div class="bento-card wide">
           <div>
-            <div class="card-icon">⚡</div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </div>
             <h3 class="card-title">Zero-Config Free Government STAC Catalogs</h3>
             <p class="card-body">
               Works instantly out of the box with zero API keys required. Queries AWS Earth Search, NASA CMR, and Copernicus public STAC endpoints for Sentinel-2, Landsat 8/9, and Copernicus DEM. Optional CDSE credentials for direct full-granule downloads.
@@ -997,7 +1009,16 @@
         <!-- Card 2 -->
         <div class="bento-card">
           <div>
-            <div class="card-icon">📡</div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7V4h3"></path>
+                <path d="M20 7V4h-3"></path>
+                <path d="M4 17v3h3"></path>
+                <path d="M20 17v3h-3"></path>
+                <rect x="7" y="7" width="10" height="10" rx="1.5"></rect>
+                <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+              </svg>
+            </div>
             <h3 class="card-title">Cloud-Native COG Subsetting</h3>
             <p class="card-body">
               Never download 1GB satellite granules again. Using GDAL <code>/vsicurl/</code> range requests, <code>eo-mcp</code> extracts only the exact bounding box pixels of your farm, city, or river in seconds.
@@ -1011,7 +1032,14 @@
         <!-- Card 3 -->
         <div class="bento-card">
           <div>
-            <div class="card-icon">🌊</div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10"></path>
+                <path d="M12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6"></path>
+                <path d="M12 10a2 2 0 0 1 2 2 2 2 0 0 1-2 2"></path>
+                <line x1="2" y1="12" x2="12" y2="12"></line>
+              </svg>
+            </div>
             <h3 class="card-title">Sentinel-1 Radar SAR (All-Weather)</h3>
             <p class="card-body">
               Penetrate clouds and storm covers with synthetic aperture radar. Automatic backscatter amplitude/dB calibration and thresholding for real-time flood inundation mapping.
@@ -1025,7 +1053,13 @@
         <!-- Card 4 -->
         <div class="bento-card">
           <div>
-            <div class="card-icon">🏔️</div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 20h20"></path>
+                <path d="m5 20 5-11 4 7 4-5 3 9"></path>
+                <path d="m8 13.5 2-4.5 4 7"></path>
+              </svg>
+            </div>
             <h3 class="card-title">Copernicus DEM 30m Global Elevation</h3>
             <p class="card-body">
               Instant terrain profiling, slope calculation, aspect, and hillshade anywhere on Earth from the gold-standard Copernicus GLO-30 dataset.
@@ -1039,7 +1073,12 @@
         <!-- Card 5 -->
         <div class="bento-card">
           <div>
-            <div class="card-icon">🐍</div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+            </div>
             <h3 class="card-title">Agentic Geospatial Python Sandbox</h3>
             <p class="card-body">
               Autonomous agents can write and execute custom <code>rasterio</code>, <code>xarray</code>, and <code>geopandas</code> scripts on demand when complex custom spatial logic is needed.
@@ -1071,15 +1110,29 @@
 
         <div class="arch-flow">
           <div class="arch-node">
-            <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+            <div style="margin: 0 auto 10px; width: 42px; height: 42px; border-radius: 10px; background: #374151; display: grid; place-items: center; color: #93c5fd;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                <circle cx="12" cy="5" r="2"></circle>
+                <path d="M12 7v4"></path>
+                <line x1="8" y1="16" x2="8" y2="16.01"></line>
+                <line x1="16" y1="16" x2="16" y2="16.01"></line>
+              </svg>
+            </div>
             <strong style="display: block; font-size: 16px; margin-bottom: 6px;">AI Agent Clients</strong>
-            <p style="font-size: 12px; color: #9ca3af;">Claude Desktop, Cursor, Antigravity, Open WebUI, AutoGen, CrewAI</p>
+            <p style="font-size: 12px; color: #9ca3af;">Claude Desktop, Cursor, Codex, Antigravity, Open WebUI, AutoGen, CrewAI</p>
           </div>
 
           <div class="arch-arrow">➔</div>
 
           <div class="arch-node" style="border-color: var(--accent); background: #064e3b33;">
-            <div style="font-size: 24px; margin-bottom: 8px;">🛰️</div>
+            <div style="margin: 0 auto 10px; width: 42px; height: 42px; border-radius: 10px; background: rgba(34, 197, 94, 0.2); display: grid; place-items: center; color: var(--accent);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+            </div>
             <strong style="display: block; font-size: 16px; margin-bottom: 6px; color: var(--accent);">eo-mcp Server</strong>
             <p style="font-size: 12px; color: #9ca3af;">FastMCP • Catalog Router • COG Window Streamer • Band Math</p>
           </div>
@@ -1087,7 +1140,11 @@
           <div class="arch-arrow">➔</div>
 
           <div class="arch-node">
-            <div style="font-size: 24px; margin-bottom: 8px;">🌐</div>
+            <div style="margin: 0 auto 10px; width: 42px; height: 42px; border-radius: 10px; background: #374151; display: grid; place-items: center; color: #38bdf8;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+              </svg>
+            </div>
             <strong style="display: block; font-size: 16px; margin-bottom: 6px;">Free Government Clouds</strong>
             <p style="font-size: 12px; color: #9ca3af;">Copernicus CDSE, AWS Earth Search, NASA CMR, Planetary Computer</p>
           </div>
@@ -1198,6 +1255,37 @@
             Go to <strong>Settings &gt; Cursor Settings &gt; Features &gt; MCP</strong>, click <strong>+ Add New MCP Server</strong>, name it <code>eo-mcp</code>, and set command to <code>uvx eo-mcp</code>.
           </p>
         </div>
+
+        <!-- Codex Setup -->
+        <div style="background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <strong style="font-size: 16px;">Codex (CLI &amp; Coding Agents)</strong>
+            <button class="copy-btn" onclick="copyText('codex mcp add eo-mcp -- uvx eo-mcp', this)">Copy Command</button>
+          </div>
+          <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 10px;">
+            Register <code>eo-mcp</code> into your Codex environment with a single command:
+          </p>
+          <pre style="background: #18181b; color: #f4f4f5; padding: 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; overflow-x: auto;"><code>codex mcp add eo-mcp -- uvx eo-mcp</code></pre>
+        </div>
+
+        <!-- Google Antigravity Setup -->
+        <div style="background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <strong style="font-size: 16px;">Google Antigravity IDE</strong>
+            <button class="copy-btn" onclick="copyClaudeConfig(this)">Copy JSON</button>
+          </div>
+          <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 10px;">
+            Add to your workspace or global <code>.antigravity/mcp.json</code>:
+          </p>
+          <pre style="background: #18181b; color: #f4f4f5; padding: 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; overflow-x: auto;"><code>{
+  "mcpServers": {
+    "eo-mcp": {
+      "command": "uvx",
+      "args": ["eo-mcp"]
+    }
+  }
+}</code></pre>
+        </div>
       </div>
     </div>
   </section>
@@ -1246,7 +1334,13 @@
   <footer>
     <div class="container footer-inner">
       <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink);">
-        <div class="brand-icon" style="width: 22px; height: 22px; font-size: 11px;">🛰️</div>
+        <div class="brand-icon" style="width: 24px; height: 24px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </div>
         <span>eo-mcp</span>
         <span style="font-weight: normal; color: var(--ink-faint); margin-left: 8px;">— The Open Earth Observation Protocol</span>
       </div>
@@ -1259,7 +1353,7 @@
       </ul>
 
       <div>
-        Apache-2.0 License • Founded by Dr. M. Anwar Sounny-Slitine &amp; Sri Varshini Budi
+        Apache-2.0 License • Project by <a href="https://sounny.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline; text-underline-offset: 3px; font-weight: 600;">sounny.com</a>
       </div>
     </div>
   </footer>
