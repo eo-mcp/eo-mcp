@@ -39,17 +39,18 @@ Proprietary platforms (like Planet Labs' agentic dashboard or Google Earth Engin
 
 ### 1. Instant Run with `uvx` (Recommended)
 
-No installation or virtualenv setup required:
+Run directly from GitHub with zero installation or virtualenv setup:
 
 ```bash
-uvx eo-mcp
+uvx --from git+https://github.com/eo-mcp/eo-mcp eo-mcp
 ```
 
-Or install via `pip`:
+Or install locally from source:
 
 ```bash
-pip install eo-mcp
-eo-mcp run
+git clone https://github.com/eo-mcp/eo-mcp.git
+cd eo-mcp
+uv run eo-mcp
 ```
 
 ---
@@ -66,7 +67,7 @@ Add this to your `claude_desktop_config.json`:
   "mcpServers": {
     "eo-mcp": {
       "command": "uvx",
-      "args": ["eo-mcp"]
+      "args": ["--from", "git+https://github.com/eo-mcp/eo-mcp", "eo-mcp"]
     }
   }
 }
@@ -78,13 +79,13 @@ Add this to your `claude_desktop_config.json`:
 3. Click **+ Add New MCP Server**:
    - **Name**: `eo-mcp`
    - **Type**: `command`
-   - **Command**: `uvx eo-mcp`
+   - **Command**: `uvx --from git+https://github.com/eo-mcp/eo-mcp eo-mcp`
 
 #### Codex
 Register `eo-mcp` into your Codex environment with a single command:
 
 ```bash
-codex mcp add eo-mcp -- uvx eo-mcp
+codex mcp add eo-mcp -- uvx --from git+https://github.com/eo-mcp/eo-mcp eo-mcp
 ```
 
 #### Google Antigravity
@@ -95,7 +96,7 @@ Add to your workspace or global `.antigravity/mcp.json`:
   "mcpServers": {
     "eo-mcp": {
       "command": "uvx",
-      "args": ["eo-mcp"]
+      "args": ["--from", "git+https://github.com/eo-mcp/eo-mcp", "eo-mcp"]
     }
   }
 }
@@ -222,6 +223,8 @@ Contributions are warmly welcome!
 
 ---
 
-## License
+## License & Legal
 
 Licensed under the **Apache License, Version 2.0**. See [LICENSE](LICENSE) for details.
+- [Privacy Policy](https://eo-mcp.github.io/privacy.html)
+- [Terms of Use](https://eo-mcp.github.io/terms.html)
