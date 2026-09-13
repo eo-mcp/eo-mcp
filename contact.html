@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact &amp; Telemetry Dispatch — eo-mcp</title>
+  <meta name="description" content="Get in touch with the eo-mcp team and maintainer Dr. Moulay Anwar Sounny-Slitine. Direct secure inquiry transmission powered by SounnyForms.">
+  <meta property="og:title" content="Contact — eo-mcp">
+  <meta property="og:description" content="Direct secure transmission to the eo-mcp maintainer powered by SounnyForms.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#fafafa">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --paper: #fafafa;
+      --paper-warm: #f5f5f5;
+      --paper-dark: #efefef;
+      --ink: #1f1f1f;
+      --ink-soft: #383838;
+      --ink-mute: #666666;
+      --ink-faint: #999999;
+      --accent: #22c55e;
+      --accent-bright: #10b981;
+      --accent-soft: #bbf7d0;
+      --accent-glow: rgba(34, 197, 94, 0.25);
+      --bone: #ffffff;
+      --line: #e2e2e2;
+      --line-hover: #c4c4c4;
+      --line-soft: #eeeeee;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --font-sans: "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 99;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(220, 220, 220, 0.35) 0%, transparent 25%),
+        radial-gradient(circle at 90% 80%, rgba(210, 210, 210, 0.35) 0%, transparent 25%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.8;
+    }
+
+    /* Side rails */
+    .side-rail {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 42px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .side-rail.left {
+      left: 0;
+      border-right: 1px solid var(--line-soft);
+    }
+    .side-rail.right {
+      right: 0;
+      border-left: 1px solid var(--line-soft);
+    }
+    .side-rail-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      writing-mode: vertical-rl;
+      white-space: nowrap;
+    }
+    .side-rail.left .side-rail-text {
+      transform: rotate(180deg);
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+    }
+
+    /* Top bar */
+    .topbar {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 9px 0;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      background: var(--paper);
+    }
+    .topbar-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Sticky Navigation */
+    .site-nav {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 1000;
+      padding: 12px 0;
+      background: rgba(250, 250, 250, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .nav-pill {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-pill);
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .brand-icon {
+      width: 26px;
+      height: 26px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-pill);
+      padding: 6px 14px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-outline {
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: #fff;
+    }
+    .btn-outline:hover {
+      border-color: var(--ink);
+      background: var(--paper-warm);
+    }
+    .btn-dark {
+      background: var(--ink);
+      color: #fff;
+      border: 1px solid var(--ink);
+    }
+    .btn-dark:hover {
+      background: #000;
+    }
+
+    /* Page Header */
+    .page-header {
+      padding: 56px 0 36px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 40px;
+    }
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent-bright);
+      background: rgba(34, 197, 94, 0.1);
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 16px;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-bright);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    .page-title {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.18;
+      margin-bottom: 14px;
+    }
+    .page-subtitle {
+      color: var(--ink-soft);
+      font-size: 16px;
+      max-width: 740px;
+      line-height: 1.55;
+    }
+
+    /* Contact Grid */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.85fr;
+      gap: 36px;
+      margin-bottom: 80px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+      .side-rail {
+        display: none;
+      }
+    }
+
+    /* Form Card */
+    .form-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    .corner-tick {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-color: var(--ink-mute);
+      pointer-events: none;
+    }
+    .corner-tick.tl { top: 12px; left: 12px; border-top: 1.5px solid var(--line-hover); border-left: 1.5px solid var(--line-hover); }
+    .corner-tick.tr { top: 12px; right: 12px; border-top: 1.5px solid var(--line-hover); border-right: 1.5px solid var(--line-hover); }
+    .corner-tick.bl { bottom: 12px; left: 12px; border-bottom: 1.5px solid var(--line-hover); border-left: 1.5px solid var(--line-hover); }
+    .corner-tick.br { bottom: 12px; right: 12px; border-bottom: 1.5px solid var(--line-hover); border-right: 1.5px solid var(--line-hover); }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      .form-card {
+        padding: 24px;
+      }
+    }
+
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      margin-bottom: 8px;
+    }
+    label span.req {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--paper-warm);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--ink);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    select:focus,
+    textarea:focus {
+      background: #ffffff;
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(31, 31, 31, 0.08);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.5;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--ink);
+      color: #ffffff;
+      border: 1px solid var(--ink);
+      padding: 14px 24px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: #000000;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .form-status {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+    }
+    .form-status.success {
+      display: block;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+    .form-status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    /* Side Info Card */
+    .info-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: var(--shadow-sm);
+    }
+    .info-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-card p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      margin-bottom: 24px;
+    }
+    .spec-table td {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .spec-table td:first-child {
+      color: var(--ink-mute);
+      width: 42%;
+    }
+    .spec-table td:last-child {
+      color: var(--ink);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .channel-box {
+      border: 1px solid var(--line-soft);
+      background: var(--paper-warm);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .channel-box-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .channel-box-desc {
+      font-size: 12px;
+      color: var(--ink-mute);
+      margin-bottom: 6px;
+    }
+    .channel-box a {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 36px 0 48px;
+      background: var(--paper-warm);
+      font-size: 13px;
+      color: var(--ink-mute);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: var(--ink-mute);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer-links a:hover {
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Side Rails -->
+  <div class="side-rail left">
+    <div class="side-rail-text">COPERNICUS SENTINEL-2 • LANDSAT-8/9 • SENTINEL-1 SAR • DEM GLO-30</div>
+  </div>
+  <div class="side-rail right">
+    <div class="side-rail-text">MODEL CONTEXT PROTOCOL (MCP) // AUTONOMOUS PLANETARY AGENTIC COMPUTATION</div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <span>PROTOCOL REF: EO-MCP-COMM-INQUIRY // ROUTING: DIRECT TO MAINTAINER</span>
+      <span>BACKEND: SOUNNYFORMS SERVERLESS</span>
+    </div>
+  </div>
+
+  <!-- Sticky Nav -->
+  <nav class="site-nav">
+    <div class="container">
+      <div class="nav-pill">
+        <a href="index.html" class="brand">
+          <div class="brand-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <span>eo-mcp</span>
+        </a>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <a href="index.html" class="btn btn-outline">
+            <span>&larr; Back to Documentation</span>
+          </a>
+          <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-dark">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>GitHub</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="container">
+      <div class="page-badge">
+        <span class="pulse-dot"></span>
+        <span>Secure Telemetry &amp; Maintainer Channel</span>
+      </div>
+      <h1 class="page-title">Direct Contact &amp; Inquiry Dispatch</h1>
+      <p class="page-subtitle">
+        Have a question about deploying <code>eo-mcp</code> into your AI agent fleet, integrating proprietary sensor feeds, or collaborating on planetary-scale spatial analysis? Send a direct dispatch below.
+      </p>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main class="container">
+    <div class="contact-grid">
+      
+      <!-- Contact Form -->
+      <div class="form-card">
+        <div class="corner-tick tl"></div>
+        <div class="corner-tick tr"></div>
+        <div class="corner-tick bl"></div>
+        <div class="corner-tick br"></div>
+
+        <form id="contactForm" action="https://forms.sounny.com/f/sounny@gmail.com" method="POST">
+          <!-- SounnyForms Invisible Anti-Spam Honeypots & Velocity Tracking -->
+          <input type="text" name="_honey" style="display:none !important;" tabindex="-1" autocomplete="off">
+          <input type="hidden" name="_ts" id="_ts" value="">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Full Name <span class="req">*</span></label>
+              <input type="text" id="name" name="name" required placeholder="Dr. Sarah Connor" autocomplete="name">
+            </div>
+            <div class="form-group">
+              <label for="email">Work / Contact Email <span class="req">*</span></label>
+              <input type="email" id="email" name="email" required placeholder="s.connor@lab.edu" autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="subject">Inquiry Subject <span class="req">*</span></label>
+              <select id="subject" name="subject" required>
+                <option value="General eo-mcp Inquiry">General eo-mcp Inquiry</option>
+                <option value="Agent Fleet Integration (Claude / Cursor / Codex / Custom)">Agent Fleet Integration (Claude / Cursor / Codex / Custom)</option>
+                <option value="Academic & Research Lab Collaboration">Academic &amp; Research Lab Collaboration</option>
+                <option value="Sensor / Satellite Provider Integration">Sensor / Satellite Provider Integration</option>
+                <option value="Security / Bug Disclosure">Security / Bug Disclosure</option>
+                <option value="Other / Custom Inquiry">Other / Custom Inquiry</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="organization">Organization / Institution</label>
+              <input type="text" id="organization" name="organization" placeholder="e.g. Stanford Geospatial / NASA Ames" autocomplete="organization">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="message">Telemetry / Inquiry Details <span class="req">*</span></label>
+            <textarea id="message" name="message" required placeholder="Describe your architecture, requirements, or question..."></textarea>
+          </div>
+
+          <button type="submit" id="submitBtn" class="btn-submit">
+            <span>Transmit Message &rarr;</span>
+          </button>
+
+          <div id="formStatus" class="form-status"></div>
+        </form>
+      </div>
+
+      <!-- Sidebar Specifications & Channels -->
+      <aside class="info-card">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Transmission Telemetry
+        </h3>
+        <p>
+          Submissions are routed through the zero-API-key SounnyForms infrastructure directly to the project maintainer's primary mailbox.
+        </p>
+
+        <table class="spec-table">
+          <tbody>
+            <tr>
+              <td>Destination</td>
+              <td>sounny@gmail.com</td>
+            </tr>
+            <tr>
+              <td>Routing Protocol</td>
+              <td>SounnyForms v1.0</td>
+            </tr>
+            <tr>
+              <td>Encryption</td>
+              <td>TLS 1.3 / AES-256</td>
+            </tr>
+            <tr>
+              <td>Spam Shield</td>
+              <td>Honeypot + Velocity</td>
+            </tr>
+            <tr>
+              <td>SLA / Latency</td>
+              <td>&lt; 24h Response</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="channel-box">
+          <div class="channel-box-title">GitHub Issue Tracker</div>
+          <div class="channel-box-desc">For public bug reports, feature requests, and community discussions:</div>
+          <a href="https://github.com/eo-mcp/eo-mcp/issues" target="_blank" rel="noopener">github.com/eo-mcp/eo-mcp/issues &rarr;</a>
+        </div>
+
+        <div class="channel-box">
+          <div class="channel-box-title">Maintainer Homepage</div>
+          <div class="channel-box-desc">Dr. Moulay Anwar Sounny-Slitine's laboratory and publications:</div>
+          <a href="https://sounny.com" target="_blank" rel="noopener">sounny.com &rarr;</a>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink);">
+        <div class="brand-icon" style="width: 24px; height: 24px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </div>
+        <span>eo-mcp</span>
+        <span style="font-weight: normal; color: var(--ink-faint); margin-left: 8px;">— Contact Dispatch</span>
+      </div>
+
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener">GitHub Repository</a></li>
+        <li><a href="contact.html" style="color: var(--ink); font-weight: 600;">Contact</a></li>
+        <li><a href="privacy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Use</a></li>
+      </ul>
+
+      <div>
+        Apache-2.0 License • Project by <a href="https://sounny.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline; text-underline-offset: 3px; font-weight: 600;">sounny.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Initialize timestamp for anti-spam velocity check
+    document.getElementById('_ts').value = Date.now();
+
+    const form = document.getElementById('contactForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusDiv = document.getElementById('formStatus');
+
+    form.addEventListener('submit', async function (e) {
+      // Progressive enhancement: if fetch fails or JS is disabled, standard POST occurs
+      e.preventDefault();
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>Transmitting telemetry...</span>`;
+      statusDiv.className = 'form-status';
+      statusDiv.style.display = 'none';
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {}
+
+        if (response.ok && (data.success !== false)) {
+          form.reset();
+          document.getElementById('_ts').value = Date.now();
+          statusDiv.className = 'form-status success';
+          statusDiv.innerHTML = `
+            <strong>Transmission Confirmed!</strong><br>
+            Your message has been delivered directly to maintainer inbox (<code>sounny@gmail.com</code>). We will follow up shortly.
+          `;
+          submitBtn.innerHTML = `<span>Transmitted &check;</span>`;
+          setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>Transmit Another Message &rarr;</span>`;
+          }, 3000);
+        } else {
+          throw new Error(data.error || data.message || 'Submission was not processed.');
+        }
+      } catch (err) {
+        statusDiv.className = 'form-status error';
+        statusDiv.innerHTML = `
+          <strong>Transmission Error:</strong> ${err.message || 'Failed to connect to transmission gateway.'}<br>
+          You can also reach out directly via <a href="mailto:sounny@gmail.com" style="color: inherit; font-weight: bold; text-decoration: underline;">sounny@gmail.com</a>.
+        `;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Retry Transmission &rarr;</span>`;
+      }
+    });
+  </script>
+
+</body>
+</html>

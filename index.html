@@ -54,7 +54,13 @@
       font-size: 16px;
       line-height: 1.55;
       -webkit-font-smoothing: antialiased;
-      overflow-x: clip;
+    }
+
+    pre {
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      box-sizing: border-box;
     }
 
     /* Subtle background noise texture */
@@ -153,9 +159,12 @@
       position: -webkit-sticky;
       position: sticky;
       top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
       z-index: 1000;
       padding: 12px 0;
-      transition: all 0.25s ease;
+      transition: padding 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .site-nav.is-scrolled {
       padding: 8px 0;
@@ -420,6 +429,9 @@
       background: rgba(0, 0, 0, 0.04);
       padding: 4px;
       border-radius: var(--radius-pill);
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .stage-tab {
       padding: 6px 14px;
@@ -856,9 +868,11 @@
     .compare-wrap {
       border: 1px solid var(--line);
       border-radius: var(--radius-md);
-      overflow: hidden;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       background: var(--bone);
       box-shadow: var(--shadow-sm);
+      width: 100%;
     }
     .compare-table {
       width: 100%;
@@ -942,6 +956,7 @@
       display: flex;
       gap: 24px;
       list-style: none;
+      flex-wrap: wrap;
     }
     .footer-links a {
       color: inherit;
@@ -1001,6 +1016,7 @@
           <li><a href="#architecture" class="nav-link">Architecture</a></li>
           <li><a href="#comparison" class="nav-link">Why eo-mcp</a></li>
           <li><a href="#quickstart" class="nav-link">Quickstart</a></li>
+          <li><a href="contact.html" class="nav-link">Contact</a></li>
         </ul>
 
         <div class="nav-actions">
@@ -1446,6 +1462,34 @@
       </div>
 
       <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+        <!-- Zero Config Banner -->
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 18px 24px; display: flex; align-items: center; gap: 14px;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #10b981; color: #fff; display: grid; place-items: center; font-weight: 700; flex-shrink: 0; font-size: 16px;">✓</div>
+          <div style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+            <strong>100% Free &amp; Zero-Config:</strong> You <u>do not</u> need an API key, Copernicus account, or credit card. Sentinel-2, Landsat, and Copernicus DEM stream directly from open government cloud archives.
+          </div>
+        </div>
+
+        <!-- Prerequisite: uv -->
+        <div style="background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <strong style="font-size: 16px;">Step 0: Install Astral <code>uv</code> (One-Time Prerequisite)</strong>
+          </div>
+          <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 12px;">
+            <code>uv</code> runs <code>eo-mcp</code> in a fast, isolated Python sandbox without manual environment setup. Run in your terminal:
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+            <div>
+              <span style="font-size: 12px; font-weight: 600; color: var(--ink-faint);">macOS / Linux</span>
+              <pre style="background: #18181b; color: #f4f4f5; padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; margin-top: 4px; overflow-x: auto;"><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+            </div>
+            <div>
+              <span style="font-size: 12px; font-weight: 600; color: var(--ink-faint);">Windows PowerShell</span>
+              <pre style="background: #18181b; color: #f4f4f5; padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; margin-top: 4px; overflow-x: auto;"><code>irm https://astral.sh/uv/install.ps1 | iex</code></pre>
+            </div>
+          </div>
+        </div>
+
         <!-- Claude Desktop Config -->
         <div style="background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1502,6 +1546,17 @@
     }
   }
 }</code></pre>
+        </div>
+
+        <!-- Troubleshooting Box -->
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 20px 24px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="font-size: 18px;">💡</span>
+            <strong style="font-size: 15px; color: var(--ink);">AI asking you for an API key or password?</strong>
+          </div>
+          <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; margin: 0;">
+            If Claude or Cursor asks for a Copernicus API key, <strong>that means <code>eo-mcp</code> is not yet running in your client</strong>. Once configured, verify the green status dot in Cursor or the hammer icon (🔨) in Claude Desktop. The agent will then stream data directly with zero credentials.
+          </p>
         </div>
       </div>
     </div>
@@ -1567,6 +1622,7 @@
         <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Specification</a></li>
         <li><a href="https://dataspace.copernicus.eu" target="_blank" rel="noopener">Copernicus Data Space</a></li>
         <li><a href="https://stacspec.org" target="_blank" rel="noopener">STAC Spec</a></li>
+        <li><a href="contact.html">Contact</a></li>
         <li><a href="privacy.html">Privacy Policy</a></li>
         <li><a href="terms.html">Terms of Use</a></li>
       </ul>
