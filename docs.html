@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation &amp; Scientific Foundations — eo-mcp</title>
+  <meta name="description" content="Technical documentation, physical principles, mathematical formulations, and satellite sensor specifications for the open-source Agentic Earth Observation Protocol (eo-mcp).">
+  <meta property="og:title" content="eo-mcp — Tools Reference &amp; Scientific Foundations">
+  <meta property="og:description" content="Comprehensive documentation of eo-mcp tools, satellite band mathematics, sensor physics, and scientific literature.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#fafafa">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --paper: #fafafa;
+      --paper-warm: #f5f5f5;
+      --paper-dark: #efefef;
+      --ink: #1f1f1f;
+      --ink-soft: #383838;
+      --ink-mute: #666666;
+      --ink-faint: #999999;
+      --accent: #22c55e;
+      --accent-bright: #10b981;
+      --accent-soft: #bbf7d0;
+      --accent-glow: rgba(34, 197, 94, 0.25);
+      --bone: #ffffff;
+      --line: #e2e2e2;
+      --line-hover: #c4c4c4;
+      --line-soft: #eeeeee;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --font-sans: "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
+    }
+
+    pre {
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      box-sizing: border-box;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 99;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(220, 220, 220, 0.35) 0%, transparent 25%),
+        radial-gradient(circle at 90% 80%, rgba(210, 210, 210, 0.35) 0%, transparent 25%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.8;
+    }
+
+    .side-rail {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 42px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .side-rail.left { left: 0; border-right: 1px solid var(--line-soft); }
+    .side-rail.right { right: 0; border-left: 1px solid var(--line-soft); }
+    .side-rail-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      writing-mode: vertical-rl;
+      white-space: nowrap;
+    }
+    .side-rail.left .side-rail-text { transform: rotate(180deg); }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+    }
+
+    /* Top Announcement Bar */
+    .topbar {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 9px 0;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      background: var(--paper);
+      position: relative;
+      z-index: 20;
+    }
+    .topbar-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 var(--accent-glow);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Sticky Navigation Bar with Frosted Glass */
+    .site-nav {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 1000;
+      padding: 12px 0;
+      transition: padding 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .site-nav.is-scrolled {
+      padding: 8px 0;
+      background: rgba(250, 250, 250, 0.62);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .nav-pill {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-pill);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm), 0 8px 24px -6px rgba(0, 0, 0, 0.04);
+      transition: all 0.25s ease;
+    }
+    .site-nav.is-scrolled .nav-pill {
+      background: rgba(255, 255, 255, 0.65);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--accent-bright);
+    }
+    .nav-link.active {
+      font-weight: 700;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+    }
+    .btn-dark {
+      background: var(--ink);
+      color: #fff;
+      box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.25);
+    }
+    .btn-dark:hover {
+      background: #333;
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-outline:hover {
+      background: rgba(0, 0, 0, 0.03);
+      border-color: var(--line-hover);
+    }
+
+    /* Docs Hero */
+    .docs-header {
+      padding: 60px 0 40px;
+      border-bottom: 1px solid var(--line);
+      background: 
+        linear-gradient(to right, rgba(34, 197, 94, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(34, 197, 94, 0.06) 1px, transparent 1px);
+      background-size: 80px 80px;
+      position: relative;
+    }
+    .docs-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .docs-header h1 {
+      font-size: clamp(32px, 4.2vw, 54px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+    .docs-header p {
+      max-width: 820px;
+      font-size: 17.5px;
+      line-height: 1.6;
+      color: var(--ink-soft);
+    }
+
+    /* Documentation Layout */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 48px;
+      padding: 48px 0 100px;
+      align-items: start;
+    }
+
+    /* Sticky Sidebar Navigation */
+    .docs-sidebar {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 90px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      padding-right: 16px;
+    }
+    .sidebar-group {
+      margin-bottom: 28px;
+    }
+    .sidebar-heading {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .sidebar-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sidebar-links a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 13.5px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: block;
+      transition: all 0.15s ease;
+      line-height: 1.4;
+    }
+    .sidebar-links a:hover {
+      background: var(--paper-warm);
+      color: var(--ink);
+      transform: translateX(2px);
+    }
+    .sidebar-links a.active {
+      background: #f0fdf4;
+      color: #166534;
+      font-weight: 600;
+      border-left: 2px solid var(--accent);
+    }
+    .sidebar-links a code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Main Content Styling */
+    .docs-content {
+      min-width: 0;
+    }
+    .doc-section {
+      margin-bottom: 72px;
+      scroll-margin-top: 100px;
+    }
+    .doc-section-header {
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--line);
+      margin-bottom: 28px;
+    }
+    .doc-section-header h2 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .doc-section-header p {
+      font-size: 15.5px;
+      color: var(--ink-soft);
+    }
+
+    /* Tool Card */
+    .tool-card {
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      scroll-margin-top: 100px;
+    }
+    .tool-header {
+      background: var(--paper-warm);
+      border-bottom: 1px solid var(--line);
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .tool-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tool-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #047857;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tool-tag.zero-config {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+    }
+    .tool-title {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .tool-signature {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+    .tool-body {
+      padding: 24px;
+    }
+    .tool-desc {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--ink-soft);
+      margin-bottom: 24px;
+    }
+
+    /* Science Callout Box */
+    .science-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin: 20px 0 24px;
+    }
+    .science-box h4 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .science-box p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+    .science-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Formula Block */
+    .formula-card {
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      margin: 14px 0;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      color: #0f172a;
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .formula-math {
+      font-weight: 700;
+      font-size: 14.5px;
+      color: #065f46;
+    }
+    .formula-caption {
+      font-size: 12px;
+      color: var(--ink-mute);
+      font-family: var(--font-sans);
+    }
+
+    /* Parameters Table */
+    .param-table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 18px 0 24px;
+    }
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    .param-table th {
+      background: var(--paper-warm);
+      padding: 10px 14px;
+      font-weight: 600;
+      color: var(--ink);
+      border-bottom: 1px solid var(--line);
+    }
+    .param-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line-soft);
+      vertical-align: top;
+      color: var(--ink-soft);
+    }
+    .param-table tr:last-child td {
+      border-bottom: none;
+    }
+    .param-table code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.04);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      background: #18181b;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+    .code-box-header {
+      background: #27272a;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #a1a1aa;
+    }
+    .code-box pre {
+      padding: 16px;
+      color: #f4f4f5;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #e4e4e7;
+      transition: all 0.15s ease;
+    }
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    /* Citation List */
+    .citation-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .citation-item {
+      padding: 14px 18px;
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--ink-soft);
+    }
+    .citation-item strong {
+      color: var(--ink);
+    }
+    .citation-item a {
+      color: var(--accent-bright);
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .citation-item a:hover {
+      text-decoration: underline;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--line);
+      background: var(--paper-warm);
+      padding: 50px 0 40px;
+      font-size: 13px;
+      color: var(--ink-mute);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: var(--ink);
+    }
+
+    @media (max-width: 992px) {
+      .docs-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      .docs-sidebar {
+        position: static;
+        max-height: none;
+        padding-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .side-rail { display: none; }
+      .container { padding: 0 16px; }
+      .nav-menu { display: none; }
+      .tool-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Decorative Side Rails -->
+  <aside class="side-rail left" aria-hidden="true">
+    <div class="side-rail-text">EO-MCP // PLANETARY OBSERVATION PROTOCOL</div>
+  </aside>
+  <aside class="side-rail right" aria-hidden="true">
+    <div class="side-rail-text">OPEN SOURCE • APACHE 2.0 • ZERO LOCK-IN</div>
+  </aside>
+
+  <!-- Global Top Status Bar -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="status-pulse">
+        <span class="pulse-dot"></span>
+        <span>Copernicus &amp; Landsat STAC APIs Live</span>
+      </div>
+      <div>Standardized Model Context Protocol for Earth Science</div>
+      <div>V0.1.0 Released</div>
+    </div>
+  </div>
+
+  <!-- Sticky Floating Navigation Bar with Frosted Glass -->
+  <header class="site-nav">
+    <div class="container">
+      <nav class="nav-pill" aria-label="Main navigation">
+        <a href="index.html" class="brand">
+          <div class="brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <span>eo-mcp</span>
+        </a>
+
+        <ul class="nav-menu">
+          <li><a href="index.html#demo" class="nav-link">Interactive Demo</a></li>
+          <li><a href="index.html#features" class="nav-link">Features</a></li>
+          <li><a href="index.html#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="docs.html" class="nav-link active">Documentation</a></li>
+          <li><a href="index.html#quickstart" class="nav-link">Quickstart</a></li>
+          <li><a href="contact.html" class="nav-link">Contact</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-outline" style="padding: 8px 16px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>GitHub</span>
+          </a>
+          <a href="index.html#quickstart" class="btn btn-dark" style="padding: 8px 16px;">
+            <span>Get Started</span>
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Docs Hero -->
+  <section class="docs-header">
+    <div class="container">
+      <div class="docs-badge">Technical Reference &amp; Physical Foundations</div>
+      <h1>Tools Reference &amp; Scientific Foundations</h1>
+      <p>
+        Detailed documentation of all nineteen <code>eo-mcp</code> tools, explaining their execution workflows, input parameters, underlying radiative transfer physics, mathematical formulations, and peer-reviewed scientific citations.
+      </p>
+    </div>
+  </section>
+
+  <!-- Docs Grid -->
+  <main class="container">
+    <div class="docs-grid">
+
+      <!-- Sticky Sidebar -->
+      <aside class="docs-sidebar" aria-label="Documentation Table of Contents">
+        <div class="sidebar-group">
+          <div class="sidebar-heading">Architecture</div>
+          <ul class="sidebar-links">
+            <li><a href="#arch-overview">Overview &amp; Protocol</a></li>
+            <li><a href="#cog-streaming">Cloud COG Streaming</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">1. Optical &amp; Biophysical</div>
+          <ul class="sidebar-links">
+            <li><a href="#tool-spectral"><code>calculate_spectral_index</code></a></li>
+            <li><a href="#tool-phenology"><code>monitor_crop_phenology</code></a></li>
+            <li><a href="#tool-drought"><code>analyze_reservoir_drought</code></a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">2. Thermal &amp; Wildfire</div>
+          <ul class="sidebar-links">
+            <li><a href="#tool-thermal"><code>analyze_urban_heat_island</code></a></li>
+            <li><a href="#tool-burn"><code>calculate_burn_severity</code></a></li>
+            <li><a href="#tool-wildfire"><code>detect_active_wildfires</code></a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">3. Radar &amp; Maritime</div>
+          <ul class="sidebar-links">
+            <li><a href="#tool-sar-water"><code>detect_water_sar</code></a></li>
+            <li><a href="#tool-dark-vessel"><code>detect_dark_vessels</code></a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">4. Coastal &amp; Inundation</div>
+          <ul class="sidebar-links">
+            <li><a href="#tool-erosion"><code>analyze_coastal_erosion</code></a></li>
+            <li><a href="#tool-inundation"><code>simulate_sea_level_rise</code></a></li>
+            <li><a href="#tool-elevation"><code>get_elevation_profile</code></a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">5. Atmospheric Telemetry</div>
+          <ul class="sidebar-links">
+            <li><a href="#tool-emissions"><code>monitor_atmospheric_emissions</code></a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">6. Discovery, Execution &amp; Auth</div>
+          <ul class="sidebar-links">
+            <li><a href="#tool-geocode"><code>eo_geocode</code></a></li>
+            <li><a href="#tool-stac"><code>stac_search</code></a></li>
+            <li><a href="#tool-script"><code>run_geospatial_script</code></a></li>
+            <li><a href="#tool-configure-credentials"><code>configure_credentials</code></a></li>
+            <li><a href="#tool-credential-status"><code>get_credential_status</code></a></li>
+            <li><a href="#tool-download-granule"><code>download_copernicus_granule</code></a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">Scientific Literature</div>
+          <ul class="sidebar-links">
+            <li><a href="#references">Peer-Reviewed Citations</a></li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Docs Content -->
+      <article class="docs-content">
+
+        <!-- Architecture Overview -->
+        <section id="arch-overview" class="doc-section">
+          <div class="doc-section-header">
+            <h2>Architecture &amp; Data Ingestion</h2>
+            <p>How autonomous agents interact with multi-petabyte government satellite archives without local storage overhead.</p>
+          </div>
+
+          <p class="tool-desc">
+            <code>eo-mcp</code> implements the <strong>Model Context Protocol (MCP)</strong> using standard JSON-RPC 2.0 messages over standard I/O (<code>stdio</code>) or Server-Sent Events (<code>SSE</code>). When an AI model (Claude, Cursor, Codex, Antigravity) reasons about an Earth science query, it generates structured tool calls that the server routes to cloud-native endpoints.
+          </p>
+
+          <div class="science-box" id="cog-streaming">
+            <h4>Cloud-Optimized GeoTIFF (COG) Range Streaming</h4>
+            <p>
+              Traditional geospatial software downloads entire satellite granules (typically 800 MB to 1.5 GB per scene). When querying multiple sensors or historical baselines, bandwidth constraints and disk input/output cause catastrophic latency for agentic workflows.
+            </p>
+            <p>
+              <code>eo-mcp</code> bypasses full granule ingestion entirely by utilizing <strong>HTTP GET Range requests</strong> (via GDAL virtual file system <code>/vsicurl/</code> and rasterio). A typical query executes in four steps:
+            </p>
+            <ol style="margin-left: 20px; font-size: 14px; line-height: 1.6; color: #334155;">
+              <li><strong>Metadata Header Parse:</strong> Reads the initial 10 KB to 16 KB of the COG header to retrieve the image dimensions, tile index offsets, and coordinate reference system (CRS).</li>
+              <li><strong>Coordinate Window Transform:</strong> Projects the agent's WGS84 bounding box (<code>[min_lon, min_lat, max_lon, max_lat]</code>) into pixel window offsets corresponding to internal COG tiles.</li>
+              <li><strong>Targeted Byte Range Retrieval:</strong> Fetches only the discrete byte ranges containing the required pixel clusters across individual spectral bands.</li>
+              <li><strong>Vectorized In-Memory Computation:</strong> Decodes pixel blocks into NumPy float32 arrays, applies physical calibration factors, executes band math, and returns statistical metrics and GeoTIFF assets.</li>
+            </ol>
+            <p style="margin-top: 10px; font-weight: 600; color: #047857;">
+              Bandwidth Reduction: Reduces payload from ~1,100 MB down to 2.8 MB (a 98.7% bandwidth reduction) while completing full spectral index computations in under two seconds.
+            </p>
+          </div>
+        </section>
+
+        <!-- 1. Optical & Biophysical Tools -->
+        <section id="optical-tools" class="doc-section">
+          <div class="doc-section-header">
+            <h2>1. Optical &amp; Multispectral Biophysical Tools</h2>
+            <p>Planetary-scale vegetation health, canopy structure, surface moisture, and multi-temporal agricultural dynamics.</p>
+          </div>
+
+          <!-- calculate_spectral_index -->
+          <div class="tool-card" id="tool-spectral">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">calculate_spectral_index</span>
+              </div>
+              <span class="tool-signature">Sentinel-2 L2A &amp; Landsat 8/9 C2</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Streams calibrated surface reflectance bands from open Cloud-Optimized GeoTIFFs and evaluates mathematical index formulas. Supports vegetation vigor, canopy moisture, soil composition, and burn characteristics.
+              </p>
+
+              <div class="science-box">
+                <h4>Radiative Transfer Science &amp; Spectral Signatures</h4>
+                <p>
+                  Photosynthetically active vegetation exhibits a pronounced spectral signature: strong absorption in the red chlorophyll absorption band (0.64 - 0.67 µm) coupled with high scattering in the Near-Infrared (NIR) leaf mesophyll plateau (0.83 - 0.88 µm). This sharp transition (the "red edge") allows quantitative separation of green biomass from bare soil, rock, and water bodies.
+                </p>
+
+                <div class="formula-card">
+                  <div class="formula-math">NDVI = (NIR - Red) / (NIR + Red)</div>
+                  <div class="formula-caption">Normalized Difference Vegetation Index (Rouse et al., 1974). Sentinel-2: (B08 - B04) / (B08 + B04); Landsat 8/9: (B05 - B04) / (B05 + B04). Dynamic range: -1.0 to +1.0. Dense healthy canopy values: 0.60 to 0.85.</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">NDWI = (Green - NIR) / (Green + NIR)</div>
+                  <div class="formula-caption">Normalized Difference Water Index (McFeeters, 1996). Sentinel-2: (B03 - B08) / (B03 + B08). Open water features yield positive values due to high green reflectance and near-total NIR absorption.</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">EVI = 2.5 * ((NIR - Red) / (NIR + 6.0 * Red - 7.5 * Blue + 1.0))</div>
+                  <div class="formula-caption">Enhanced Vegetation Index (Huete et al., 2002). Incorporates atmospheric blue scattering correction and a canopy background adjustment factor (L=1.0) to eliminate saturation over dense tropical rainforests.</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">MNDWI = (Green - SWIR) / (Green + SWIR)</div>
+                  <div class="formula-caption">Modified NDWI (Xu, 2006). Uses Shortwave Infrared (SWIR1: 1.61 µm) to suppress false water signals from urban concrete and built-up land.</div>
+                </div>
+              </div>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>collection</code></td><td>string</td><td><code>"sentinel-2-l2a"</code></td><td>Satellite target: <code>sentinel-2-l2a</code> or <code>landsat-c2-l2</code>.</td></tr>
+                    <tr><td><code>index</code></td><td>string</td><td><code>"NDVI"</code></td><td>Supported indices: <code>NDVI</code>, <code>NDWI</code>, <code>MNDWI</code>, <code>NBR</code>, <code>EVI</code>, <code>SAVI</code>, <code>NDRE</code>.</td></tr>
+                    <tr><td><code>bbox</code></td><td>list[float]</td><td><em>required</em></td><td>WGS84 bounding box: <code>[min_lon, min_lat, max_lon, max_lat]</code>.</td></tr>
+                    <tr><td><code>datetime_range</code></td><td>string</td><td><code>"2024-06-01/2024-06-30"</code></td><td>ISO 8601 acquisition window.</td></tr>
+                    <tr><td><code>max_cloud_cover</code></td><td>float</td><td><code>20.0</code></td><td>Maximum allowable scene cloud contamination percentage.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC)</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "calculate_spectral_index",
+  "arguments": {
+    "collection": "sentinel-2-l2a",
+    "index": "NDVI",
+    "bbox": [-0.42, 39.38, -0.31, 39.52],
+    "datetime_range": "2024-06-01/2024-06-30",
+    "max_cloud_cover": 15.0
+  }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- monitor_crop_phenology -->
+          <div class="tool-card" id="tool-phenology">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">monitor_crop_phenology</span>
+              </div>
+              <span class="tool-signature">Sentinel-2 Multi-Temporal Dense Trajectories</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Constructs a chronological time series of vegetation indices across agricultural seasons to identify key biological milestones: green-up, maximum photosynthetic activity, senescence, and harvest timing.
+              </p>
+
+              <div class="science-box">
+                <h4>Phenological Curve Fitting &amp; Agricultural Milestones</h4>
+                <p>
+                  Vegetation growth exhibits an asymmetric sigmoidal trajectory. <code>eo-mcp</code> calculates seasonal baseline amplitude:
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">A = NDVI_{max} - NDVI_{min}</div>
+                  <div class="formula-caption">Seasonal vegetative dynamic range. Threshold for transition detection is calibrated to 20% amplitude: \(T_{20} = NDVI_{min} + 0.20 \cdot A\).</div>
+                </div>
+                <ul style="margin-left: 20px; font-size: 13.5px; line-height: 1.6; color: #334155;">
+                  <li><strong>Start of Season (SOS):</strong> Calendar date where rising spring NDVI crosses the 20% threshold, denoting leaf emergence or crop germination.</li>
+                  <li><strong>Peak of Season (POS):</strong> The apex of photosynthetic activity (\(NDVI_{max}\)), indicating full canopy closure.</li>
+                  <li><strong>End of Season (EOS):</strong> Date where post-peak NDVI drops below the 20% threshold due to crop ripening, senescence, or harvesting.</li>
+                  <li><strong>Length of Season (LOS):</strong> Total duration in days between SOS and EOS (\(LOS = t_{EOS} - t_{SOS}\)).</li>
+                  <li><strong>Integrated Seasonal NDVI:</strong> Time-integral representing net primary agricultural biomass productivity, aligned with European Common Agricultural Policy (CAP) monitoring mandates.</li>
+                </ul>
+              </div>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>bbox</code></td><td>list[float]</td><td><em>required</em></td><td>Target agricultural parcel bounding box.</td></tr>
+                    <tr><td><code>year</code></td><td>int</td><td><code>2024</code></td><td>Growing season year to evaluate.</td></tr>
+                    <tr><td><code>crop_type</code></td><td>string</td><td><code>"general"</code></td><td>Crop profile (e.g. <code>wheat</code>, <code>corn</code>, <code>vineyard</code>).</td></tr>
+                    <tr><td><code>format</code></td><td>string</td><td><code>"summary"</code></td><td>Output formatting: <code>summary</code>, <code>geojson</code>, or <code>csv</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- analyze_reservoir_drought -->
+          <div class="tool-card" id="tool-drought">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">analyze_reservoir_drought</span>
+              </div>
+              <span class="tool-signature">EC JRC Surface Water Dynamics</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Evaluates surface water shrinkage in inland lakes, reservoirs, and wetlands across multi-year baselines, tracking transitions between permanent and seasonal water bodies to classify drought severity.
+              </p>
+
+              <div class="science-box">
+                <h4>Hydrological Depletion &amp; Surface Water Transition</h4>
+                <p>
+                  Water body area is extracted by segmenting multi-temporal MNDWI layers using bimodal Otsu thresholding. By comparing a historical baseline year (\(t_0\)) to modern acquisitions (\(t_1\)), the tool delineates surface water dynamics:
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">\Delta A_{water} = A_{recent} - A_{historical}; \quad Deficit\% = \frac{|\Delta A_{water}|}{A_{historical}} \times 100</div>
+                  <div class="formula-caption">Quantifies volumetric shrinkage proxy. Classifies depletion according to European Drought Observatory (EDO) severity tiers (Normal, Watch, Warning, Alert).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Thermal & Wildfire Analytics -->
+        <section id="thermal-tools" class="doc-section">
+          <div class="doc-section-header">
+            <h2>2. Thermal Infrared &amp; Wildfire Analytics</h2>
+            <p>Radiative transfer equations, calibrated Land Surface Temperature, and active thermal anomaly detection.</p>
+          </div>
+
+          <!-- analyze_urban_heat_island -->
+          <div class="tool-card" id="tool-thermal">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">analyze_urban_heat_island</span>
+              </div>
+              <span class="tool-signature">Landsat 8/9 TIRS Band 10 (10.895 µm)</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Extracts calibrated Land Surface Temperature (LST in Celsius) from thermal infrared radiance and computes Urban Heat Island (UHI) thermal anomaly intensities relative to surrounding rural vegetative buffers.
+              </p>
+
+              <div class="science-box">
+                <h4>Planck Inverse Law &amp; Emissivity Threshold Modeling</h4>
+                <p>
+                  Thermal infrared detectors measure spectral radiance (\(L_\lambda\)) at the top of the atmosphere. Deriving physical surface temperature requires atmospheric and surface emissivity corrections:
+                </p>
+                
+                <div class="formula-card">
+                  <div class="formula-math">T_B = \frac{K_2}{\ln\left(\frac{K_1}{L_\lambda} + 1\right)}</div>
+                  <div class="formula-caption">At-satellite Brightness Temperature in Kelvin. Landsat 8/9 TIRS Band 10 calibration constants: \(K_1 = 774.8853 \, \text{W}/(\text{m}^2 \cdot \text{sr} \cdot \mu\text{m})\), \(K_2 = 1321.0789 \, \text{K}\).</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">P_v = \left(\frac{NDVI - NDVI_{soil}}{NDVI_{veg} - NDVI_{soil}}\right)^2</div>
+                  <div class="formula-caption">Fractional Vegetation Cover (\(P_v\) or FVC). Calibrated using global boundary thresholds: \(NDVI_{soil} = 0.20\), \(NDVI_{veg} = 0.50\).</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">\varepsilon = 0.970 + 0.018 \cdot P_v \quad (\text{for } 0.20 \le NDVI \le 0.50)</div>
+                  <div class="formula-caption">Land Surface Emissivity (Sobrino et al., 2004). Pure water: \(\varepsilon = 0.995\); bare soil: \(\varepsilon = 0.960\); dense vegetative canopy: \(\varepsilon = 0.985\).</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">LST = \frac{T_B}{1 + \left(\frac{\lambda \cdot T_B}{\rho}\right) \ln(\varepsilon)} - 273.15</div>
+                  <div class="formula-caption">Final Land Surface Temperature in degrees Celsius. Effective wavelength \(\lambda = 10.895 \, \mu\text{m}\); constant \(\rho = h \cdot c / \sigma = 1.438 \times 10^{-2} \, \text{m} \cdot \text{K}\).</div>
+                </div>
+
+                <p style="margin-top: 10px;">
+                  <strong>Urban Heat Island Intensity (\(\Delta T\)):</strong> Evaluated by establishing a rural buffer perimeter (\(NDVI > 0.40\)) and computing \(\Delta T = LST_{pixel} - \overline{LST}_{rural}\). Areas with \(\Delta T > 4.0^\circ\text{C}\) are flagged as severe microclimate vulnerability zones under EU Climate Adaptation benchmarks.
+                </p>
+              </div>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>bbox</code></td><td>list[float]</td><td><em>required</em></td><td>Target metropolitan area bounding box.</td></tr>
+                    <tr><td><code>datetime_range</code></td><td>string</td><td><code>"2024-06-01/2024-08-31"</code></td><td>Summer acquisition date window.</td></tr>
+                    <tr><td><code>format</code></td><td>string</td><td><code>"summary"</code></td><td>Format: <code>summary</code>, <code>geojson</code>, or <code>csv</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- calculate_burn_severity -->
+          <div class="tool-card" id="tool-burn">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">calculate_burn_severity</span>
+              </div>
+              <span class="tool-signature">USGS FIREMON / CBI Standards</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Quantifies wildfire burn severity, biomass consumption, and soil scorch levels by computing pre-fire vs post-fire differenced Normalized Burn Ratios (dNBR and RdNBR).
+              </p>
+
+              <div class="science-box">
+                <h4>Differenced Burn Ratio &amp; USGS CBI Stratification</h4>
+                <p>
+                  Active healthy vegetation reflects strongly in NIR and absorbs SWIR. Wildfire combustion removes leaf canopy (collapsing NIR reflectance) and exposes dry charcoal, ash, and bare soil (elevating SWIR reflectance).
+                </p>
+
+                <div class="formula-card">
+                  <div class="formula-math">NBR = \frac{\rho_{NIR} - \rho_{SWIR2}}{\rho_{NIR} + \rho_{SWIR2}}; \quad dNBR = (NBR_{pre} - NBR_{post}) \times 1000</div>
+                  <div class="formula-caption">Normalized Burn Ratio Difference (Key &amp; Benson, 2006). Sentinel-2: B08 and B12; Landsat 8/9: B05 and B07.</div>
+                </div>
+
+                <div class="formula-card">
+                  <div class="formula-math">RdNBR = \frac{dNBR}{\sqrt{|NBR_{pre} / 1000|}}</div>
+                  <div class="formula-caption">Relativized dNBR (Miller &amp; Thode, 2007). Normalizes for pre-fire vegetative density, enabling reliable burn severity comparison in semi-arid shrublands.</div>
+                </div>
+
+                <p style="margin-top: 10px;">
+                  Severity Tiers (USGS / European Forest Fire Information System EFFIS):
+                </p>
+                <ul style="margin-left: 20px; font-size: 13.5px; line-height: 1.6; color: #334155;">
+                  <li><code>&lt; +100</code>: Unburned / post-fire vegetation regrowth.</li>
+                  <li><code>+100 to +269</code>: Low Severity (surface scorch, canopy intact).</li>
+                  <li><code>+270 to +439</code>: Moderate-Low Severity (needle scorch, shrub mortality).</li>
+                  <li><code>+440 to +659</code>: Moderate-High Severity (heavy canopy mortality).</li>
+                  <li><code>&gt; +660</code>: High Severity (complete tree mortality, soil mineral breakdown).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- detect_active_wildfires -->
+          <div class="tool-card" id="tool-wildfire">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">detect_active_wildfires</span>
+              </div>
+              <span class="tool-signature">NASA FIRMS (VIIRS 375m &amp; MODIS 1km)</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Connects directly to open NASA FIRMS active fire feeds to retrieve near-real-time thermal hotspots, brightness temperatures, and Fire Radiative Power (FRP in Megawatts), automatically clustering active fire fronts using spatial proximity algorithms.
+              </p>
+
+              <div class="science-box">
+                <h4>Wien's Displacement Law &amp; Fire Radiative Power</h4>
+                <p>
+                  According to Wien's Displacement Law (\(\lambda_{max} = b / T\)), active flaming combustion (800 K to 1200 K) shifts peak thermal emission from ambient thermal wavelengths (~10 µm) into the mid-wave infrared (MWIR: 3.7 µm - 4.0 µm, VIIRS Band I4).
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">FRP = A_{pixel} \cdot \sigma_{MWIR} \cdot (T_{fire}^4 - T_{background}^4) \quad [\text{in Megawatts, MW}]</div>
+                  <div class="formula-caption">Fire Radiative Power (Wooster et al., 2005). Measures the instantaneous rate of convective and radiative thermal energy release, directly proportional to biomass combustion rates (kg/sec).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Radar & Maritime Intelligence -->
+        <section id="radar-tools" class="doc-section">
+          <div class="doc-section-header">
+            <h2>3. Radar &amp; Maritime Intelligence (SAR)</h2>
+            <p>Synthetic Aperture Radar physics, radar cross-section backscatter, and dark vessel identification.</p>
+          </div>
+
+          <!-- detect_water_sar -->
+          <div class="tool-card" id="tool-sar-water">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">detect_water_sar</span>
+              </div>
+              <span class="tool-signature">Sentinel-1 C-Band SAR (5.405 GHz)</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Performs cloud-penetrating, day-and-night surface water delineation using Sentinel-1 C-Band Synthetic Aperture Radar (SAR) Ground Range Detected (GRD) backscatter.
+              </p>
+
+              <div class="science-box">
+                <h4>Specular Reflection vs Rough Surface Backscatter</h4>
+                <p>
+                  Radar sensors transmit active microwave pulses and record the energy backscattered to the antenna (\(\sigma^0\), sigma nought in decibels, dB).
+                </p>
+                <ul style="margin-left: 20px; font-size: 13.5px; line-height: 1.6; color: #334155;">
+                  <li><strong>Smooth Open Water:</strong> Behaves as a specular reflector. The incoming microwave pulse bounces away from the sensor at an equal and opposite angle, producing an absence of return signal (\(\sigma^0 \le -16.0 \, \text{dB}\) to \(-22.0 \, \text{dB}\), appearing dark in radar imagery).</li>
+                  <li><strong>Rough Vegetated Terrain:</strong> Produces diffuse volume scattering (\(\sigma^0 \approx -8.0 \, \text{dB}\) to \(-12.0 \, \text{dB}\)).</li>
+                  <li><strong>Built Structures &amp; Ships:</strong> Act as dihedral corner reflectors, bouncing signals directly back to the antenna (\(\sigma^0 \ge 0.0 \, \text{dB}\) to \(+15.0 \, \text{dB}\), appearing intensely bright).</li>
+                </ul>
+                <p style="margin-top: 10px;">
+                  Because C-band microwaves (wavelength \(\lambda = 5.6 \, \text{cm}\)) pass through cloud droplets, precipitation, and smoke unimpeded, <code>detect_water_sar</code> provides all-weather flood mapping when optical imagery is blinded.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- detect_dark_vessels -->
+          <div class="tool-card" id="tool-dark-vessel">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">detect_dark_vessels</span>
+              </div>
+              <span class="tool-signature">Sentinel-1 SAR CFAR vs Open AIS Feeds</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Applies Constant False Alarm Rate (CFAR) radar detectors to extract metallic vessel targets from Sentinel-1 SAR imagery and cross-references their spatial positions against live open AIS transponder records to flag unreported "Dark Vessels".
+              </p>
+
+              <div class="science-box">
+                <h4>Constant False Alarm Rate (CFAR) Radar Detection</h4>
+                <p>
+                  In dynamic ocean environments, sea clutter varies with wind speed and wave swell. Rather than using a static threshold, CFAR dynamically samples a background sea clutter ring around each candidate pixel:
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">T = \mu_{clutter} + \alpha \cdot \sigma_{clutter}</div>
+                  <div class="formula-caption">Cell-Averaging CFAR threshold equation. Guard cells prevent vessel target energy from corrupting background clutter mean (\(\mu\)) and standard deviation (\(\sigma\)). Factor \(\alpha\) guarantees an invariant false alarm probability (\(P_{fa}\)).</div>
+                </div>
+                <p style="margin-top: 10px;">
+                  Candidate targets with Radar Cross Section (RCS) exceeding threshold \(T\) are measured for spatial elongation (estimated vessel length in meters). The server then queries open maritime AIS transponder feeds (e.g. Digitraffic Baltic open feeds). Radar targets lacking an AIS broadcast within a 2.5 km spatial tolerance are flagged as <strong>Unreported Dark Vessels</strong>, directly supporting maritime safety, border surveillance, and illegal fishing (IUU) enforcement.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. Coastal Dynamics & Terrain -->
+        <section id="coastal-tools" class="doc-section">
+          <div class="doc-section-header">
+            <h2>4. Coastal Dynamics, Inundation &amp; Terrain</h2>
+            <p>Sub-pixel shoreline extraction, Digital Shoreline Analysis System transect change rates, and hydrologic flood routing.</p>
+          </div>
+
+          <!-- analyze_coastal_erosion -->
+          <div class="tool-card" id="tool-erosion">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">analyze_coastal_erosion</span>
+              </div>
+              <span class="tool-signature">MNDWI Otsu Waterlines &amp; DSAS Transects</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Quantifies coastal shoreline retreat and accretion rates (in meters/year) between historical and modern satellite observations using automated bimodal Otsu waterline segmentation and perpendicular cross-shore transects.
+              </p>
+
+              <div class="science-box">
+                <h4>Digital Shoreline Analysis System (DSAS) Methodology</h4>
+                <p>
+                  Shoreline extraction begins by computing Modified Normalized Difference Water Index (MNDWI) rasters. An automated Otsu threshold separates land from water by maximizing inter-class variance (\(\sigma_B^2\)):
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">\sigma_B^2(t) = \omega_0(t)\omega_1(t) \left[\mu_0(t) - \mu_1(t)\right]^2</div>
+                  <div class="formula-caption">Otsu bimodal segmentation. Maximizes between-class variance between water and land reflectance clusters.</div>
+                </div>
+                <p style="margin-top: 10px;">
+                  Following morphological boundary thinning, cross-shore transects are cast perpendicular to an inland baseline at regular intervals (e.g. 50m). Shoreline change is calculated via the <strong>End Point Rate (EPR)</strong>:
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">EPR = \frac{D_{recent} - D_{baseline}}{\Delta t} \quad [\text{in meters/year}]</div>
+                  <div class="formula-caption">Negative EPR values indicate coastal shoreline erosion and land loss; positive values denote sediment accretion.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- simulate_sea_level_rise -->
+          <div class="tool-card" id="tool-inundation">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">simulate_sea_level_rise</span>
+              </div>
+              <span class="tool-signature">Copernicus DEM GLO-30 &amp; IPCC AR6</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Simulates coastal sea-level rise and storm surge inundation on Copernicus DEM GLO-30 elevation data, applying hydrologic connectivity algorithms to eliminate false positive flooding in isolated inland depressions.
+              </p>
+
+              <div class="science-box">
+                <h4>8-Neighbor Hydrologic Flood-Fill &amp; IPCC AR6 Projections</h4>
+                <p>
+                  Simple "bathtub" elevation slicing produces major inaccuracies by classifying inland dry valleys below sea level as submerged, even when protected by natural coastal ridges. <code>eo-mcp</code> enforces an <strong>8-connected hydrologic flood-fill algorithm</strong>:
+                </p>
+                <ol style="margin-left: 20px; font-size: 13.5px; line-height: 1.6; color: #334155;">
+                  <li>Initializes open oceanic boundary seed pixels at datum \(z \le 0.0 \, \text{m}\).</li>
+                  <li>Simulates total elevated water surface: \(Z_{water} = Z_{SLR} + Z_{surge}\).</li>
+                  <li>Recursively propagates water into adjacent terrain cells only if elevation \(z \le Z_{water}\) AND a contiguous 8-connected water path to the sea exists.</li>
+                </ol>
+                <div class="formula-card">
+                  <div class="formula-math">D_{inundation} = \max(0, Z_{water} - z_{DEM}) \quad [\text{depth in meters}]</div>
+                  <div class="formula-caption">Water depth grid. Evaluates total submerged area (hectares, km²) and hazard zoning under EU Floods Directive (2007/60/EC Art. 6).</div>
+                </div>
+                <p style="margin-top: 10px;">
+                  Built-in IPCC Sixth Assessment Report (AR6) scenarios:
+                </p>
+                <ul style="margin-left: 20px; font-size: 13.5px; line-height: 1.6; color: #334155;">
+                  <li><code>SSP1-2.6</code>: Sustainability scenario (+0.44m median global SLR by 2100).</li>
+                  <li><code>SSP2-4.5</code>: Intermediate emissions scenario (+0.56m median global SLR by 2100).</li>
+                  <li><code>SSP5-8.5</code>: High emissions fossil-fueled scenario (+0.77m median global SLR by 2100).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- get_elevation_profile -->
+          <div class="tool-card" id="tool-elevation">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">get_elevation_profile</span>
+              </div>
+              <span class="tool-signature">Copernicus DEM GLO-30 (30m Global DSM)</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Extracts topographic elevation, terrain slope gradients, and aspect orientation from the gold-standard Copernicus Digital Elevation Model (GLO-30) without local raster downloads.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Atmospheric Telemetry -->
+        <section id="atmospheric-tools" class="doc-section">
+          <div class="doc-section-header">
+            <h2>5. Atmospheric &amp; Trace Gas Telemetry</h2>
+            <p>Differential optical absorption spectroscopy and urban air quality directive compliance.</p>
+          </div>
+
+          <!-- monitor_atmospheric_emissions -->
+          <div class="tool-card" id="tool-emissions">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">monitor_atmospheric_emissions</span>
+              </div>
+              <span class="tool-signature">Sentinel-5P TROPOMI &amp; OpenAQ Validation</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Queries Copernicus Sentinel-5P TROPOMI spectrometer STAC endpoints to extract tropospheric vertical column densities for Nitrogen Dioxide (NO₂), Sulfur Dioxide (SO₂), Carbon Monoxide (CO), and Methane (CH₄), correlating space-based observations with ground-level OpenAQ stations.
+              </p>
+
+              <div class="science-box">
+                <h4>Differential Optical Absorption Spectroscopy (DOAS)</h4>
+                <p>
+                  The TROPOMI instrument (TROPOspheric Monitoring Instrument) aboard Sentinel-5P measures ultraviolet, visible, near-infrared, and shortwave infrared backscatter with a daily global revisit.
+                </p>
+                <p>
+                  DOAS isolates trace gas absorption cross-sections from broad atmospheric Rayleigh and aerosol scattering, yielding <strong>Tropospheric Vertical Column Densities</strong> (\(VCD\) in \(\mu\text{mol}/\text{m}^2\) or \(\text{mol}/\text{m}^2\)):
+                </p>
+                <div class="formula-card">
+                  <div class="formula-math">VCD = \frac{SCD}{AMF}</div>
+                  <div class="formula-caption">Converts Slant Column Density (\(SCD\)) to Vertical Column Density (\(VCD\)) using an Air Mass Factor (\(AMF\)) derived from radiative transfer models of viewing geometry, surface albedo, and cloud fractions.</div>
+                </div>
+                <p style="margin-top: 10px;">
+                  Regulatory Thresholds Aligned:
+                </p>
+                <ul style="margin-left: 20px; font-size: 13.5px; line-height: 1.6; color: #334155;">
+                  <li><strong>NO₂:</strong> Clean baseline: &lt; 40 µmol/m²; Elevated urban traffic: 85 µmol/m²; Industrial plume: &gt; 150 µmol/m² (EU Directive 2008/50/EC).</li>
+                  <li><strong>CH₄ (Methane):</strong> Clean: ~1,850 ppb; Critical super-emitter plume: &gt; 2,000 ppb (EU Methane Regulation 2024/1787).</li>
+                  <li><strong>SO₂:</strong> Volcanic and coal power emission threshold: &gt; 50 µmol/m² (Industrial Emissions Directive 2010/75/EU).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. Discovery, Geocoding & Sandbox -->
+        <section id="discovery-tools" class="doc-section">
+          <div class="doc-section-header">
+            <h2>6. Discovery, Geocoding &amp; Sandbox Execution</h2>
+            <p>Spatial indexing, catalog exploration, authenticated egress, and safe arbitrary Python code execution.</p>
+          </div>
+
+          <div class="tool-card" id="tool-geocode">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">eo_geocode</span>
+              </div>
+              <span class="tool-signature">OpenStreetMap Nominatim</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Translates natural language place names (e.g. <code>"Gulf of Corinth"</code>, <code>"Valencia, Spain"</code>, <code>"Mount Saint Helens"</code>) into standardized WGS84 bounding boxes <code>[min_lon, min_lat, max_lon, max_lat]</code> required by all downstream satellite processing tools.
+              </p>
+            </div>
+          </div>
+
+          <div class="tool-card" id="tool-stac">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config</span>
+                <span class="tool-title">stac_search</span>
+              </div>
+              <span class="tool-signature">Spatio-Temporal Asset Catalog (STAC) Spec</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Executes spatio-temporal catalog queries across open STAC endpoints (AWS Earth Search, NASA CMR, Copernicus CDSE). Returns scene IDs, acquisition dates, cloud coverage metrics, and direct Cloud-Optimized GeoTIFF asset links.
+              </p>
+            </div>
+          </div>
+
+          <div class="tool-card" id="tool-script">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag">Sandbox</span>
+                <span class="tool-title">run_geospatial_script</span>
+              </div>
+              <span class="tool-signature">Isolated Python Engine</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Allows autonomous coding agents to execute customized Python scripts inside an isolated runtime pre-loaded with <code>rasterio</code>, <code>numpy</code>, <code>shapely</code>, <code>xarray</code>, and <code>geopandas</code> for specialized mathematical analyses beyond standard tools.
+              </p>
+            </div>
+          </div>
+
+          <div class="tool-card" id="tool-credentials">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag">Authentication</span>
+                <span class="tool-title">configure_credentials / download_copernicus_granule</span>
+              </div>
+              <span class="tool-signature">Copernicus Data Space Ecosystem (CDSE) &amp; NASA Earthdata</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                While standard streaming tools require zero authentication, these tools allow agents to store optional CDSE or NASA OAuth tokens and trigger authenticated full-granule SAFE package downloads directly from official European Space Agency archives.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Scientific Literature References -->
+        <section id="references" class="doc-section">
+          <div class="doc-section-header">
+            <h2>Scientific Literature &amp; Validation Standards</h2>
+            <p>Peer-reviewed foundational citations and regulatory directives governing the algorithms implemented in eo-mcp.</p>
+          </div>
+
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Rouse, J. W., Haas, R. H., Schell, J. A., &amp; Deering, D. W. (1974).</strong> Monitoring vegetation systems in the Great Plains with ERTS. <em>Third Earth Resources Technology Satellite-1 Symposium</em>, 1, 309-317. NASA SP-351.
+            </li>
+            <li class="citation-item">
+              <strong>McFeeters, S. K. (1996).</strong> The use of the Normalized Difference Water Index (NDWI) in the delineation of open water features. <em>International Journal of Remote Sensing</em>, 17(7), 1425-1432. DOI: 10.1080/01431169608948714.
+            </li>
+            <li class="citation-item">
+              <strong>Xu, H. (2006).</strong> Modification of normalised difference water index (NDWI) to enhance open water features in remotely sensed imagery. <em>International Journal of Remote Sensing</em>, 27(14), 3025-3033. DOI: 10.1080/01431160600589179.
+            </li>
+            <li class="citation-item">
+              <strong>Huete, A., Didan, K., Miura, T., Rodriguez, E. P., Gao, X., &amp; Ferreira, L. G. (2002).</strong> Overview of the radiometric and biophysical performance of the MODIS vegetation indices. <em>Remote Sensing of Environment</em>, 83(1-2), 195-213.
+            </li>
+            <li class="citation-item">
+              <strong>Key, C. H., &amp; Benson, N. C. (2006).</strong> Landscape Assessment (LA): Sampling and Analysis Methods. <em>FIREMON: Fire Effects Monitoring and Inventory System</em>, Gen. Tech. Rep. RMRS-GTR-164-CD. Fort Collins, CO: U.S. Department of Agriculture, Forest Service, Rocky Mountain Research Station.
+            </li>
+            <li class="citation-item">
+              <strong>Miller, J. D., &amp; Thode, A. E. (2007).</strong> Quantifying burn severity in a heterogeneous landscape with a relative version of the delta Normalized Burn Ratio (RdNBR). <em>Remote Sensing of Environment</em>, 109(1), 66-80.
+            </li>
+            <li class="citation-item">
+              <strong>Sobrino, J. A., Jiménez-Muñoz, J. C., &amp; Paolini, L. (2004).</strong> Land surface temperature retrieval from LANDSAT TM 5. <em>Remote Sensing of Environment</em>, 90(4), 434-440.
+            </li>
+            <li class="citation-item">
+              <strong>Wooster, M. J., Roberts, G., Perry, G. L. W., &amp; Kaufman, Y. J. (2005).</strong> Retrieval of biomass combustion rates and totals from fire radiative power observations: Calibration relationships between actively burning fires and total smoke emissions. <em>Journal of Geophysical Research: Atmospheres</em>, 110(D24).
+            </li>
+            <li class="citation-item">
+              <strong>Otsu, N. (1979).</strong> A threshold selection method from gray-level histograms. <em>IEEE Transactions on Systems, Man, and Cybernetics</em>, 9(1), 62-66.
+            </li>
+            <li class="citation-item">
+              <strong>IPCC (2021).</strong> Climate Change 2021: The Physical Science Basis. Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change. Cambridge University Press, Cambridge, UK and New York, NY, USA.
+            </li>
+            <li class="citation-item">
+              <strong>European Commission (2007).</strong> Directive 2007/60/EC of the European Parliament and of the Council on the assessment and management of flood risks (EU Floods Directive).
+            </li>
+            <li class="citation-item">
+              <strong>European Commission (2008).</strong> Directive 2008/50/EC on ambient air quality and cleaner air for Europe.
+            </li>
+          </ul>
+        </section>
+
+      </article>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        <strong>eo-mcp</strong> — The Open Source Agentic Earth Observation Protocol.
+      </div>
+
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="docs.html">Documentation</a></li>
+        <li><a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Spec</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="privacy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Use</a></li>
+      </ul>
+
+      <div>
+        Created by <a href="https://sounny.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Dr. Sounny</a>. Apache 2.0 License.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Copy code snippet helper
+    function copySnippet(button) {
+      const codeBox = button.closest('.code-box');
+      const code = codeBox.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = button.innerText;
+        button.innerText = 'Copied!';
+        setTimeout(() => { button.innerText = orig; }, 1500);
+      });
+    }
+
+    // Sticky nav scroll blur listener
+    const updateNavScroll = () => {
+      const nav = document.querySelector('.site-nav');
+      if (!nav) return;
+      if (window.scrollY > 24) {
+        nav.classList.add('is-scrolled');
+      } else {
+        nav.classList.remove('is-scrolled');
+      }
+    };
+    window.addEventListener('scroll', updateNavScroll, { passive: true });
+    window.addEventListener('resize', updateNavScroll, { passive: true });
+    document.addEventListener('DOMContentLoaded', updateNavScroll);
+    updateNavScroll();
+
+    // Active sidebar link tracker on scroll
+    const sections = document.querySelectorAll('.doc-section, .tool-card');
+    const navLinks = document.querySelectorAll('.sidebar-links a');
+    
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 120;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    }, { passive: true });
+  </script>
+</body>
+</html>

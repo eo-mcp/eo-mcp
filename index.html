@@ -1012,6 +1012,7 @@
 
         <ul class="nav-menu">
           <li><a href="#demo" class="nav-link">Interactive Demo</a></li>
+          <li><a href="docs.html" class="nav-link">Documentation</a></li>
           <li><a href="#features" class="nav-link">Features</a></li>
           <li><a href="#architecture" class="nav-link">Architecture</a></li>
           <li><a href="#comparison" class="nav-link">Why eo-mcp</a></li>
@@ -1020,6 +1021,13 @@
         </ul>
 
         <div class="nav-actions">
+          <a href="docs.html" class="btn btn-outline" style="padding: 8px 16px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <span>Docs &amp; Science</span>
+          </a>
           <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-outline" style="padding: 8px 16px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -1070,6 +1078,12 @@
             <polyline points="12 5 19 12 12 19"></polyline>
           </svg>
         </a>
+        <a href="docs.html" class="btn btn-outline">
+          <span>Explore Tools &amp; Science</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </a>
       </div>
     </div>
   </section>
@@ -1086,6 +1100,9 @@
 
         <div class="stage-tabs">
           <button class="stage-tab active" onclick="switchDemo('ndvi')">Sentinel-2 NDVI</button>
+          <button class="stage-tab" onclick="switchDemo('wildfire')">Wildfire dNBR</button>
+          <button class="stage-tab" onclick="switchDemo('urban_heat')">Urban Heat (LST)</button>
+          <button class="stage-tab" onclick="switchDemo('phenology')">Crop Phenology</button>
           <button class="stage-tab" onclick="switchDemo('sar')">Sentinel-1 Flood SAR</button>
           <button class="stage-tab" onclick="switchDemo('dem')">Copernicus DEM</button>
           <button class="stage-tab" onclick="switchDemo('script')">Agent Script Sandbox</button>
@@ -1319,6 +1336,82 @@
           </div>
           <div>
             <span class="card-badge">Safe Execution • Pre-injected EO Libraries</span>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3z"></path>
+              </svg>
+            </div>
+            <h3 class="card-title">Wildfire Burn Severity (dNBR / RBR)</h3>
+            <p class="card-body">
+              Calculates difference Normalized Burn Ratio ($dNBR$) and Relativized Burn Ratio from pre- and post-fire Sentinel-2 scenes. Classifies fire damage into USGS and European EFFIS severity grades with spatial perimeter clustering.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">Sentinel-2 B08/B12 • USGS &amp; EFFIS Grades</span>
+          </div>
+        </div>
+
+        <!-- Card 7 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+              </svg>
+            </div>
+            <h3 class="card-title">Land Surface Temp &amp; Urban Heat (LST)</h3>
+            <p class="card-body">
+              Inverts Landsat 8/9 TIRS Band 10 ($10.895\ \mu\text{m}$) thermal infrared radiance using Sobrino surface emissivity and NDVI Fractional Vegetation Cover. Pinpoints urban heat island intensity gradients and severe thermal risk anomalies.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">Landsat TIRS Band 10 • Planck Inversion in °C</span>
+          </div>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22v-7l-5-5"></path>
+                <path d="M17 10l-5 5"></path>
+                <path d="M14 6a4 4 0 0 0-8 0c0 4 4 6 4 6s4-2 4-6z"></path>
+                <path d="M18 10a3 3 0 0 0-6 0c0 3 3 5 3 5s3-2 3-5z"></path>
+              </svg>
+            </div>
+            <h3 class="card-title">Crop Phenology &amp; Seasonal Trajectory</h3>
+            <p class="card-body">
+              Multi-temporal satellite curve modeling across the agricultural calendar. Extracts Start of Season (SOS greenup), Peak of Season (POS), and End of Season (EOS) milestones to benchmark crop vigor and drought stress.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">Double-Logistic Fit • Agronomic Milestones</span>
+          </div>
+        </div>
+
+        <!-- Card 9 -->
+        <div class="bento-card wide">
+          <div>
+            <div class="card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <h3 class="card-title">Flexible In-Session Credentials &amp; Zero-Config Open Default</h3>
+            <p class="card-body">
+              Defaults to 100% free public government cloud archives with zero setup. When advanced authenticated services are desired (Copernicus CDSE bulk granules, NASA Earthdata, Planetary Computer), credentials can be dynamically injected via <code>configure_credentials</code> or <code>.env</code> without restarting the server.
+            </p>
+          </div>
+          <div>
+            <span class="card-badge">Multi-Cloud Auth • CDSE, Earthdata, Planetary Computer</span>
           </div>
         </div>
       </div>
@@ -1555,7 +1648,7 @@
             <strong style="font-size: 15px; color: var(--ink);">AI asking you for an API key or password?</strong>
           </div>
           <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; margin: 0;">
-            If Claude or Cursor asks for a Copernicus API key, <strong>that means <code>eo-mcp</code> is not yet running in your client</strong>. Once configured, verify the green status dot in Cursor or the hammer icon (🔨) in Claude Desktop. The agent will then stream data directly with zero credentials.
+            If Claude or Cursor asks for a Copernicus API key before running tools, <strong>that usually means <code>eo-mcp</code> has not yet been connected to your client</strong>. Once configured, verify the green status dot in Cursor or the hammer icon (🔨) in Claude Desktop. Baseline satellite data streams immediately with zero config. You can also supply credentials at any time via <code>.env</code> or in-session if you wish to use authenticated features.
           </p>
         </div>
       </div>
@@ -1593,6 +1686,13 @@
         </details>
 
         <details class="faq-item">
+          <summary>Can I provide my own credentials or API keys?</summary>
+          <p>
+            Yes! While <code>eo-mcp</code> defaults to 100% free zero-config public cloud streaming so you are never blocked, it provides first-class support for your own accounts whenever useful. You can provide Copernicus CDSE credentials, NASA Earthdata tokens, or Microsoft Planetary Computer keys either in your <code>.env</code> file or dynamically in-session via the <code>configure_credentials</code> MCP tool.
+          </p>
+        </details>
+
+        <details class="faq-item">
           <summary>Can I use this commercially?</summary>
           <p>
             Yes! <code>eo-mcp</code> is licensed under the permissive Apache License 2.0. You are free to build proprietary agentic workflows, enterprise platforms, or commercial tools on top of it.
@@ -1618,6 +1718,7 @@
       </div>
 
       <ul class="footer-links">
+        <li><a href="docs.html">Tools Documentation</a></li>
         <li><a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener">GitHub Repository</a></li>
         <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Specification</a></li>
         <li><a href="https://dataspace.copernicus.eu" target="_blank" rel="noopener">Copernicus Data Space</a></li>
@@ -1742,6 +1843,74 @@
 &nbsp;&nbsp;<span class="json-key">"script"</span>: <span class="json-str">"import rasterio\nimport numpy as np\n# Custom band math..."</span><br>
 }`,
         analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Script executed in isolated sandbox. Outputted burn severity classification GeoTIFF and returned color-coded histogram to client.`
+      },
+      wildfire: {
+        bg: "linear-gradient(135deg, rgba(127, 29, 29, 0.85) 0%, rgba(185, 28, 28, 0.75) 50%, rgba(245, 158, 11, 0.65) 100%)",
+        videoFilter: "contrast(2) saturate(2.5) hue-rotate(-60deg)",
+        videoOpacity: "0.5",
+        sensor: "SENTINEL-2 L2A (NIR / SWIR22)",
+        coords: "AOI: [38.50, -120.50, 39.00, -120.00] • EPSG:32610",
+        crs: "EPSG:32610",
+        hudTitle: "BURN SEVERITY INDEX (dNBR)",
+        hudStat: "0.72 • HIGH SEVERITY",
+        hudDesc: "Pre-Fire vs Post-Fire • 4,280 ha damaged • EFFIS Grade 4",
+        math: "dNBR = NBR_pre - NBR_post | NBR = (B08 - B12) / (B08 + B12)",
+        footerLatency: "1680ms",
+        footerBandwidth: "Bandwidth: 3.4 MB (Dual-scene multi-temporal range read)",
+        userQuery: "Assess post-fire burn severity and total perimeter damage using pre and post fire imagery.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"calculate_burn_severity"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"bbox"</span>: [-120.5, 38.5, -120.0, 39.0],<br>
+&nbsp;&nbsp;<span class="json-key">"pre_fire_date_range"</span>: <span class="json-str">"2024-05-01/2024-05-30"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"post_fire_date_range"</span>: <span class="json-str">"2024-07-01/2024-07-30"</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Rapid crown fire burn identified. High-severity burn zone covers 4,280 hectares with severe vegetative canopy consumption.`
+      },
+      urban_heat: {
+        bg: "linear-gradient(135deg, rgba(136, 19, 55, 0.85) 0%, rgba(225, 29, 72, 0.75) 50%, rgba(251, 146, 60, 0.7) 100%)",
+        videoFilter: "contrast(1.8) saturate(2) hue-rotate(-90deg)",
+        videoOpacity: "0.45",
+        sensor: "LANDSAT-8/9 TIRS (BAND 10 10.9µm)",
+        coords: "AOI: [48.70, 2.20, 49.00, 2.50] • EPSG:32631",
+        crs: "EPSG:32631",
+        hudTitle: "LAND SURFACE TEMP (LST / UHI)",
+        hudStat: "43.8 °C (UHI: +7.4 °C)",
+        hudDesc: "Dense urban core heat anomaly • Sobrino emissivity calibration",
+        math: "Planck Inversion: LST = T_b / (1 + (λ * T_b / ρ) * ln(ε))",
+        footerLatency: "1920ms",
+        footerBandwidth: "Bandwidth: 3.8 MB (Landsat 9 TIRS thermal window stream)",
+        userQuery: "Map urban heat island intensity and locate extreme surface temperature hotspots across the city.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"analyze_urban_heat_island"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"bbox"</span>: [2.2, 48.7, 2.5, 49.0],<br>
+&nbsp;&nbsp;<span class="json-key">"datetime_range"</span>: <span class="json-str">"2024-07-15"</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Pronounced urban heat island (+7.4°C above rural baseline) detected over asphalt surfaces and commercial warehouse roofs.`
+      },
+      phenology: {
+        bg: "linear-gradient(135deg, rgba(20, 83, 45, 0.85) 0%, rgba(22, 101, 52, 0.75) 50%, rgba(74, 222, 128, 0.65) 100%)",
+        videoFilter: "saturate(2.2) contrast(1.3) hue-rotate(15deg)",
+        videoOpacity: "0.5",
+        sensor: "SENTINEL-2 MULTI-TEMPORAL SERIES",
+        coords: "AOI: [36.20, -119.50, 36.30, -119.40] • EPSG:32611",
+        crs: "EPSG:32611",
+        hudTitle: "CROP PHENOLOGY TRAJECTORY",
+        hudStat: "POS: MAY 18 • PEAK NDVI 0.78",
+        hudDesc: "Greenup (SOS): Mar 24 • Senescence (EOS): Oct 15 • Healthy Canopy",
+        math: "Double-Logistic Curve Fit: S(t) = w_0 + (w_max - w_0) * Growth(t)",
+        footerLatency: "1150ms",
+        footerBandwidth: "Bandwidth: 4.2 MB (Seasonal time-series STAC windowing)",
+        userQuery: "Track crop vegetative growth trajectory and identify start and peak of season milestones.",
+        toolCall: `<span style="color: #94a3b8;">// Agent calling eo-mcp tool</span><br>
+<span class="json-key">"tool"</span>: <span class="json-str">"monitor_crop_phenology"</span>,<br>
+<span class="json-key">"arguments"</span>: {<br>
+&nbsp;&nbsp;<span class="json-key">"bbox"</span>: [-119.5, 36.2, -119.4, 36.3],<br>
+&nbsp;&nbsp;<span class="json-key">"year"</span>: <span class="json-num">2024</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"crop_type"</span>: <span class="json-str">"Almonds"</span><br>
+}`,
+        analysis: `<span style="color: var(--accent);">● Agent Insight:</span> Full seasonal trajectory modeled across 8 time steps. Rapid greenup detected in late March, reaching peak photosynthetic vigor in mid May.`
       }
     };
 
