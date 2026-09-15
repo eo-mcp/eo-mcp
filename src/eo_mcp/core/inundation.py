@@ -1,8 +1,23 @@
-"""Sea-level rise, storm surge, and coastal flood inundation modeling engine.
+"""
+Sea-level rise, storm surge, and coastal flood inundation modeling engine.
 
 Applies a hydrologically connected 8-connected flood-fill model to Copernicus DEM GLO-30 elevation
 arrays, simulating IPCC AR6 sea-level rise scenarios and storm surge events conforming to
 the EU Floods Directive (2007/60/EC Art. 6).
+
+References:
+- Poulter, B., & Halpin, P. N. (2008). Raster modelling of coastal flooding from
+  sea-level rise. International Journal of Geographical Information Science, 22(2),
+  167-182. DOI: 10.1080/13658810701371858
+- Gesch, D. B. (2009). Analysis of lidar elevation data for improved identification
+  and delineation of lands vulnerable to sea-level rise. Journal of Coastal Research,
+  SI(53), 49-58. DOI: 10.2112/si53-006.1
+- Gesch, D. B. (2018). Best practices for elevation-based assessments of sea-level
+  rise and coastal flooding exposure. Frontiers in Earth Science, 6, 230.
+  DOI: 10.3389/feart.2018.00230
+- Fox-Kemper, B., et al. (2021). Ocean, cryosphere and sea level change. In Climate
+  Change 2021: The Physical Science Basis (IPCC AR6 WGI), pp. 1211-1362.
+  Cambridge University Press. DOI: 10.1017/9781009157896.011
 """
 
 from typing import Dict, Any, Optional, Tuple, List
@@ -10,7 +25,7 @@ import numpy as np
 from scipy.ndimage import label
 
 
-# Standard IPCC AR6 Sea-Level Rise Projections (Global Mean Sea Level by 2100 relative to 1995-2014)
+# Standard IPCC AR6 Sea-Level Rise Projections (Global Mean Sea Level by 2100 relative to 1995-2014; Fox-Kemper et al., 2021)
 IPCC_AR6_SCENARIOS: Dict[str, Dict[str, Any]] = {
     "SSP1-2.6": {
         "title": "Low Emissions (Sustainability)",
@@ -54,6 +69,16 @@ def simulate_connected_inundation(
 
     Returns:
         (binary_inundation_mask, depth_array_meters, summary_metrics)
+
+    References:
+    - Poulter, B., & Halpin, P. N. (2008). International Journal of Geographical
+      Information Science, 22(2), 167-182. DOI: 10.1080/13658810701371858
+    - Gesch, D. B. (2009). Journal of Coastal Research, SI(53), 49-58.
+      DOI: 10.2112/si53-006.1
+    - Gesch, D. B. (2018). Frontiers in Earth Science, 6, 230.
+      DOI: 10.3389/feart.2018.00230
+    - Fox-Kemper, B., et al. (2021). IPCC AR6 WGI, Chapter 9.
+      DOI: 10.1017/9781009157896.011
     """
     if dem_array.ndim == 3:
         dem_array = dem_array[0]

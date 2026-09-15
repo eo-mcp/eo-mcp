@@ -1,8 +1,18 @@
-"""Sentinel-5P TROPOMI atmospheric emissions & OpenAQ air quality monitoring engine.
+"""
+Sentinel-5P TROPOMI atmospheric emissions & OpenAQ air quality monitoring engine.
 
 Zero-infrastructure MCP capability leveraging Copernicus Sentinel-5P STAC endpoints
 (NO2, SO2, CO, Methane CH4) and the open OpenAQ public REST API to map
 industrial plume emissions and urban air quality exceedances.
+
+References:
+- Veefkind, J. P., et al. (2012). TROPOMI on the ESA Sentinel-5 Precursor: A GMES
+  mission for global observations of the atmospheric composition for climate, air
+  quality and ozone layer applications. Remote Sensing of Environment, 120, 70-83.
+  DOI: 10.1016/j.rse.2011.09.027
+- van Geffen, J., et al. (2020). S5P TROPOMI NO2 slant column retrieval: Method,
+  stability, uncertainties and comparisons with OMI. Atmospheric Measurement
+  Techniques, 13(3), 1315-1335. DOI: 10.5194/amt-13-1315-2020
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -62,6 +72,12 @@ def query_sentinel5p_emissions(
 
     Returns:
         Dictionary with column density statistics, plume status, and spatial hotspots.
+
+    References:
+    - Veefkind et al. (2012). Remote Sensing of Environment, 120, 70-83.
+      DOI: 10.1016/j.rse.2011.09.027
+    - van Geffen et al. (2020). Atmospheric Measurement Techniques, 13(3), 1315-1335.
+      DOI: 10.5194/amt-13-1315-2020
     """
     gas_key = gas.upper()
     meta = AIR_QUALITY_THRESHOLDS.get(gas_key, AIR_QUALITY_THRESHOLDS["NO2"])

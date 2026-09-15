@@ -13,10 +13,13 @@ import os
 # Tool categories definition
 TOOL_CATEGORIES = {
     "workflows": {
-        "description": "Ergonomic composite workflows bundling multi-step tasks (geocoding, search, analytics) into single token-efficient calls.",
+        "description": "Ergonomic composite workflows bundling multi-step tasks (geocoding, search, analytics, pipeline execution) into single token-efficient calls.",
         "tools": [
             "assess_location_hazard",
             "environmental_site_audit",
+            "run_pipeline",
+            "list_pipeline_recipes",
+            "describe_pipeline_recipe",
         ]
     },
     "core": {

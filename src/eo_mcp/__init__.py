@@ -10,12 +10,16 @@ __author__ = "M. Anwar Sounny-Slitine, PhD (sounny.com)"
 __license__ = "Apache-2.0"
 
 from eo_mcp.workflows import assess_location_hazard, environmental_site_audit, resolve_aoi
+from eo_mcp.core.pipeline import execute_pipeline, list_pipeline_recipes, describe_pipeline_recipe
 from eo_mcp.registry import discover_tools, get_active_profile, get_allowed_tools
 
 __all__ = [
     "assess_location_hazard",
     "environmental_site_audit",
     "resolve_aoi",
+    "execute_pipeline",
+    "list_pipeline_recipes",
+    "describe_pipeline_recipe",
     "discover_tools",
     "get_active_profile",
     "get_allowed_tools",

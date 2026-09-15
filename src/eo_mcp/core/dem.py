@@ -1,4 +1,18 @@
-"""Copernicus DEM GLO-30 Digital Elevation & Slope Terrain Engine."""
+"""
+Copernicus DEM GLO-30 Digital Elevation & Slope Terrain Engine.
+
+References:
+- Horn, B. K. P. (1981). Hill shading and the reflectance map. Proceedings of the IEEE,
+  69(1), 14-47. DOI: 10.1109/PROC.1981.11918
+- Zevenbergen, L. W., & Thorne, C. R. (1987). Quantitative analysis of land surface
+  topography. Earth Surface Processes and Landforms, 12(1), 47-56.
+  DOI: 10.1002/esp.3290120107
+- Guth, P. L., & Geoffroy, T. M. (2021). LiDAR point cloud and ICESat-2 evaluation of
+  1 second global digital elevation models: Copernicus wins. Transactions in GIS,
+  25(5), 2245-2261. DOI: 10.1111/tgis.12825
+- European Space Agency. (2020). Copernicus Complex Digital Elevation Model (COP-DEM)
+  Validation Report. Issue 4.0, Airbus Defence and Space & ESA.
+"""
 
 from typing import Tuple, Dict, Any
 import numpy as np
@@ -7,7 +21,13 @@ import numpy as np
 def compute_slope_and_aspect(elevation_grid: np.ndarray, cellsize_m: float = 30.0) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate terrain slope (in degrees) and aspect (in degrees 0-360) from a 2D elevation raster.
-    Uses standard Horn / Zevenbergen-Thorne finite difference algorithm.
+    Uses central finite difference gradient estimation (Horn, 1981; Zevenbergen & Thorne, 1987).
+
+    References:
+    - Horn, B. K. P. (1981). Proceedings of the IEEE, 69(1), 14-47.
+      DOI: 10.1109/PROC.1981.11918
+    - Zevenbergen, L. W., & Thorne, C. R. (1987). Earth Surface Processes and Landforms,
+      12(1), 47-56. DOI: 10.1002/esp.3290120107
     """
     if elevation_grid.ndim == 3:
         elevation_grid = elevation_grid[0]

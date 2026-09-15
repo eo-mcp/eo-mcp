@@ -1,8 +1,28 @@
-"""Maritime surveillance, SAR vessel detection, and AIS correlation engine.
+"""
+Maritime surveillance, SAR vessel detection, and AIS correlation engine.
 
 Detects radar-reflective metallic ship targets in Sentinel-1 SAR imagery and correlates
 them with existing free public AIS APIs (such as Digitraffic Baltic Sea AIS and open feeds)
 to identify unreported 'Dark Vessels' and marine pollution events (MSFD Descriptor 8).
+
+References:
+- Finn, H. M., & Johnson, R. S. (1968). Adaptive detection mode with threshold control
+  as a function of spatially sampled clutter-level estimates. RCA Review, 29(3), 414-464.
+- Novak, L. M., Owirka, G. J., & Netishen, C. M. (1993). Performance of a high-resolution
+  polarimetric SAR automatic target recognition system. The Lincoln Laboratory Journal,
+  6(1), 11-24.
+- Crisp, D. J. (2004). The state-of-the-art in ship detection in synthetic aperture
+  radar imagery. Defence Science and Technology Organisation (DSTO), Research Report
+  DSTO-RR-0272.
+- Stasolla, M., & Greidanus, H. (2016). The exploitation of Sentinel-1 images for vessel
+  size estimation. Remote Sensing Letters, 7(12), 1219-1228.
+  DOI: 10.1080/2150704X.2016.1226522
+- Pelich, R., et al. (2019). Large-scale automatic vessel monitoring based on
+  dual-polarization Sentinel-1 and AIS data. Remote Sensing, 11(9), 1078.
+  DOI: 10.3390/rs11091078
+- Alpers, W., & Hühnerfuss, H. (1988). Radar signatures of oil films floating on the
+  sea surface and the Marangoni effect. Journal of Geophysical Research: Oceans,
+  93(C4), 3642-3648. DOI: 10.1029/JC093iC04p03642
 """
 
 import math
@@ -101,6 +121,12 @@ def cfar_vessel_detector(
 
     Returns:
         (binary_detection_mask, list_of_detected_targets)
+
+    References:
+    - Finn, H. M., & Johnson, R. S. (1968). RCA Review, 29(3), 414-464.
+    - Novak, L. M., Owirka, G. J., & Netishen, C. M. (1993). The Lincoln Laboratory Journal,
+      6(1), 11-24.
+    - Crisp, D. J. (2004). DSTO Research Report DSTO-RR-0272.
     """
     if sar_db.ndim == 3:
         sar_db = sar_db[0]
@@ -196,6 +222,12 @@ def correlate_sar_with_ais(
 
     Returns:
         Dictionary with matched vessels, dark vessels, unmatched AIS, and summary stats.
+
+    References:
+    - Stasolla, M., & Greidanus, H. (2016). Remote Sensing Letters, 7(12), 1219-1228.
+      DOI: 10.1080/2150704X.2016.1226522
+    - Pelich, R., et al. (2019). Remote Sensing, 11(9), 1078.
+      DOI: 10.3390/rs11091078
     """
     # Project pixel centroids to lat/lon
     for trg in detected_targets:
@@ -297,6 +329,10 @@ def detect_oil_spill_slicks(
     Surfactants dampen capillary gravity waves, producing localized dark radar backscatter
     patches (typically < -22.0 dB) in contrast to ambient sea clutter.
     Conforms to MSFD Descriptor 8 requirements.
+
+    References:
+    - Alpers, W., & Hühnerfuss, H. (1988). Journal of Geophysical Research: Oceans,
+      93(C4), 3642-3648. DOI: 10.1029/JC093iC04p03642
     """
     if sar_db.ndim == 3:
         sar_db = sar_db[0]

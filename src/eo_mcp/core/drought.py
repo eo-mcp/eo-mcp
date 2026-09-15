@@ -1,8 +1,14 @@
-"""Reservoir drought dynamics & surface water depletion engine.
+"""
+Reservoir drought dynamics & surface water depletion engine.
 
 Zero-infrastructure MCP capability leveraging the EC Joint Research Centre (JRC)
 Global Surface Water archive and multi-temporal optical imagery to track
 reservoir shrinkage, permanent vs seasonal water loss, and drought severity.
+
+References:
+- Pekel, J.-F., Cottam, A., Gorelick, N., & Belward, A. S. (2016). High-resolution
+  mapping of global surface water and its long-term changes. Nature, 540(7633),
+  418-422. DOI: 10.1038/nature20584
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -27,6 +33,10 @@ def analyze_water_body_drought(
     Returns:
         Dictionary with historical vs modern water area (ha, km2), deficit percentage,
         seasonal transition breakdown, and drought severity class.
+
+    References:
+    - Pekel, J.-F., et al. (2016). Nature, 540(7633), 418-422.
+      DOI: 10.1038/nature20584
     """
     min_lon, min_lat, max_lon, max_lat = bbox
     rows, cols = 40, 50

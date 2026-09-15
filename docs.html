@@ -192,13 +192,22 @@
       letter-spacing: -0.02em;
     }
     .brand-icon {
-      width: 28px;
-      height: 28px;
-      background: var(--ink);
-      color: #fff;
-      border-radius: 7px;
-      display: grid;
-      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: var(--paper-warm);
+      flex-shrink: 0;
+    }
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
     .nav-menu {
       display: flex;
@@ -585,6 +594,52 @@
       color: #fff;
     }
 
+    /* Methodology Cross-Reference Badges */
+    .methodology-link-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      margin: 10px 0 16px;
+    }
+    .methodology-link-badge:hover {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #15803d;
+      transform: translateY(-1px);
+    }
+    .cross-ref-banner {
+      margin-top: 20px;
+      padding: 14px 20px;
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14.5px;
+      color: var(--ink-soft);
+      box-shadow: var(--shadow-sm);
+    }
+    .cross-ref-banner a {
+      color: #047857;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .cross-ref-banner a:hover {
+      color: var(--accent-bright);
+    }
+
     /* Citation List */
     .citation-list {
       list-style: none;
@@ -693,11 +748,7 @@
       <nav class="nav-pill" aria-label="Main navigation">
         <a href="index.html" class="brand">
           <div class="brand-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
+            <img src="assets/eo_mcp_logo.jpg" alt="eo-mcp logo" class="brand-logo-img">
           </div>
           <span>eo-mcp</span>
         </a>
@@ -707,6 +758,7 @@
           <li><a href="index.html#features" class="nav-link">Features</a></li>
           <li><a href="index.html#architecture" class="nav-link">Architecture</a></li>
           <li><a href="docs.html" class="nav-link active">Documentation</a></li>
+          <li><a href="methodology.html" class="nav-link">Methodology</a></li>
           <li><a href="index.html#quickstart" class="nav-link">Quickstart</a></li>
           <li><a href="contact.html" class="nav-link">Contact</a></li>
         </ul>
@@ -717,6 +769,12 @@
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
             </svg>
             <span>GitHub</span>
+          </a>
+          <a href="https://www.linkedin.com/company/eo-mcp/" target="_blank" rel="noopener" class="btn btn-outline" style="padding: 8px 16px;" title="Follow eo-mcp on LinkedIn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+            </svg>
+            <span>LinkedIn</span>
           </a>
           <a href="index.html#quickstart" class="btn btn-dark" style="padding: 8px 16px;">
             <span>Get Started</span>
@@ -734,6 +792,10 @@
       <p>
         Detailed documentation of all nineteen <code>eo-mcp</code> tools, explaining their execution workflows, input parameters, underlying radiative transfer physics, mathematical formulations, and peer-reviewed scientific citations.
       </p>
+      <div class="cross-ref-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>Looking for comprehensive radiative transfer physics, mathematical proofs, and complete peer-reviewed literature? See our <a href="methodology.html">Scientific Methodology &amp; Mathematical Foundations &rarr;</a></span>
+      </div>
     </div>
   </section>
 
@@ -867,6 +929,10 @@
               <p class="tool-desc">
                 Streams calibrated surface reflectance bands from open Cloud-Optimized GeoTIFFs and evaluates mathematical index formulas. Supports vegetation vigor, canopy moisture, soil composition, and burn characteristics.
               </p>
+              <a href="methodology.html#spectral-indices" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Optical Biophysics & Multispectral Band Math &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Radiative Transfer Science &amp; Spectral Signatures</h4>
@@ -942,6 +1008,10 @@
               <p class="tool-desc">
                 Constructs a chronological time series of vegetation indices across agricultural seasons to identify key biological milestones: green-up, maximum photosynthetic activity, senescence, and harvest timing.
               </p>
+              <a href="methodology.html#crop-phenology" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Crop Phenology Dynamics & Curve Fitting &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Phenological Curve Fitting &amp; Agricultural Milestones</h4>
@@ -990,6 +1060,10 @@
               <p class="tool-desc">
                 Evaluates surface water shrinkage in inland lakes, reservoirs, and wetlands across multi-year baselines, tracking transitions between permanent and seasonal water bodies to classify drought severity.
               </p>
+              <a href="methodology.html#surface-water" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Surface Water Dynamics & Reservoir Drought &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Hydrological Depletion &amp; Surface Water Transition</h4>
@@ -1025,6 +1099,10 @@
               <p class="tool-desc">
                 Extracts calibrated Land Surface Temperature (LST in Celsius) from thermal infrared radiance and computes Urban Heat Island (UHI) thermal anomaly intensities relative to surrounding rural vegetative buffers.
               </p>
+              <a href="methodology.html#urban-heat" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Radiative Transfer LST & Sobrino Emissivity &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Planck Inverse Law &amp; Emissivity Threshold Modeling</h4>
@@ -1085,6 +1163,10 @@
               <p class="tool-desc">
                 Quantifies wildfire burn severity, biomass consumption, and soil scorch levels by computing pre-fire vs post-fire differenced Normalized Burn Ratios (dNBR and RdNBR).
               </p>
+              <a href="methodology.html#thermal-wildfires" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Burn Severity & Relativized Burn Ratio (RBR) &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Differenced Burn Ratio &amp; USGS CBI Stratification</h4>
@@ -1129,6 +1211,10 @@
               <p class="tool-desc">
                 Connects directly to open NASA FIRMS active fire feeds to retrieve near-real-time thermal hotspots, brightness temperatures, and Fire Radiative Power (FRP in Megawatts), automatically clustering active fire fronts using spatial proximity algorithms.
               </p>
+              <a href="methodology.html#thermal-wildfires" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Active Wildfire FRP & Thermal Radiometry &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Wien's Displacement Law &amp; Fire Radiative Power</h4>
@@ -1164,6 +1250,10 @@
               <p class="tool-desc">
                 Performs cloud-penetrating, day-and-night surface water delineation using Sentinel-1 C-Band Synthetic Aperture Radar (SAR) Ground Range Detected (GRD) backscatter.
               </p>
+              <a href="methodology.html#radar-physics" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: C-Band SAR Backscatter & Water Delineation &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Specular Reflection vs Rough Surface Backscatter</h4>
@@ -1195,6 +1285,10 @@
               <p class="tool-desc">
                 Applies Constant False Alarm Rate (CFAR) radar detectors to extract metallic vessel targets from Sentinel-1 SAR imagery and cross-references their spatial positions against live open AIS transponder records to flag unreported "Dark Vessels".
               </p>
+              <a href="methodology.html#ca-cfar" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: CA-CFAR Target Detection & AIS Fusion &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Constant False Alarm Rate (CFAR) Radar Detection</h4>
@@ -1233,6 +1327,10 @@
               <p class="tool-desc">
                 Quantifies coastal shoreline retreat and accretion rates (in meters/year) between historical and modern satellite observations using automated bimodal Otsu waterline segmentation and perpendicular cross-shore transects.
               </p>
+              <a href="methodology.html#coastal-kinematics" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: DSAS Coastal Dynamics & Sub-pixel Waterlines &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Digital Shoreline Analysis System (DSAS) Methodology</h4>
@@ -1267,6 +1365,10 @@
               <p class="tool-desc">
                 Simulates coastal sea-level rise and storm surge inundation on Copernicus DEM GLO-30 elevation data, applying hydrologic connectivity algorithms to eliminate false positive flooding in isolated inland depressions.
               </p>
+              <a href="methodology.html#dem-flooding" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Copernicus DEM & 8-Neighbor Inundation &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>8-Neighbor Hydrologic Flood-Fill &amp; IPCC AR6 Projections</h4>
@@ -1307,6 +1409,10 @@
               <p class="tool-desc">
                 Extracts topographic elevation, terrain slope gradients, and aspect orientation from the gold-standard Copernicus Digital Elevation Model (GLO-30) without local raster downloads.
               </p>
+              <a href="methodology.html#dem-flooding" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: Copernicus DEM & Topographic Derivatives &rarr;</span>
+              </a>
             </div>
           </div>
         </section>
@@ -1331,6 +1437,10 @@
               <p class="tool-desc">
                 Queries Copernicus Sentinel-5P TROPOMI spectrometer STAC endpoints to extract tropospheric vertical column densities for Nitrogen Dioxide (NO₂), Sulfur Dioxide (SO₂), Carbon Monoxide (CO), and Methane (CH₄), correlating space-based observations with ground-level OpenAQ stations.
               </p>
+              <a href="methodology.html#tropomi-doas" class="methodology-link-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+                <span>Mathematical Foundations: TROPOMI DOAS Atmospheric Spectroscopy &rarr;</span>
+              </a>
 
               <div class="science-box">
                 <h4>Differential Optical Absorption Spectroscopy (DOAS)</h4>
@@ -1670,7 +1780,9 @@
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
         <li><a href="docs.html">Documentation</a></li>
+        <li><a href="methodology.html">Methodology</a></li>
         <li><a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://www.linkedin.com/company/eo-mcp/" target="_blank" rel="noopener">LinkedIn</a></li>
         <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Spec</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="privacy.html">Privacy Policy</a></li>

@@ -143,13 +143,18 @@ def assess_location_hazard(
             water_level = float(scenario_meta["slr_median_m"])
 
         # STAC query for Copernicus DEM GLO-30
-        scenes = search_stac_catalog(
-            catalog_url=EARTH_SEARCH_STAC_URL,
-            collections=["cop-dem-glo-30"],
-            bbox=bbox,
-            datetime_range="2020-01-01/2024-01-01",
-            limit=1
-        )
+        scenes = []
+        try:
+            scenes = search_stac_catalog(
+                catalog_url=EARTH_SEARCH_STAC_URL,
+                collections=["cop-dem-glo-30"],
+                bbox=bbox,
+                datetime_range="2020-01-01/2024-01-01",
+                limit=1
+            )
+        except Exception:
+            pass
+
         if scenes:
             try:
                 from pystac_client import Client
@@ -187,25 +192,41 @@ def assess_location_hazard(
         days = int(kwargs.get("days", 2))
         source = kwargs.get("source", "VIIRS_NOAA20_NRT")
         hotspots = fetch_firms_hotspots(bbox=bbox, days=days, source=source)
-        clusters = cluster_fire_perimeters(hotspots)
-        clusters["workflow"] = "assess_location_hazard:wildfire"
-        clusters["location"] = {"query": location, "resolved_name": display_name, "bbox": bbox}
+        perimeters = cluster_fire_perimeters(hotspots=hotspots, cluster_dist_km=2.0)
+        total_frp = round(sum(h.get("fire_radiative_power_mw", 0.0) for h in hotspots), 2)
+        results = {
+            "workflow": "assess_location_hazard:wildfire",
+            "location": {"query": location, "resolved_name": display_name, "bbox": bbox},
+            "lookback_days": days,
+            "sensor_source": source,
+            "total_active_hotspots": len(hotspots),
+            "fire_perimeters_count": len(perimeters),
+            "total_fire_radiative_power_mw": total_frp,
+            "hotspots": hotspots,
+            "perimeters": perimeters,
+            "compliance_standard": "NASA LANCE / EFFIS European Forest Fire Information System"
+        }
 
         if format.lower() == "geojson":
-            return json.dumps(wildfires_to_geojson(clusters), indent=2)
+            return json.dumps(wildfires_to_geojson(results), indent=2)
         elif format.lower() == "csv":
-            return wildfires_to_csv(clusters)
-        return json.dumps(clusters, indent=2)
+            return wildfires_to_csv(results)
+        return json.dumps(results, indent=2)
 
     # 3. Burn Severity
     elif h_type in ("burn_severity", "post_fire", "dnbr"):
         pre_range = kwargs.get("pre_fire_date_range", "2024-05-01/2024-06-15")
         post_range = kwargs.get("post_fire_date_range", datetime_range or "2024-07-01/2024-08-15")
-        burn_results = calculate_burn_severity_dnbr(
+        collection = kwargs.get("collection", "sentinel-2-l2a")
+        from eo_mcp.server import calculate_burn_severity
+        raw_res = calculate_burn_severity(
             bbox=bbox,
             pre_fire_date_range=pre_range,
-            post_fire_date_range=post_range
+            post_fire_date_range=post_range,
+            collection=collection,
+            format="summary"
         )
+        burn_results = json.loads(raw_res)
         burn_results["workflow"] = "assess_location_hazard:burn_severity"
         burn_results["location"] = {"query": location, "resolved_name": display_name, "bbox": bbox}
 
@@ -324,13 +345,18 @@ def environmental_site_audit(
         return json.dumps({"error": str(exc)})
 
     # 1. Topography from Copernicus DEM GLO-30
-    dem_scenes = search_stac_catalog(
-        catalog_url=EARTH_SEARCH_STAC_URL,
-        collections=["cop-dem-glo-30"],
-        bbox=bbox,
-        datetime_range="2020-01-01/2024-01-01",
-        limit=1
-    )
+    dem_scenes = []
+    try:
+        dem_scenes = search_stac_catalog(
+            catalog_url=EARTH_SEARCH_STAC_URL,
+            collections=["cop-dem-glo-30"],
+            bbox=bbox,
+            datetime_range="2020-01-01/2024-01-01",
+            limit=1
+        )
+    except Exception:
+        pass
+
     if dem_scenes:
         try:
             from pystac_client import Client

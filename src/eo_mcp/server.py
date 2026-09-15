@@ -92,6 +92,11 @@ from eo_mcp.workflows import (
     assess_location_hazard as _assess_location_hazard,
     environmental_site_audit as _environmental_site_audit
 )
+from eo_mcp.core.pipeline import (
+    execute_pipeline as _execute_pipeline,
+    list_pipeline_recipes as _list_pipeline_recipes,
+    describe_pipeline_recipe as _describe_pipeline_recipe
+)
 
 # Initialize FastMCP Server
 mcp = FastMCP(
@@ -155,6 +160,12 @@ def assess_location_hazard(
 
     Returns:
         JSON string or formatted report with end-to-end hazard metrics and resolved location context.
+
+    References:
+    - Fox-Kemper, B., et al. (2021). IPCC AR6 WGI Chapter 9. DOI: 10.1017/9781009157896.011
+    - Key, C. H., & Benson, N. C. (2006). USDA Forest Service RMRS-GTR-164-CD, pp. LA 1-55.
+    - Schroeder, W., et al. (2014). Remote Sensing of Environment, 143, 85-96. DOI: 10.1016/j.rse.2013.12.008
+    - Thieler, E. R., et al. (2009). USGS Open-File Report 2008-1278. DOI: 10.3133/ofr20081278
     """
     return _assess_location_hazard(
         location=location,
@@ -190,12 +201,97 @@ def environmental_site_audit(
 
     Returns:
         JSON string with executive environmental scorecard and multi-layer indicators.
+
+    References:
+    - Tucker, C. J. (1979). Remote Sensing of Environment, 8(2), 127-150. DOI: 10.1016/0034-4257(79)90013-0
+    - McFeeters, S. K. (1996). International Journal of Remote Sensing, 17(7), 1425-1432. DOI: 10.1080/01431169608948714
+    - Guth, P. L., & Geoffroy, T. M. (2021). Transactions in GIS, 25(5), 2245-2261. DOI: 10.1111/tgis.12825
     """
     return _environmental_site_audit(
         location=location,
         datetime_range=datetime_range,
         format=format
     )
+
+
+@eo_tool()
+def run_pipeline(
+    spec: str,
+    location: Optional[str] = None,
+    format: str = "summary",
+    parameters: Optional[str] = None
+) -> str:
+    """
+    Execute a declarative multi-step Earth Observation processing pipeline or pre-built recipe.
+    Empowers users and AI agents to compose custom multi-hazard workflows without self-hosted infrastructure.
+
+    Pre-built Recipes:
+    - 'compound_wildfire_runoff_risk': Wildfire burn severity (dNBR) + DEM slope gradient -> Debris flow risk
+    - 'coastal_storm_surge_infrastructure_exposure': Copernicus DEM + SLR + surge -> OSM transport & hospital exposure
+    - 'agricultural_drought_thermal_stress': Sentinel-2 NDVI + Land Surface Temp + Surface water shrinkage
+    - 'maritime_environmental_patrol': Sentinel-1 SAR CFAR + Live Baltic AIS + Low-backscatter oil slick delineation
+
+    Or pass a custom declarative JSON specification defining steps:
+    - 'fetch_raster': Copernicus DEM or Sentinel-2 / Landsat windowed COG
+    - 'spectral_index': NDVI, NDWI, MNDWI, NBR
+    - 'terrain_analysis': Slope gradient, aspect, elevation stats
+    - 'inundation_model': 8-connected bathtub flood simulation
+    - 'wildfire_activity': NASA FIRMS active hotspots and perimeters
+    - 'burn_severity': Multi-temporal dNBR calculation
+    - 'maritime_sar_ais': SAR CFAR detection and AIS correlation
+    - 'exposure_overlay': Intersect hazard zone with OpenStreetMap roads and critical facilities
+    - 'compound_risk_synthesis': Weighted multi-hazard score and EU Directive alignment
+
+    Args:
+        spec: Pre-built recipe name (e.g. 'compound_wildfire_runoff_risk') or JSON string containing pipeline definition.
+        location: Optional location name ('Valencia, Spain') or bbox 'min_lon,min_lat,max_lon,max_lat'.
+        format: Output format: 'summary' (JSON report with ASCII map), 'geojson' (RFC 7946), or 'csv'.
+        parameters: Optional JSON string of parameter overrides (e.g. '{"water_level_rise_m": 1.8, "storm_surge_m": 0.5}').
+
+    Returns:
+        Formatted summary JSON, GeoJSON FeatureCollection, or CSV string.
+    """
+    kwargs = {}
+    if parameters:
+        try:
+            kwargs = json.loads(parameters)
+        except Exception:
+            pass
+
+    return _execute_pipeline(
+        spec=spec,
+        location=location,
+        format=format,
+        **kwargs
+    )
+
+
+@eo_tool()
+def list_pipeline_recipes() -> str:
+    """
+    List available pre-built compound hazard and multi-spectral pipeline recipes.
+
+    Returns:
+        JSON string cataloging recipe names, descriptions, categories, and step counts.
+    """
+    return json.dumps(_list_pipeline_recipes(), indent=2)
+
+
+@eo_tool()
+def describe_pipeline_recipe(recipe_name: str) -> str:
+    """
+    Retrieve the detailed configuration, parameters, and step sequence for a pipeline recipe.
+
+    Args:
+        recipe_name: Name of the recipe (e.g. 'compound_wildfire_runoff_risk', 'coastal_storm_surge_infrastructure_exposure').
+
+    Returns:
+        JSON string with recipe specification and step definitions.
+    """
+    try:
+        return json.dumps(_describe_pipeline_recipe(recipe_name), indent=2)
+    except Exception as exc:
+        return json.dumps({"error": str(exc)}, indent=2)
 
 
 @eo_tool()
@@ -307,6 +403,12 @@ def calculate_spectral_index(
 
     Returns:
         JSON string with summary statistics, pixel count, and ASCII spatial density visualization.
+
+    References:
+    - Rouse et al. (1974), NASA SP-351, 1, 309-317.
+    - Tucker, C. J. (1979). Remote Sensing of Environment, 8(2), 127-150. DOI: 10.1016/0034-4257(79)90013-0
+    - McFeeters, S. K. (1996). International Journal of Remote Sensing, 17(7), 1425-1432. DOI: 10.1080/01431169608948714
+    - Key, C. H., & Benson, N. C. (2006). USDA Forest Service RMRS-GTR-164-CD, pp. LA 1-55.
     """
     try:
         # 1. Discover scenes
@@ -383,6 +485,11 @@ def get_elevation_profile(bbox: List[float], calculate_slope: bool = True) -> st
 
     Returns:
         JSON string with min, max, and mean elevation (m), slope statistics, and ASCII elevation contour map.
+
+    References:
+    - Horn, B. K. P. (1981). Proceedings of the IEEE, 69(1), 14-47. DOI: 10.1109/PROC.1981.11918
+    - Guth, P. L., & Geoffroy, T. M. (2021). Transactions in GIS, 25(5), 2245-2261. DOI: 10.1111/tgis.12825
+    - European Space Agency. (2020). Copernicus DEM Validation Report v4.0.
     """
     try:
         scenes = search_stac_catalog(
@@ -425,6 +532,10 @@ def detect_water_sar(bbox: List[float], datetime_range: str, threshold_db: float
 
     Returns:
         JSON string with detected surface water percentage and backscatter characteristics.
+
+    References:
+    - Twele, A., et al. (2016). International Journal of Remote Sensing, 37(13), 2990-3004. DOI: 10.1080/01431161.2016.1192304
+    - Bioresita, F., et al. (2018). Remote Sensing, 10(2), 217. DOI: 10.3390/rs10020217
     """
     try:
         items = search_cdse_sentinel1(bbox=bbox, datetime_range=datetime_range, limit=1)
@@ -495,6 +606,13 @@ def detect_dark_vessels(
     Returns:
         Classified vessels: TRUSTED (AIS matched), DARK_VESSEL (SAR target with no AIS),
         and SPOOF_OR_ABSENT (AIS broadcast with no radar reflector), with oil slick alerts.
+
+    References:
+    - Finn, H. M., & Johnson, R. S. (1968). RCA Review, 29(3), 414-464.
+    - Crisp, D. J. (2004). DSTO Research Report DSTO-RR-0272.
+    - Stasolla, M., & Greidanus, H. (2016). Remote Sensing Letters, 7(12), 1219-1228. DOI: 10.1080/2150704X.2016.1226522
+    - Pelich, R., et al. (2019). Remote Sensing, 11(9), 1078. DOI: 10.3390/rs11091078
+    - Alpers, W., & Hühnerfuss, H. (1988). Journal of Geophysical Research: Oceans, 93(C4), 3642-3648. DOI: 10.1029/JC093iC04p03642
     """
     try:
         # 1. Ingest AIS telemetry from existing open API or custom input
@@ -586,6 +704,12 @@ def analyze_coastal_erosion(
     Returns:
         JSON or formatted string with transect measurements, End Point Rate (m/year), hazard classification,
         and eroding coastline percentage.
+
+    References:
+    - Xu, H. (2006). International Journal of Remote Sensing, 27(14), 3025-3033. DOI: 10.1080/01431160600589179
+    - Otsu, N. (1979). IEEE Transactions on Systems, Man, and Cybernetics, 9(1), 62-66. DOI: 10.1109/TSMC.1979.4310076
+    - Thieler, E. R., et al. (2009). USGS Open-File Report 2008-1278. DOI: 10.3133/ofr20081278
+    - Vos, K., et al. (2019). Environmental Modelling & Software, 122, 104528. DOI: 10.1016/j.envsoft.2019.104528
     """
     try:
         from pystac_client import Client
@@ -711,6 +835,11 @@ def simulate_sea_level_rise(
     Returns:
         JSON or formatted string with submerged land area (ha, km²), percentage inundated, mean/max depth,
         hazard zone breakdown, and ASCII flood distribution map.
+
+    References:
+    - Poulter, B., & Halpin, P. N. (2008). International Journal of Geographical Information Science, 22(2), 167-182. DOI: 10.1080/13658810701371858
+    - Gesch, D. B. (2018). Frontiers in Earth Science, 6, 230. DOI: 10.3389/feart.2018.00230
+    - Fox-Kemper, B., et al. (2021). IPCC AR6 WGI Chapter 9. DOI: 10.1017/9781009157896.011
     """
     try:
         scenario_meta = None
@@ -792,6 +921,11 @@ def detect_active_wildfires(
     Returns:
         Hotspot locations, Fire Radiative Power (MW), brightness temperature (K),
         clustered fire perimeters, and EFFIS fire danger rating.
+
+    References:
+    - Schroeder, W., et al. (2014). Remote Sensing of Environment, 143, 85-96. DOI: 10.1016/j.rse.2013.12.008
+    - Giglio, L., et al. (2016). Remote Sensing of Environment, 178, 31-41. DOI: 10.1016/j.rse.2016.02.054
+    - Wooster, M. J. (2003). Remote Sensing of Environment, 86(1), 83-107. DOI: 10.1016/S0034-4257(03)00070-1
     """
     try:
         hotspots = fetch_firms_hotspots(bbox=bbox, days=days, source=source)
@@ -841,6 +975,10 @@ def monitor_atmospheric_emissions(
     Returns:
         Tropospheric column densities (mean/max), plume detection status, EU directive compliance,
         and correlated ground station measurements.
+
+    References:
+    - Veefkind, J. P., et al. (2012). Remote Sensing of Environment, 120, 70-83. DOI: 10.1016/j.rse.2011.09.027
+    - van Geffen, J., et al. (2020). Atmospheric Measurement Techniques, 13(3), 1315-1335. DOI: 10.5194/amt-13-1315-2020
     """
     try:
         s5p_data = query_sentinel5p_emissions(bbox=bbox, gas=gas, datetime_range=datetime_range)
@@ -883,6 +1021,9 @@ def analyze_reservoir_drought(
     Returns:
         Historical vs modern water surface area (ha, km²), net water loss, percentage deficit,
         seasonal vs permanent transition breakdown, and drought severity classification.
+
+    References:
+    - Pekel, J.-F., Cottam, A., Gorelick, N., & Belward, A. S. (2016). Nature, 540(7633), 418-422. DOI: 10.1038/nature20584
     """
     try:
         drought_results = analyze_water_body_drought(
@@ -985,6 +1126,10 @@ def calculate_burn_severity(
     Returns:
         JSON or formatted string with mean/max dNBR, total burned area (ha), severity zone breakdown,
         and EFFIS damage rating.
+
+    References:
+    - Key, C. H., & Benson, N. C. (2006). USDA Forest Service RMRS-GTR-164-CD, pp. LA 1-55.
+    - Parks, S. A., Dillon, G. K., & Miller, C. (2014). Remote Sensing, 6(3), 1827-1844. DOI: 10.3390/rs6031827
     """
     try:
         from pystac_client import Client
@@ -1094,6 +1239,11 @@ def analyze_urban_heat_island(
     Returns:
         JSON or formatted string with mean/min/max LST (°C), UHI intensity (delta °C),
         thermal hotspot area (ha), cool island buffer area, and thermal risk classification.
+
+    References:
+    - Valor, E., & Caselles, V. (1996). Remote Sensing of Environment, 57(3), 167-184. DOI: 10.1016/0034-4257(96)00039-9
+    - Sobrino, J. A., et al. (2004). Remote Sensing of Environment, 90(4), 434-440. DOI: 10.1016/j.rse.2004.02.003
+    - Jiménez-Muñoz, J. C., et al. (2009). IEEE TGRS, 47(1), 339-349. DOI: 10.1109/TGRS.2008.2007125
     """
     try:
         from pystac_client import Client
@@ -1190,6 +1340,11 @@ def monitor_crop_phenology(
     Returns:
         JSON or formatted string with Start/Peak/End of Season dates, peak NDVI,
         seasonal biomass proxy, and crop vigor anomaly evaluation.
+
+    References:
+    - Reed, B. C., et al. (1994). Journal of Vegetation Science, 5(5), 703-714. DOI: 10.2307/3235884
+    - Zhang, X., et al. (2003). Remote Sensing of Environment, 84(3), 471-475. DOI: 10.1016/S0034-4257(02)00135-9
+    - Jönsson, P., & Eklundh, L. (2004). Computers & Geosciences, 30(8), 833-845. DOI: 10.1016/j.cageo.2004.05.006
     """
     try:
         # Efficient single-query STAC search across the agricultural season window

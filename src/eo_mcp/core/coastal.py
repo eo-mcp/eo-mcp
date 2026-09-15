@@ -1,8 +1,26 @@
-"""Coastal dynamics, shoreline extraction, and multi-temporal erosion analysis engine.
+"""
+Coastal dynamics, shoreline extraction, and multi-temporal erosion analysis engine.
 
 Computes MNDWI waterlines from multi-temporal optical satellite bands (Sentinel-2 / Landsat)
 and calculates perpendicular baseline transect End Point Rates (EPR in m/year) to assess
 coastal shoreline retreat and erosion hazards aligned with the EU Climate Adaptation Strategy.
+
+References:
+- Xu, H. (2006). Modification of normalised difference water index (NDWI) to enhance
+  open water features in remotely sensed imagery. International Journal of Remote Sensing,
+  27(14), 3025-3033. DOI: 10.1080/01431160600589179
+- Otsu, N. (1979). A threshold selection method from gray-level histograms. IEEE Transactions
+  on Systems, Man, and Cybernetics, 9(1), 62-66. DOI: 10.1109/TSMC.1979.4310076
+- Thieler, E. R., Himmelstoss, E. A., Zichichi, J. L., & Ergul, A. (2009). Digital Shoreline
+  Analysis System (DSAS) version 4.0—An ArcGIS extension for calculating shoreline change.
+  U.S. Geological Survey Open-File Report 2008-1278, 72 p. DOI: 10.3133/ofr20081278
+- Himmelstoss, E. A., Henderson, R. E., Kratzmann, M. G., & Farris, A. S. (2018). Digital
+  Shoreline Analysis System (DSAS) version 5.0 user guide. U.S. Geological Survey
+  Open-File Report 2018-1179, 110 p. DOI: 10.3133/ofr20181179
+- Vos, K., Splinter, K. D., Harley, M. D., Simmons, J. A., & Turner, I. L. (2019). CoastSat:
+  A Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available
+  satellite imagery. Environmental Modelling & Software, 122, 104528.
+  DOI: 10.1016/j.envsoft.2019.104528
 """
 
 from typing import Tuple, Dict, Any, List, Optional
@@ -15,6 +33,10 @@ def compute_mndwi(green: np.ndarray, swir: np.ndarray) -> np.ndarray:
     Calculate Modified Normalized Difference Water Index (MNDWI):
     MNDWI = (Green - SWIR) / (Green + SWIR)
     MNDWI suppresses built-up land noise and enhances water boundaries better than NDWI.
+
+    References:
+    - Xu, H. (2006). International Journal of Remote Sensing, 27(14), 3025-3033.
+      DOI: 10.1080/01431160600589179
     """
     green_f = green.astype(np.float32)
     swir_f = swir.astype(np.float32)
@@ -30,6 +52,10 @@ def extract_water_mask_otsu(water_index: np.ndarray) -> Tuple[np.ndarray, float]
 
     Returns:
         (binary_water_mask, optimal_threshold)
+
+    References:
+    - Otsu, N. (1979). IEEE Transactions on Systems, Man, and Cybernetics, 9(1), 62-66.
+      DOI: 10.1109/TSMC.1979.4310076
     """
     valid = water_index[~np.isnan(water_index)]
     if len(valid) == 0:
@@ -75,6 +101,10 @@ def extract_shoreline_boundary(water_mask: np.ndarray) -> np.ndarray:
     """
     Extract the 1-pixel wide instantaneous waterline boundary separating open water from land.
     Uses morphological boundary detection (water XOR eroded_water) preserving raster borders.
+
+    References:
+    - Vos, K., et al. (2019). Environmental Modelling & Software, 122, 104528.
+      DOI: 10.1016/j.envsoft.2019.104528
     """
     eroded = binary_erosion(water_mask, border_value=True)
     shoreline_mask = water_mask ^ eroded
@@ -105,6 +135,10 @@ def compute_transect_erosion_rates(
 
     Returns:
         Dictionary containing transect results, EPR rates, and hazard classifications.
+
+    References:
+    - Thieler, E. R., et al. (2009). USGS Open-File Report 2008-1278. DOI: 10.3133/ofr20081278
+    - Himmelstoss, E. A., et al. (2018). USGS Open-File Report 2018-1179. DOI: 10.3133/ofr20181179
     """
     n_rows, n_cols = hist_water_mask.shape
     transects = []

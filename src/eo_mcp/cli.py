@@ -504,6 +504,78 @@ def cli_audit(args):
         print(res)
 
 
+def cli_pipeline(args):
+    """CLI handler for user-defined pipeline orchestration and recipes."""
+    from eo_mcp.core.pipeline import (
+        list_pipeline_recipes,
+        describe_pipeline_recipe,
+        execute_pipeline,
+    )
+    
+    subcmd = getattr(args, "pipeline_command", None)
+    if subcmd == "list" or subcmd is None:
+        recipes = list_pipeline_recipes()
+        table = Table(title="Available Compound Hazard & Processing Recipes", safe_box=True)
+        table.add_column("Recipe Name", style="bold cyan", width=34)
+        table.add_column("Category", style="green", width=22)
+        table.add_column("Steps", style="yellow", justify="right", width=6)
+        table.add_column("Description", style="white")
+
+        for r in recipes:
+            table.add_row(r["name"], r["category"], str(r["step_count"]), r["description"])
+        console.print(table)
+
+    elif subcmd == "describe":
+        try:
+            r_data = describe_pipeline_recipe(args.recipe)
+            console.print(Panel(json.dumps(r_data, indent=2), title=f"Recipe Spec: {args.recipe}"))
+        except Exception as exc:
+            console.print(f"[red]Error: {exc}[/red]")
+
+    elif subcmd == "run":
+        spec_input = None
+        if getattr(args, "spec", None):
+            with open(args.spec, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if args.spec.endswith(".json") or content.startswith("{"):
+                    spec_input = json.loads(content)
+                else:
+                    try:
+                        import yaml
+                        spec_input = yaml.safe_load(content)
+                    except ImportError:
+                        spec_input = json.loads(content)
+        elif getattr(args, "recipe", None):
+            spec_input = args.recipe
+        else:
+            console.print("[red]Error: Must specify either --recipe <name> or --spec <path.json>[/red]")
+            return
+
+        extra_params = {}
+        if getattr(args, "params", None):
+            try:
+                extra_params = json.loads(args.params)
+            except Exception as e:
+                console.print(f"[yellow]Warning: Could not parse --params JSON: {e}[/yellow]")
+
+        with console.status("[bold blue]Executing Earth Observation Pipeline...[/bold blue]"):
+            res = execute_pipeline(
+                spec=spec_input,
+                location=getattr(args, "location", None),
+                format=getattr(args, "format", "summary"),
+                **extra_params
+            )
+
+        if getattr(args, "format", "summary") == "summary":
+            try:
+                data = json.loads(res)
+                console.print(Panel(json.dumps(data, indent=2), title=f"Pipeline Execution: {data.get('pipeline', {}).get('name', 'Custom')}"))
+            except Exception:
+                print(res)
+        else:
+            print(res)
+
+
 def app():
     parser = argparse.ArgumentParser(
         prog="eo-mcp",
@@ -539,6 +611,22 @@ def app():
     p_audit = subparsers.add_parser("audit", help="Ergonomic composite environmental site audit")
     p_audit.add_argument("location", type=str, help="Location name ('Valencia, Spain') or bbox 'min_lon,min_lat,max_lon,max_lat'")
     p_audit.add_argument("--format", choices=["summary", "geojson"], default="summary")
+
+    # Pipeline Orchestrator commands
+    p_pipe = subparsers.add_parser("pipeline", help="User-defined Earth Observation pipeline orchestration")
+    pipe_subparsers = p_pipe.add_subparsers(dest="pipeline_command", help="Pipeline operations")
+
+    pipe_subparsers.add_parser("list", help="List available pre-built compound hazard recipes")
+
+    p_pipe_desc = pipe_subparsers.add_parser("describe", help="Show full step specification of a recipe")
+    p_pipe_desc.add_argument("recipe", type=str, help="Name of recipe to inspect")
+
+    p_pipe_run = pipe_subparsers.add_parser("run", help="Execute an EO processing pipeline or compound recipe")
+    p_pipe_run.add_argument("--recipe", type=str, default=None, help="Name of pre-built recipe")
+    p_pipe_run.add_argument("--spec", type=str, default=None, help="Path to custom JSON or YAML pipeline spec file")
+    p_pipe_run.add_argument("--location", type=str, default=None, help="Location name or bbox")
+    p_pipe_run.add_argument("--format", choices=["summary", "geojson", "csv"], default="summary", help="Output format")
+    p_pipe_run.add_argument("--params", type=str, default=None, help="JSON string of parameter overrides")
 
     # Credential management
     p_auth = subparsers.add_parser("auth", help="View or set satellite provider credentials")
@@ -641,6 +729,8 @@ def app():
         cli_emissions(args)
     elif args.command == "drought":
         cli_drought(args)
+    elif args.command == "pipeline":
+        cli_pipeline(args)
     else:
         run_server()
 

@@ -1,0 +1,2544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scientific Methodology &amp; Mathematical Foundations — eo-mcp</title>
+  <meta name="description" content="Peer-reviewed scientific foundations, radiative transfer physics, mathematical formulations, and satellite sensor specifications for the open-source Agentic Earth Observation Protocol (eo-mcp).">
+  <meta property="og:title" content="eo-mcp — Scientific Methodology &amp; Mathematical Foundations">
+  <meta property="og:description" content="Peer-reviewed literature, KaTeX mathematical equations, and radiative transfer derivations for all eo-mcp tools.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#fafafa">
+
+  <!-- Google Fonts: Albert Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX v0.16.11 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+
+  <!-- KaTeX Core JS & Auto-render extension -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --paper: #fafafa;
+      --paper-warm: #f5f5f5;
+      --paper-dark: #efefef;
+      --ink: #1f1f1f;
+      --ink-soft: #383838;
+      --ink-mute: #666666;
+      --ink-faint: #999999;
+      --accent: #22c55e;
+      --accent-bright: #10b981;
+      --accent-soft: #bbf7d0;
+      --accent-glow: rgba(34, 197, 94, 0.25);
+      --bone: #ffffff;
+      --line: #e2e2e2;
+      --line-hover: #c4c4c4;
+      --line-soft: #eeeeee;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --font-sans: "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
+    }
+
+    pre {
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      box-sizing: border-box;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 99;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(220, 220, 220, 0.35) 0%, transparent 25%),
+        radial-gradient(circle at 90% 80%, rgba(210, 210, 210, 0.35) 0%, transparent 25%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0 0.1  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.8;
+    }
+
+    .side-rail {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 42px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .side-rail.left { left: 0; border-right: 1px solid var(--line-soft); }
+    .side-rail.right { right: 0; border-left: 1px solid var(--line-soft); }
+    .side-rail-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      writing-mode: vertical-rl;
+      white-space: nowrap;
+    }
+    .side-rail.left .side-rail-text { transform: rotate(180deg); }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+    }
+
+    /* Top Announcement Bar */
+    .topbar {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 9px 0;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      background: var(--paper);
+      position: relative;
+      z-index: 20;
+    }
+    .topbar-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 var(--accent-glow);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Sticky Navigation Bar with Frosted Glass */
+    .site-nav {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 1000;
+      padding: 12px 0;
+      transition: padding 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .site-nav.is-scrolled {
+      padding: 8px 0;
+      background: rgba(250, 250, 250, 0.62);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .nav-pill {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-pill);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm), 0 8px 24px -6px rgba(0, 0, 0, 0.04);
+      transition: all 0.25s ease;
+    }
+    .site-nav.is-scrolled .nav-pill {
+      background: rgba(255, 255, 255, 0.65);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      list-style: none;
+    }
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--accent-bright);
+    }
+    .nav-link.active {
+      font-weight: 700;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+    }
+    .btn-dark {
+      background: var(--ink);
+      color: #fff;
+      box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.25);
+    }
+    .btn-dark:hover {
+      background: #333;
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-outline:hover {
+      background: rgba(0, 0, 0, 0.03);
+      border-color: var(--line-hover);
+    }
+
+    /* Hero Header */
+    .docs-header {
+      padding: 60px 0 44px;
+      border-bottom: 1px solid var(--line);
+      background: 
+        linear-gradient(to right, rgba(34, 197, 94, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(34, 197, 94, 0.06) 1px, transparent 1px);
+      background-size: 80px 80px;
+      position: relative;
+    }
+    .docs-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .docs-header h1 {
+      font-size: clamp(32px, 4.2vw, 52px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+    .docs-header p {
+      max-width: 860px;
+      font-size: 17.5px;
+      line-height: 1.6;
+      color: var(--ink-soft);
+    }
+    .cross-ref-banner {
+      margin-top: 24px;
+      padding: 14px 20px;
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14.5px;
+      color: var(--ink-soft);
+      box-shadow: var(--shadow-sm);
+    }
+    .cross-ref-banner a {
+      color: #047857;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .cross-ref-banner a:hover {
+      color: var(--accent-bright);
+    }
+
+    /* Documentation Layout */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 48px;
+      padding: 48px 0 100px;
+      align-items: start;
+    }
+
+    /* Sticky Sidebar Navigation */
+    .docs-sidebar {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 90px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      padding-right: 16px;
+    }
+    .sidebar-group {
+      margin-bottom: 24px;
+    }
+    .sidebar-heading {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .sidebar-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .sidebar-links a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: block;
+      transition: all 0.15s ease;
+      line-height: 1.4;
+    }
+    .sidebar-links a:hover {
+      background: var(--paper-warm);
+      color: var(--ink);
+      transform: translateX(2px);
+    }
+    .sidebar-links a.active {
+      background: #f0fdf4;
+      color: #166534;
+      font-weight: 600;
+      border-left: 2px solid var(--accent);
+    }
+
+    /* Main Content Styling */
+    .docs-content {
+      min-width: 0;
+    }
+    .doc-section {
+      margin-bottom: 72px;
+      scroll-margin-top: 100px;
+    }
+    .doc-section-header {
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--line);
+      margin-bottom: 24px;
+    }
+    .doc-section-header h2 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .doc-section-header p {
+      font-size: 15.5px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+    }
+
+    /* Tool Cross-Reference Link Badge */
+    .tool-ref-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      margin-bottom: 18px;
+    }
+    .tool-ref-link:hover {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #15803d;
+      transform: translateY(-1px);
+    }
+    .tool-ref-link code {
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    /* Science Callout Box */
+    .science-box {
+      background: var(--paper-warm);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin: 20px 0 28px;
+    }
+    .science-box h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .science-box p {
+      font-size: 14.5px;
+      line-height: 1.65;
+      color: var(--ink-soft);
+      margin-bottom: 14px;
+    }
+    .science-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Responsive KaTeX Formula Card */
+    .formula-card {
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 20px 24px;
+      margin: 18px 0 22px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+    }
+    .formula-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .formula-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    .formula-math-display {
+      margin: 10px 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px 0;
+      -webkit-overflow-scrolling: touch;
+      font-size: 1.12em;
+      color: #0f172a;
+    }
+    .formula-variables {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line-soft);
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+    }
+    .formula-variables dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 16px;
+      align-items: baseline;
+    }
+    .formula-variables dt {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: #047857;
+    }
+    .formula-variables dd {
+      color: var(--ink-soft);
+    }
+    .formula-caption {
+      font-size: 12.5px;
+      color: var(--ink-mute);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* Sensor & Comparison Tables */
+    .sensor-table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      margin: 20px 0 28px;
+      background: var(--bone);
+      box-shadow: var(--shadow-sm);
+    }
+    .sensor-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    .sensor-table th {
+      background: var(--paper-warm);
+      color: var(--ink);
+      font-weight: 700;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .sensor-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--ink-soft);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .sensor-table tr:last-child td {
+      border-bottom: none;
+    }
+    .sensor-table tr:hover td {
+      background: rgba(0, 0, 0, 0.015);
+    }
+    .sensor-table code {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #334155;
+    }
+
+    /* DOI Link Badge */
+    .doi-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #047857;
+      text-decoration: none;
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .doi-link:hover {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #15803d;
+    }
+
+    /* Citation List & Items */
+    .citation-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .citation-item {
+      padding: 14px 18px;
+      background: var(--bone);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--ink-soft);
+    }
+    .citation-item strong {
+      color: var(--ink);
+    }
+    .citation-item em {
+      color: #1e293b;
+    }
+    .citation-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .citation-applied {
+      font-size: 11.5px;
+      color: var(--ink-mute);
+    }
+
+    /* Code & BibTeX Box */
+    .code-box {
+      background: #0f172a;
+      border-radius: var(--radius-sm);
+      margin: 18px 0;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+      box-shadow: var(--shadow-sm);
+    }
+    .code-box-header {
+      background: #1e293b;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #94a3b8;
+    }
+    .code-box pre {
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.55;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #e4e4e7;
+      transition: all 0.15s ease;
+    }
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--line);
+      background: var(--paper-warm);
+      padding: 50px 0 40px;
+      font-size: 13px;
+      color: var(--ink-mute);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: var(--ink);
+    }
+
+    @media (max-width: 992px) {
+      .docs-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      .docs-sidebar {
+        position: static;
+        max-height: none;
+        padding-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .side-rail { display: none; }
+      .container { padding: 0 16px; }
+      .nav-menu { display: none; }
+      .formula-variables dl { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Decorative Side Rails -->
+  <aside class="side-rail left" aria-hidden="true">
+    <div class="side-rail-text">EO-MCP // PLANETARY OBSERVATION PROTOCOL</div>
+  </aside>
+  <aside class="side-rail right" aria-hidden="true">
+    <div class="side-rail-text">OPEN SOURCE • APACHE 2.0 • ZERO LOCK-IN</div>
+  </aside>
+
+  <!-- Top Announcement Bar -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="status-pulse">
+        <span class="pulse-dot"></span>
+        <span>Peer-Reviewed Science &amp; Physical Foundations</span>
+      </div>
+      <div>Copernicus, Landsat, Sentinel-1 SAR &amp; TROPOMI Radiative Transfer</div>
+      <div>100% Verified Citations &amp; DOIs</div>
+    </div>
+  </div>
+
+  <!-- Sticky Floating Navigation Bar -->
+  <header class="site-nav">
+    <div class="container">
+      <nav class="nav-pill" aria-label="Main navigation">
+        <a href="index.html" class="brand">
+          <div class="brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <span>eo-mcp</span>
+        </a>
+
+        <ul class="nav-menu">
+          <li><a href="index.html#demo" class="nav-link">Interactive Demo</a></li>
+          <li><a href="index.html#features" class="nav-link">Features</a></li>
+          <li><a href="index.html#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="docs.html" class="nav-link">Documentation</a></li>
+          <li><a href="methodology.html" class="nav-link active">Methodology</a></li>
+          <li><a href="index.html#quickstart" class="nav-link">Quickstart</a></li>
+          <li><a href="contact.html" class="nav-link">Contact</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="docs.html" class="btn btn-outline" style="padding: 8px 16px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <span>Tools Reference</span>
+          </a>
+          <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-dark" style="padding: 8px 16px;">
+            <span>GitHub</span>
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Header -->
+  <section class="docs-header">
+    <div class="container">
+      <div class="docs-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+        <span>Peer-Reviewed Scientific Foundations &amp; Radiative Transfer Physics</span>
+      </div>
+      <h1>Scientific Methodology &amp; Algorithmic Physics</h1>
+      <p>
+        The complete theoretical, mathematical, and physical foundations powering the Agentic Earth Observation Protocol (<code>eo-mcp</code>). Every analytical tool is rigorously grounded in peer-reviewed remote sensing literature, satellite radiometric calibrations, and electromagnetic propagation theory.
+      </p>
+      <div class="cross-ref-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>Looking for JSON-RPC parameters, CLI schemas, and executable tool samples? See the <a href="docs.html">Tools Reference in Documentation &rarr;</a></span>
+      </div>
+    </div>
+  </section>
+  <!-- Main Grid Layout -->
+  <main class="container">
+    <div class="docs-grid">
+
+      <!-- Sticky Sidebar -->
+      <aside class="docs-sidebar" aria-label="Methodology Table of Contents">
+        <div class="sidebar-group">
+          <div class="sidebar-heading">Foundations</div>
+          <ul class="sidebar-links">
+            <li><a href="#overview">Overview &amp; Sensor Matrix</a></li>
+            <li><a href="#cloud-streaming">Cloud-Native Stream Physics</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">1. Optical Biophysics</div>
+          <ul class="sidebar-links">
+            <li><a href="#spectral-indices">Multispectral Band Math</a></li>
+            <li><a href="#crop-phenology">Phenological Trajectories</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">2. Active Microwave SAR</div>
+          <ul class="sidebar-links">
+            <li><a href="#radar-physics">C-Band SAR Backscatter</a></li>
+            <li><a href="#ca-cfar">CA-CFAR Target Detection &amp; AIS</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">3. Hydrodynamics &amp; Coastal</div>
+          <ul class="sidebar-links">
+            <li><a href="#coastal-kinematics">DSAS Coastal Dynamics</a></li>
+            <li><a href="#dem-flooding">Copernicus DEM &amp; Bathtub</a></li>
+            <li><a href="#surface-water">JRC Global Surface Water</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">4. Thermal &amp; Combustion</div>
+          <ul class="sidebar-links">
+            <li><a href="#urban-heat">Radiative Transfer LST (RTE)</a></li>
+            <li><a href="#thermal-wildfires">Active Fire (FRP) &amp; Burn Severity</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">5. Atmospheric Telemetry</div>
+          <ul class="sidebar-links">
+            <li><a href="#tropomi-doas">TROPOMI DOAS Spectroscopy</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <div class="sidebar-heading">Scientific Literature</div>
+          <ul class="sidebar-links">
+            <li><a href="#bibliography">Peer-Reviewed Bibliography</a></li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Docs Content Article -->
+      <article class="docs-content">
+        <!-- Section 1: Overview & Sensor Radiometric Matrix -->
+        <section id="overview" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              Overview &amp; Satellite Sensor Matrix
+            </h2>
+            <p>
+              Unified analytical architecture linking multi-mission Earth observation constellations, radiative transfer physics, and cloud-native raster pipelines.
+            </p>
+          </div>
+
+          <div class="science-box">
+            <h4>Radiative Transfer: From TOA Radiance to Surface Reflectance</h4>
+            <p>
+              Passive optical satellite sensors measure Top-of-Atmosphere (TOA) spectral radiance $L_{\text{TOA}}(\lambda)$, which is a composite of surface-reflected solar irradiance attenuated by the atmosphere and atmospheric path radiance caused by Rayleigh molecular and aerosol scattering. For an assumed Lambertian target surface under cloud-free conditions, the radiative transfer equation governing the solar reflective spectrum ($0.4 - 2.5\,\mu\text{m}$) is given by:
+            </p>
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Top-of-Atmosphere (TOA) Radiative Transfer Equation</span>
+                <span class="formula-badge">Physical Law</span>
+              </div>
+              <div class="formula-math-display">
+                $$L_{\text{TOA}}(\lambda) = L_{\text{path}}(\lambda) + \frac{\rho_s(\lambda) \cdot E_g(\lambda) \cdot \tau_v(\lambda)}{\pi \left[1 - s(\lambda) \cdot \rho_s(\lambda)\right]}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$L_{\text{TOA}}(\lambda)$$</dt>
+                  <dd>Total spectral radiance measured at the satellite sensor aperture ($\text{W}\cdot\text{m}^{-2}\cdot\text{sr}^{-1}\cdot\mu\text{m}^{-1}$)</dd>
+                  <dt>$$L_{\text{path}}(\lambda)$$</dt>
+                  <dd>Atmospheric path radiance resulting from Rayleigh scattering by gas molecules and Mie scattering by aerosols</dd>
+                  <dt>$$\rho_s(\lambda)$$</dt>
+                  <dd>Bottom-of-Atmosphere (BOA) surface hemispherical-directional reflectance (dimensionless, $[0, 1]$)</dd>
+                  <dt>$$E_g(\lambda)$$</dt>
+                  <dd>Global solar spectral irradiance incident on the surface (direct beam plus diffuse sky illumination)</dd>
+                  <dt>$$\tau_v(\lambda)$$</dt>
+                  <dd>Atmospheric upward spectral transmittance along the viewing path from ground to sensor</dd>
+                  <dt>$$s(\lambda)$$</dt>
+                  <dd>Spherical albedo of the atmosphere, accounting for multiple reflections between ground and atmosphere</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Operational atmospheric correction pipelines (such as ESA Sen2Cor for Sentinel-2 MSI and USGS LaSRC for Landsat 8/9 OLI) invert this radiative formulation using look-up tables (LUTs) generated from 6SV and MODTRAN radiative transfer models to deliver Surface Reflectance (BOA L2A).
+              </div>
+            </div>
+          </div>
+
+          <h3>Planetary Constellation Capability &amp; Sensor Matrix</h3>
+          <p>
+            The table below synthesizes the satellite constellations, sensor payloads, electromagnetic channels, spatial ground sampling distances (GSD), and peer-reviewed scientific foundations implemented across <code>eo-mcp</code>.
+          </p>
+
+          <div class="sensor-table-wrap">
+            <table class="sensor-table">
+              <thead>
+                <tr>
+                  <th>Domain &amp; Tool</th>
+                  <th>Constellation / Payload</th>
+                  <th>Channels &amp; Spectral Bands</th>
+                  <th>Spatial GSD</th>
+                  <th>Core Algorithm / Governing Principle</th>
+                  <th>Canonical Citation &amp; DOI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Optical Biophysics</strong><br><code>calculate_spectral_index</code></td>
+                  <td>Copernicus Sentinel-2A/B (MSI)<br>USGS/NASA Landsat 8/9 (OLI)</td>
+                  <td>B02 (Blue), B03 (Green), B04 (Red), B05 (RedEdge), B08/B5 (NIR), B11/B6 (SWIR1), B12/B7 (SWIR2)</td>
+                  <td>10 m – 20 m (MSI)<br>30 m (OLI)</td>
+                  <td>Normalized Difference Vegetation Index (NDVI), NDWI, MNDWI, EVI, NBR, SAVI, NDRE</td>
+                  <td>Tucker (1979) <a href="https://doi.org/10.1016/0034-4257(79)90013-0" class="doi-link" target="_blank" rel="noopener">10.1016/0034-4257(79)90013-0</a><br>Xu (2006) <a href="https://doi.org/10.1080/01431160600589179" class="doi-link" target="_blank" rel="noopener">10.1080/01431160600589179</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Crop Phenology</strong><br><code>monitor_crop_phenology</code></td>
+                  <td>Sentinel-2 MSI &amp; Landsat 8/9 OLI dense time series</td>
+                  <td>Red (665 nm), NIR (842 nm), SWIR1 (1610 nm)</td>
+                  <td>10 m – 30 m</td>
+                  <td>Adaptive Savitzky-Golay convolution filtering and double-logistic asymmetric sigmoid curve fitting (SOS, POS, EOS)</td>
+                  <td>Jönsson &amp; Eklundh (TIMESAT, 2004) <a href="https://doi.org/10.1016/j.cageo.2004.05.006" class="doi-link" target="_blank" rel="noopener">10.1016/j.cageo.2004.05.006</a><br>Zhang et al. (2003) <a href="https://doi.org/10.1016/S0034-4257(02)00135-9" class="doi-link" target="_blank" rel="noopener">10.1016/S0034-4257(02)00135-9</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Active Microwave SAR</strong><br><code>detect_water_sar</code></td>
+                  <td>Copernicus Sentinel-1A/C (C-SAR)</td>
+                  <td>C-band (5.405 GHz, $\lambda = 5.55\,\text{cm}$), dual-polarization (VV + VH)</td>
+                  <td>10 m (Interferometric Wide Swath)</td>
+                  <td>Radiometric calibration to Sigma Nought ($\sigma^0\,\text{dB}$), specular reflection separation via Otsu bimodal segmentation</td>
+                  <td>Twele et al. (2016) <a href="https://doi.org/10.1080/01431161.2016.1192304" class="doi-link" target="_blank" rel="noopener">10.1080/01431161.2016.1192304</a><br>Bioresita et al. (2018) <a href="https://doi.org/10.3390/rs10020217" class="doi-link" target="_blank" rel="noopener">10.3390/rs10020217</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Maritime Surveillance</strong><br><code>detect_dark_vessels</code></td>
+                  <td>Sentinel-1 C-SAR &amp; Terrestrial/Satellite AIS</td>
+                  <td>C-band SAR (VV/VH) &amp; VHF AIS transponder telemetry</td>
+                  <td>10 m SAR / Kinematic AIS tracks</td>
+                  <td>Cell-Averaging Constant False Alarm Rate (CA-CFAR) with Great-Circle Haversine distance gating</td>
+                  <td>Finn &amp; Johnson (1968) RCA Rev.<br>Pelich et al. (2019) <a href="https://doi.org/10.3390/rs11091078" class="doi-link" target="_blank" rel="noopener">10.3390/rs11091078</a><br>Crisp (2004) DSTO-RR-0272</td>
+                </tr>
+                <tr>
+                  <td><strong>Coastal Dynamics</strong><br><code>analyze_coastal_erosion</code></td>
+                  <td>Sentinel-2 MSI &amp; Landsat 8/9 OLI</td>
+                  <td>Green (560 nm), SWIR1 (1610 nm)</td>
+                  <td>10 m – 30 m</td>
+                  <td>MNDWI sub-pixel waterline extraction, DSAS perpendicular baseline transects, End Point Rate (EPR) &amp; LRR</td>
+                  <td>Thieler et al. (USGS DSAS, 2009) <a href="https://doi.org/10.3133/ofr20081278" class="doi-link" target="_blank" rel="noopener">10.3133/ofr20081278</a><br>Vos et al. (CoastSat, 2019) <a href="https://doi.org/10.1016/j.envsoft.2019.104528" class="doi-link" target="_blank" rel="noopener">10.1016/j.envsoft.2019.104528</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Sea Level Rise Inundation</strong><br><code>simulate_sea_level_rise</code></td>
+                  <td>Copernicus DEM GLO-30 &amp; IPCC AR6 Projections</td>
+                  <td>X-band radar interferometry (TanDEM-X)</td>
+                  <td>30 m (1 arcsec), vertical $\text{LE}90 < 2.0\,\text{m}$</td>
+                  <td>8-neighbor hydrologic connectivity percolation modeling vs. unconstrained bathtub flooding</td>
+                  <td>Poulter &amp; Halpin (2008) <a href="https://doi.org/10.1080/13658810701371858" class="doi-link" target="_blank" rel="noopener">10.1080/13658810701371858</a><br>Gesch (2009, 2018) <a href="https://doi.org/10.3389/feart.2018.00230" class="doi-link" target="_blank" rel="noopener">10.3389/feart.2018.00230</a><br>Fox-Kemper et al. (IPCC, 2021) <a href="https://doi.org/10.1017/9781009157896.011" class="doi-link" target="_blank" rel="noopener">10.1017/9781009157896.011</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Thermal &amp; Urban Heat</strong><br><code>analyze_urban_heat_island</code></td>
+                  <td>Landsat 8/9 TIRS &amp; OLI</td>
+                  <td>Band 10 (10.60 – 11.19 $\mu$m) &amp; VNIR</td>
+                  <td>100 m thermal (resampled to 30 m)</td>
+                  <td>Single-Channel Radiative Transfer Equation (RTE) inversion, Sobrino NDVI threshold emissivity estimation (FVC)</td>
+                  <td>Sobrino et al. (2004) <a href="https://doi.org/10.1016/j.rse.2004.02.003" class="doi-link" target="_blank" rel="noopener">10.1016/j.rse.2004.02.003</a><br>Valor &amp; Caselles (1996) <a href="https://doi.org/10.1016/0034-4257(96)00039-9" class="doi-link" target="_blank" rel="noopener">10.1016/0034-4257(96)00039-9</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Active Wildfires &amp; Burn</strong><br><code>detect_active_wildfires</code><br><code>calculate_burn_severity</code></td>
+                  <td>Suomi NPP &amp; NOAA-20 VIIRS<br>Sentinel-2 MSI / Landsat OLI</td>
+                  <td>VIIRS I4 (3.74–3.99 $\mu$m), I5 (10.5–12.4 $\mu$m)<br>NIR (842 nm), SWIR2 (2190 nm)</td>
+                  <td>375 m (VIIRS)<br>10 m – 30 m (MSI/OLI)</td>
+                  <td>Mid-Infrared brightness temperature anomaly ($\Delta T = T_{3.9} - T_{11}$), Wooster Fire Radiative Power (FRP), dNBR, RBR</td>
+                  <td>Schroeder et al. (2014) <a href="https://doi.org/10.1016/j.rse.2013.12.008" class="doi-link" target="_blank" rel="noopener">10.1016/j.rse.2013.12.008</a><br>Wooster et al. (2005) <a href="https://doi.org/10.1029/2005JD006318" class="doi-link" target="_blank" rel="noopener">10.1029/2005JD006318</a><br>Key &amp; Benson (2006) USDA<br>Parks et al. (2014) <a href="https://doi.org/10.3390/rs6031827" class="doi-link" target="_blank" rel="noopener">10.3390/rs6031827</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Surface Water Dynamics</strong><br><code>analyze_reservoir_drought</code></td>
+                  <td>EC JRC Global Surface Water (GSW)<br>38-Year Landsat Record</td>
+                  <td>Multi-spectral Landsat 5, 7, 8, 9 archival composite</td>
+                  <td>30 m multi-decadal</td>
+                  <td>Monthly water occurrence (WO), permanent vs seasonal recurrence probability matrix, hypsometric volume approximation</td>
+                  <td>Pekel et al. (Nature, 2016) <a href="https://doi.org/10.1038/nature20584" class="doi-link" target="_blank" rel="noopener">10.1038/nature20584</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Atmospheric Chemistry</strong><br><code>monitor_atmospheric_emissions</code></td>
+                  <td>Copernicus Sentinel-5 Precursor (TROPOMI)</td>
+                  <td>UV-VIS-NIR-SWIR grating spectrometer</td>
+                  <td>3.5 $\times$ 5.5 km$^2$</td>
+                  <td>Differential Optical Absorption Spectroscopy (DOAS), Air Mass Factor (AMF) vertical column density, stratospheric separation</td>
+                  <td>Veefkind et al. (2012) <a href="https://doi.org/10.1016/j.rse.2011.09.027" class="doi-link" target="_blank" rel="noopener">10.1016/j.rse.2011.09.027</a><br>van Geffen et al. (2020) <a href="https://doi.org/10.5194/amt-13-1315-2020" class="doi-link" target="_blank" rel="noopener">10.5194/amt-13-1315-2020</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <!-- Section 2: Cloud-Native Stream Physics -->
+        <section id="cloud-streaming" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+              Cloud-Native Stream Physics &amp; Window Offsets
+            </h2>
+            <p>
+              Mathematical principles of zero-download geospatial raster streaming using HTTP 1.1 Range Requests and Cloud-Optimized GeoTIFF internal tile structures.
+            </p>
+          </div>
+
+          <div class="science-box">
+            <h4>Cloud-Optimized GeoTIFF (COG) Internal Architecture</h4>
+            <p>
+              Traditional remote sensing workflows require downloading entire satellite scenes (e.g., an 800 MB – 1.6 GB ZIP archive for Sentinel-2 or Landsat) to analyze a single harbor, agricultural parcel, or coastal strip. In contrast, <code>eo-mcp</code> leverages Cloud-Optimized GeoTIFF (COG) files hosted on Copernicus Data Space Ecosystem (CDSE) and AWS Earth buckets via GDAL's virtual file system (<code>/vsicurl/</code>).
+            </p>
+            <p>
+              A COG arranges pixel data into discrete internal tiles (typically $256 \times 256$ or $512 \times 512$ pixels) along with reduced-resolution overviews (pyramids). Crucially, the Image File Directory (IFD) and tile byte offset tables are positioned at the leading edge of the file. By executing an initial HTTP GET Range request of only 16 KB, the protocol client reads the IFD, calculates the exact byte offsets intersecting the user's bounding box $\mathcal{B} = [\text{lon}_{\min}, \text{lat}_{\min}, \text{lon}_{\max}, \text{lat}_{\max}]$, and streams only the requested raster subsets.
+            </p>
+
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Bandwidth Efficiency Formulation</span>
+                <span class="formula-badge">Engineering Metric</span>
+              </div>
+              <div class="formula-math-display">
+                $$\eta_{\text{bandwidth}} = \left( 1 - \frac{\text{Size}(\text{IFD}) + \sum_{k \in \mathcal{T}_{\mathcal{B}}} \text{Size}(\text{Tile}_k)}{\text{Size}(\text{Granule}_{\text{ZIP}})} \right) \times 100\%$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\eta_{\text{bandwidth}}$$</dt>
+                  <dd>Network bandwidth reduction efficiency percentage (typically $\ge 98.5\%$)</dd>
+                  <dt>$$\text{Size}(\text{IFD})$$</dt>
+                  <dd>Initial header payload for Image File Directory and tile index offset tables ($\approx 16\,\text{KB}$)</dd>
+                  <dt>$$\mathcal{T}_{\mathcal{B}}$$</dt>
+                  <dd>Set of internal raster tiles whose spatial footprint intersects target bounding box $\mathcal{B}$</dd>
+                  <dt>$$\text{Size}(\text{Granule}_{\text{ZIP}})$$</dt>
+                  <dd>Total byte size of complete multi-band satellite product on disk ($800\,\text{MB} - 1.6\,\text{GB}$)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Empirical benchmarks demonstrate that extracting a 5x5 km AOI requires only 1.2 MB to 2.4 MB of HTTP range transfers, reducing pipeline execution latency from 60–120 seconds down to 850 milliseconds.
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- Section 3: Multispectral Band Math & Optical Biophysics -->
+        <section id="spectral-indices" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l3 7 4-14 3 7h5"></path></svg>
+              Optical Biophysics &amp; Multispectral Band Math
+            </h2>
+            <p>
+              Electromagnetic absorption features, photosynthetic chlorophyll dynamics, and mathematical formulation of biophysical indices.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-spectral" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>calculate_spectral_index</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Vegetation Canopy Radiative Physics: The Red-Edge Phenomenon</h4>
+            <p>
+              Photosynthetically active vegetation exhibits a pronounced spectral signature driven by biological pigment chemistry and internal leaf histology. Chlorophyll $a$ and $b$ pigments in chloroplasts absorb intensely in the Blue ($\approx 0.45\,\mu\text{m}$) and Red ($\approx 0.665\,\mu\text{m}$) spectral bands for light reactions, while reflecting moderately in the Green ($\approx 0.560\,\mu\text{m}$). In the Near-Infrared (NIR, $\approx 0.70 - 0.90\,\mu\text{m}$), unpigmented spongy mesophyll leaf tissue strongly scatters incident radiation due to refractive index mismatches between cell walls and hydrated intercellular air cavities, producing up to 50% reflectance.
+            </p>
+            <p>
+              The steep transition between strong red absorption and intense NIR scattering is termed the <strong>red edge</strong>. By taking mathematical ratios and normalized differences of these bands, atmospheric aerosol perturbations, solar zenith variations, and topographic shading are suppressed, isolating pure biophysical signals.
+            </p>
+
+            <!-- NDVI -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Normalized Difference Vegetation Index (NDVI)</span>
+                <span class="formula-badge">Biomass &amp; Vigor</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{NDVI} = \frac{\rho_{\text{NIR}} - \rho_{\text{Red}}}{\rho_{\text{NIR}} + \rho_{\text{Red}}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\rho_{\text{NIR}}$$</dt>
+                  <dd>Near-Infrared surface reflectance (Sentinel-2 Band 8: $0.842\,\mu\text{m}$; Landsat 8/9 Band 5: $0.865\,\mu\text{m}$)</dd>
+                  <dt>$$\rho_{\text{Red}}$$</dt>
+                  <dd>Red surface reflectance (Sentinel-2 Band 4: $0.665\,\mu\text{m}$; Landsat 8/9 Band 4: $0.655\,\mu\text{m}$)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Foundational reference: Rouse et al. (1974) NASA SP-351; validated by Tucker (1979). Dynamic range $[-1.0, +1.0]$. Open water: $\text{NDVI} < 0$; bare soil: $0.1 - 0.2$; sparse shrub: $0.2 - 0.4$; dense healthy canopy: $0.6 - 0.85$.
+              </div>
+            </div>
+
+            <!-- NDWI & MNDWI -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Normalized Difference Water Index (NDWI) &amp; Modified NDWI (MNDWI)</span>
+                <span class="formula-badge">Hydrology &amp; Waterlines</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{NDWI} = \frac{\rho_{\text{Green}} - \rho_{\text{NIR}}}{\rho_{\text{Green}} + \rho_{\text{NIR}}} \qquad\qquad \text{MNDWI} = \frac{\rho_{\text{Green}} - \rho_{\text{SWIR1}}}{\rho_{\text{Green}} + \rho_{\text{SWIR1}}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\rho_{\text{Green}}$$</dt>
+                  <dd>Green band reflectance (Sentinel-2 Band 3: $0.560\,\mu\text{m}$; Landsat Band 3: $0.561\,\mu\text{m}$)</dd>
+                  <dt>$$\rho_{\text{SWIR1}}$$</dt>
+                  <dd>Shortwave Infrared 1 reflectance (Sentinel-2 Band 11: $1.610\,\mu\text{m}$; Landsat Band 6: $1.609\,\mu\text{m}$)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                NDWI (McFeeters, 1996) delineates open water bodies using green reflection and NIR absorption. MNDWI (Xu, 2006) substitutes SWIR1 for NIR, suppressing false water positives from concrete, asphalt, and built-up urban structures.
+              </div>
+            </div>
+
+            <!-- EVI -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Enhanced Vegetation Index (EVI)</span>
+                <span class="formula-badge">High-Biomass Canopies</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{EVI} = G \cdot \frac{\rho_{\text{NIR}} - \rho_{\text{Red}}}{\rho_{\text{NIR}} + C_1 \rho_{\text{Red}} - C_2 \rho_{\text{Blue}} + L}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$G = 2.5$$</dt>
+                  <dd>Empirical gain factor</dd>
+                  <dt>$$C_1 = 6.0, C_2 = 7.5$$</dt>
+                  <dd>Atmosphere resistance aerosol correction coefficients using the blue band</dd>
+                  <dt>$$L = 1.0$$</dt>
+                  <dd>Canopy background adjustment factor decoupling soil brightness influence</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Formulated by Huete et al. (2002) for MODIS. Eliminates NDVI saturation over dense tropical rainforests ($LAI > 4.0$) and mitigates residual sub-pixel smoke and aerosol scattering.
+              </div>
+            </div>
+
+            <!-- NBR, SAVI, NDRE -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>NBR, SAVI &amp; NDRE Formulations</span>
+                <span class="formula-badge">Moisture, Soil &amp; Chlorophyll</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{NBR} = \frac{\rho_{\text{NIR}} - \rho_{\text{SWIR2}}}{\rho_{\text{NIR}} + \rho_{\text{SWIR2}}} \qquad \text{SAVI} = \frac{\rho_{\text{NIR}} - \rho_{\text{Red}}}{\rho_{\text{NIR}} + \rho_{\text{Red}} + L_{\text{soil}}} (1 + L_{\text{soil}}) \qquad \text{NDRE} = \frac{\rho_{\text{NIR}} - \rho_{\text{RedEdge}}}{\rho_{\text{NIR}} + \rho_{\text{RedEdge}}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\text{NBR}$$</dt>
+                  <dd>Normalized Burn Ratio (Key &amp; Benson, 2006). Uses SWIR2 ($2.19\,\mu\text{m}$) where charcoal and scorched soil reflect brightly.</dd>
+                  <dt>$$L_{\text{soil}} = 0.5$$</dt>
+                  <dd>Soil-Adjusted Vegetation Index constant (Huete, 1988) correcting soil optical line variations.</dd>
+                  <dt>$$\text{NDRE}$$</dt>
+                  <dd>Normalized Difference Red Edge (Barnes et al., 2000). Sentinel-2 Band 5 ($705\,\text{nm}$) measures mid-to-late season crop nitrogen content.</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <h3>Sensor Band Mapping Architecture</h3>
+          <div class="sensor-table-wrap">
+            <table class="sensor-table">
+              <thead>
+                <tr><th>Index Token</th><th>Sentinel-2 MSI Waveband</th><th>Landsat 8/9 OLI Waveband</th><th>Physical Spectral Domain</th><th>Primary Biophysical Application</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>NDVI</code></td><td>(B08 - B04) / (B08 + B04)</td><td>(B5 - B4) / (B5 + B4)</td><td>NIR (842 nm) vs Red (665 nm)</td><td>Photosynthetic biomass, crop vigor, drought status</td></tr>
+                <tr><td><code>NDWI</code></td><td>(B03 - B08) / (B03 + B08)</td><td>(B3 - B5) / (B3 + B5)</td><td>Green (560 nm) vs NIR (842 nm)</td><td>Open water features, flood inundation delineation</td></tr>
+                <tr><td><code>MNDWI</code></td><td>(B03 - B11) / (B03 + B11)</td><td>(B3 - B6) / (B3 + B6)</td><td>Green (560 nm) vs SWIR1 (1610 nm)</td><td>Urban surface water, river shorelines, coastal lagoons</td></tr>
+                <tr><td><code>EVI</code></td><td>Formula with B08, B04, B02</td><td>Formula with B5, B4, B2</td><td>NIR, Red, Blue (490 nm)</td><td>Dense closed-canopy forestry, Amazonian biomass</td></tr>
+                <tr><td><code>NBR</code></td><td>(B08 - B12) / (B08 + B12)</td><td>(B5 - B7) / (B5 + B7)</td><td>NIR (842 nm) vs SWIR2 (2190 nm)</td><td>Wildfire severity assessment, fuel dryness tracking</td></tr>
+                <tr><td><code>NDRE</code></td><td>(B08 - B05) / (B08 + B05)</td><td>N/A (MSI RedEdge specific)</td><td>NIR (842 nm) vs RedEdge (705 nm)</td><td>Chlorophyll content, precision nitrogen fertilization</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Tucker, C. J. (1979).</strong> Red and photographic infrared linear combinations for monitoring vegetation. <em>Remote Sensing of Environment</em>, 8(2), 127–150.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/0034-4257(79)90013-0" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/0034-4257(79)90013-0</a>
+                <span class="citation-applied">Applied in: <code>calculate_spectral_index</code> (NDVI)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Xu, H. (2006).</strong> Modification of normalised difference water index (NDWI) to enhance open water features in remotely sensed imagery. <em>International Journal of Remote Sensing</em>, 27(14), 3025–3033.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1080/01431160600589179" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/01431160600589179</a>
+                <span class="citation-applied">Applied in: <code>calculate_spectral_index</code> (MNDWI)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Huete, A., Didan, K., Miura, T., Rodriguez, E. P., Gao, X., &amp; Ferreira, L. G. (2002).</strong> Overview of the radiometric and biophysical performance of the MODIS vegetation indices. <em>Remote Sensing of Environment</em>, 83(1–2), 195–213.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/S0034-4257(02)00096-2" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/S0034-4257(02)00096-2</a>
+                <span class="citation-applied">Applied in: <code>calculate_spectral_index</code> (EVI)</span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 4: Agricultural Phenology & Trajectory Fitting -->
+        <section id="crop-phenology" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              Agricultural Crop Phenology &amp; Trajectory Fitting
+            </h2>
+            <p>
+              Mathematical extraction of vegetative phenological transitions, curve fitting algorithms, and curvature-extremum phenophase estimation.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-phenology" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>monitor_crop_phenology</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Multi-Temporal Signal Reconstruction &amp; Noise Suppression</h4>
+            <p>
+              Time series of optical satellite vegetation indices (such as Sentinel-2 NDVI or EVI) capture seasonal agricultural canopy green-up, maturation, and senescence. However, raw satellite observations are contaminated by residual sub-pixel clouds, cloud shadows, and episodic aerosol spikes, creating negative biases in the temporal trajectory.
+            </p>
+            <p>
+              To recover the true biological phenological cycle, <code>eo-mcp</code> applies an upper-envelope fitting protocol utilizing either double-logistic sigmoid models or adaptive Savitzky-Golay polynomial convolution.
+            </p>
+
+            <!-- Double Logistic -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Double Logistic Asymmetric Sigmoid Model</span>
+                <span class="formula-badge">Phenological Curve Fitting</span>
+              </div>
+              <div class="formula-math-display">
+                $$f(t) = c + \frac{d}{1 + \exp\left(-a(t - m_1)\right)} - \frac{d}{1 + \exp\left(-b(t - m_2)\right)}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$f(t)$$</dt>
+                  <dd>Modeled vegetation index value (NDVI or EVI) at day-of-year $t$</dd>
+                  <dt>$$c$$</dt>
+                  <dd>Base dormancy vegetation level (winter/fallow soil background index)</dd>
+                  <dt>$$d$$</dt>
+                  <dd>Seasonal dynamic amplitude ($d = \text{Peak NDVI} - c$)</dd>
+                  <dt>$$a, b$$</dt>
+                  <dd>Green-up acceleration parameter ($a$) and senescence decline rate parameter ($b$)</dd>
+                  <dt>$$m_1, m_2$$</dt>
+                  <dd>Day-of-year corresponding to the inflection midpoints of rapid green-up ($m_1$) and senescence ($m_2$)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Formulated by Zhang et al. (2003) for MODIS phenology and adapted to Sentinel-2 5-day revisit trajectories.
+              </div>
+            </div>
+
+            <!-- Savitzky-Golay -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Adaptive Savitzky-Golay Convolution Filter</span>
+                <span class="formula-badge">TIMESAT Filter</span>
+              </div>
+              <div class="formula-math-display">
+                $$Y_j^* = \frac{\sum_{i=-m}^{m} C_i Y_{j+i}}{N}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$Y_j^*$$</dt>
+                  <dd>Filtered output index value at time step $j$</dd>
+                  <dt>$$C_i$$</dt>
+                  <dd>Least-squares polynomial convolution coefficients over filter window half-width $m$</dd>
+                  <dt>$$N$$</dt>
+                  <dd>Normalizing constant equal to the sum of convolution weights $\sum C_i$</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Jönsson &amp; Eklundh (TIMESAT, 2004). Weights iteration adaptively downweights points lying below the fitted trajectory, suppressing negative cloud spikes.
+              </div>
+            </div>
+
+            <!-- Curvature Extremum -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Curvature Extremum Phenophase Extraction</span>
+                <span class="formula-badge">Transition Metrics</span>
+              </div>
+              <div class="formula-math-display">
+                $$K(t) = \frac{f''(t)}{\left(1 + \left[f'(t)\right]^2\right)^{3/2}} \qquad \Longrightarrow \qquad \text{Phenophase} = \arg\max_t \left| \frac{dK(t)}{dt} \right|$$
+              </div>
+              <div class="formula-caption">
+                Phenological transition dates are extracted by calculating the rate of change of curvature $K'(t)$ of the fitted function $f(t)$:
+                <ul style="margin: 8px 0 0 20px; font-size: 13px; line-height: 1.6;">
+                  <li><strong>Start of Season (SOS)</strong>: First local maximum of $K'(t)$, indicating the onset of rapid photosynthetic leaf development.</li>
+                  <li><strong>Peak of Season (POS)</strong>: Peak vegetative biomass where $f'(t) = 0$ and $f''(t) < 0$.</li>
+                  <li><strong>Maturity &amp; Senescence</strong>: Curvature extrema marking canopy plateau and chlorophyll degradation.</li>
+                  <li><strong>End of Season (EOS)</strong>: Final local minimum of $K'(t)$, designating physiological canopy dormancy or crop harvest.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Jönsson, P., &amp; Eklundh, L. (2004).</strong> TIMESAT—A program for analyzing time-series of satellite sensor data. <em>Computers &amp; Geosciences</em>, 30(8), 833–845.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/j.cageo.2004.05.006" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.cageo.2004.05.006</a>
+                <span class="citation-applied">Applied in: <code>monitor_crop_phenology</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Zhang, X., Friedl, M. A., Schaaf, C. B., Strahler, A. H., Hodges, J. C. F., Gao, F., Reed, B. C., &amp; Huete, A. (2003).</strong> Monitoring vegetation phenology using MODIS. <em>Remote Sensing of Environment</em>, 84(3), 471–475.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/S0034-4257(02)00135-9" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/S0034-4257(02)00135-9</a>
+                <span class="citation-applied">Applied in: <code>monitor_crop_phenology</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 5: Active Microwave SAR & Surface Water Delineation -->
+        <section id="radar-physics" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 0 1 10 10"></path><path d="M12 6a6 6 0 0 1 6 6"></path><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="12" x2="12" y2="22"></line></svg>
+              Active Microwave SAR &amp; Surface Water Delineation
+            </h2>
+            <p>
+              C-band synthetic aperture radar backscatter mechanics, dual-polarization scattering signatures, and radiometric calibration for flood mapping.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-sar-water" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>detect_water_sar</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Electromagnetic Microwave Scattering Physics: Specular vs. Diffuse</h4>
+            <p>
+              Synthetic Aperture Radar (SAR) systems on Copernicus Sentinel-1A and Sentinel-1C operate in the microwave C-band ($5.405\,\text{GHz}$, wavelength $\lambda = 5.55\,\text{cm}$). Unlike optical sensors, active microwaves penetrate cloud cover, light rain, and atmospheric smoke, transmitting coherent polarized pulses (Vertical, V) and receiving both co-polarized (VV) and cross-polarized (VH) returns.
+            </p>
+            <p>
+              The physical mechanism governing open surface water delineation is <strong>specular reflection</strong>. Because smooth, calm standing water possesses an electromagnetic roughness scale much smaller than the radar wavelength ($h_{\text{rms}} \ll \lambda$), incident microwave pulses obey Snell's Law of reflection, bouncing forward and away from the satellite antenna. Consequently, open water returns virtually no backscattered power ($\sigma^0 \le -20\,\text{dB}$ to $-26\,\text{dB}$).
+            </p>
+            <p>
+              Surrounding land surfaces (rough soil, urban built structures, and agricultural canopies) cause diffuse, volumetric, or double-bounce scattering, returning significantly higher backscatter ($\sigma^0 \approx -12\,\text{dB}$ to $-6\,\text{dB}$).
+            </p>
+
+            <!-- Radiometric Calibration -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>SAR Radiometric Calibration to Sigma Nought ($\sigma^0$)</span>
+                <span class="formula-badge">Radiometric Law</span>
+              </div>
+              <div class="formula-math-display">
+                $$\sigma^0 = \frac{\text{DN}_i^2}{A_{\sigma,i}^2} \qquad \Longrightarrow \qquad \sigma^0\,\text{(dB)} = 10 \log_{10}\left( \frac{\text{DN}_i^2}{A_{\sigma,i}^2} \right)$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\sigma^0$$</dt>
+                  <dd>Radar backscatter cross-section per unit ground area (linear scale, dimensionless)</dd>
+                  <dt>$$\text{DN}_i$$</dt>
+                  <dd>Digital Number intensity of pixel $i$ in Sentinel-1 Ground Range Detected (GRD) amplitude product</dd>
+                  <dt>$$A_{\sigma,i}$$</dt>
+                  <dd>Calibration factor extracted from product XML metadata LUTs accounting for slant-to-ground range antenna gain patterns</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                ESA Sentinel-1 calibration formulation. Converting raw amplitude into physical radar cross section in decibels allows standardized, multi-temporal thresholding.
+              </div>
+            </div>
+
+            <!-- Dual-Pol Water Thresholding -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Dual-Polarization Bimodal Water Segmentation</span>
+                <span class="formula-badge">Classification Rule</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{WaterMask}(p) = \begin{cases} 1 & \text{if } \sigma_{\text{VV}}^0(p) < T_{\text{VV}} \quad \land \quad \sigma_{\text{VH}}^0(p) < T_{\text{VH}} \\ 0 & \text{otherwise} \end{cases}$$
+              </div>
+              <div class="formula-caption">
+                Where thresholds $T_{\text{VV}} \approx -16.5\,\text{dB}$ and $T_{\text{VH}} \approx -23.0\,\text{dB}$ are dynamically derived via Otsu (1979) bimodal histogram splitting over coastal water bodies (Twele et al., 2016; Bioresita et al., 2018). Cross-polarization (VH) drastically reduces false water alarms caused by smooth sand or asphalt.
+              </div>
+            </div>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Twele, A., Cao, W., Plank, S., &amp; Martinis, S. (2016).</strong> Sentinel-1-based flood mapping: A fully automated processing chain. <em>International Journal of Remote Sensing</em>, 37(13), 2990–3004.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1080/01431161.2016.1192304" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/01431161.2016.1192304</a>
+                <span class="citation-applied">Applied in: <code>detect_water_sar</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Bioresita, F., Puissant, A., Stumpf, A., &amp; Malet, J.-P. (2018).</strong> A method for automatic and rapid mapping of water surfaces from Sentinel-1 imagery. <em>Remote Sensing</em>, 10(2), 217.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.3390/rs10020217" class="doi-link" target="_blank" rel="noopener">DOI: 10.3390/rs10020217</a>
+                <span class="citation-applied">Applied in: <code>detect_water_sar</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 6: CA-CFAR Target Detection & AIS Fusion -->
+        <section id="ca-cfar" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              Maritime Radar Surveillance, CA-CFAR &amp; AIS Fusion
+            </h2>
+            <p>
+              Statistical clutter modeling, Cell-Averaging Constant False Alarm Rate vessel detection, and kinematic AIS telemetry cross-correlation.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-dark-vessel" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>detect_dark_vessels</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Radar Corner Reflector Physics &amp; Sea Clutter Statistics</h4>
+            <p>
+              Maritime vessels constructed of metallic steel hulls, bulkheads, and mast rigging form mutual right-angle dihedrals and trihedrals. When illuminated by coherent C-band radar, these structures act as <strong>corner reflectors</strong>, returning multiple-bounce electromagnetic echoes directly back to the satellite receiver. Consequently, ships manifest as intensely bright point targets ($\sigma^0 > -5\,\text{dB}$) in stark contrast to the surrounding dark sea surface ($\sigma^0 \approx -22\,\text{dB}$).
+            </p>
+            <p>
+              However, wind-driven surface gravity-capillary waves produce spatially heterogeneous sea clutter described by Rayleigh or K-distribution statistics. A fixed backscatter threshold results in intolerable false alarm spikes in rough seas. To maintain constant detection probability without operator intervention, <code>eo-mcp</code> implements adaptive <strong>Cell-Averaging Constant False Alarm Rate (CA-CFAR)</strong>.
+            </p>
+
+            <!-- CA-CFAR Formulations -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Cell-Averaging Constant False Alarm Rate (CA-CFAR) Derivation</span>
+                <span class="formula-badge">Statistical Detector</span>
+              </div>
+              <div class="formula-math-display">
+                $$P_n = \frac{1}{N} \sum_{i=1}^{N} x_i \qquad \alpha = N \left( P_{\text{fa}}^{-1/N} - 1 \right) \qquad T = \alpha \cdot P_n$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$P_n$$</dt>
+                  <dd>Locally estimated background sea clutter power across reference training cells</dd>
+                  <dt>$$x_i$$</dt>
+                  <dd>Linear intensity of pixel $i$ within the background training window</dd>
+                  <dt>$$N$$</dt>
+                  <dd>Number of training cells in the outer rectangular sliding stencil (excluding guard cells)</dd>
+                  <dt>$$P_{\text{fa}}$$</dt>
+                  <dd>Designated probability of false alarm (typically $10^{-5}$ to $10^{-6}$)</dd>
+                  <dt>$$\alpha$$</dt>
+                  <dd>Analytical threshold scaling factor derived from the cumulative exponential distribution</dd>
+                  <dt>$$T$$</dt>
+                  <dd>Adaptive detection threshold applied to the central Cell Under Test (CUT)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Derivation from Finn &amp; Johnson (1968) and Crisp (2004). An inner guard ring (typically 3x3 to 5x5 pixels) surrounds the CUT to prevent vessel sidelobe energy from corrupting the background clutter estimate $P_n$.
+              </div>
+            </div>
+
+            <!-- AIS Haversine Cross-Matching -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Kinematic AIS Cross-Correlation &amp; Dark Vessel Identification</span>
+                <span class="formula-badge">Geodesic Fusion</span>
+              </div>
+              <div class="formula-math-display">
+                $$d = 2R \arcsin \sqrt{\sin^2\left(\frac{\Delta \phi}{2}\right) + \cos \phi_1 \cos \phi_2 \sin^2\left(\frac{\Delta \lambda}{2}\right)} \le R_{\text{gate}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$d$$</dt>
+                  <dd>Great-circle geodesic distance between detected SAR target center and AIS position broadcast</dd>
+                  <dt>$$R = 6371.0\,\text{km}$$</dt>
+                  <dd>Mean spherical Earth radius</dd>
+                  <dt>$$\phi, \lambda$$</dt>
+                  <dd>Geodetic latitude and longitude in radians</dd>
+                  <dt>$$R_{\text{gate}}$$</dt>
+                  <dd>Kinematic gating radius: $R_{\text{gate}} = v_{\text{vessel}} \cdot \Delta t + \sigma_{\text{SAR}} + \sigma_{\text{AIS}}$</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Pelich et al. (2019). AIS positions are temporally interpolated to the exact SAR zero-Doppler azimuth acquisition time $t_{\text{SAR}}$. Detections with $d > R_{\text{gate}}$ or without corresponding MMSI transponder beacons are classified as <strong>non-cooperative "dark vessels"</strong> engaged in potential illegal, unreported, or unregulated (IUU) activity.
+              </div>
+            </div>
+
+            <!-- Oil Slick Marangoni -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Marangoni Capillary Damping of Hydrocarbon Oil Slicks</span>
+                <span class="formula-badge">Surface Chemistry</span>
+              </div>
+              <div class="formula-math-display">
+                $$\Delta \sigma_{\text{damping}}^0 = \sigma_{\text{clean}}^0 - \sigma_{\text{slick}}^0 \approx 6\,\text{dB} \text{ to } 12\,\text{dB}$$
+              </div>
+              <div class="formula-caption">
+                Alpers &amp; Hühnerfuss (1988). Monomolecular hydrocarbon surfactant films suppress wind-generated capillary and short gravity waves (wavelength $1.5 - 10\,\text{cm}$) via the Marangoni viscoelastic effect. This eliminates Bragg scattering, producing persistent dark patches adjacent to oil-discharging vessels.
+              </div>
+            </div>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Finn, H. M., &amp; Johnson, R. S. (1968).</strong> Adaptive detection mode with threshold control as a function of spatially sampled clutter-level estimates. <em>RCA Review</em>, 29(3), 414–464.
+              <div class="citation-meta">
+                <span class="citation-applied">Applied in: <code>detect_dark_vessels</code> (CA-CFAR algorithm)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Pelich, R., Chini, M., Hostache, R., Matgen, P., López-Martínez, C., Nuevo, M., Ries, P., &amp; Eiden, G. (2019).</strong> Large-scale automatic vessel monitoring based on dual-polarization Sentinel-1 and AIS data. <em>Remote Sensing</em>, 11(9), 1078.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.3390/rs11091078" class="doi-link" target="_blank" rel="noopener">DOI: 10.3390/rs11091078</a>
+                <span class="citation-applied">Applied in: <code>detect_dark_vessels</code> (AIS kinematic correlation)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Alpers, W., &amp; Hühnerfuss, H. (1988).</strong> Radar signatures of oil films floating on the sea surface and the Marangoni effect. <em>Journal of Geophysical Research: Oceans</em>, 93(C4), 3642–3648.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1029/JC093iC04p03642" class="doi-link" target="_blank" rel="noopener">DOI: 10.1029/JC093iC04p03642</a>
+                <span class="citation-applied">Applied in: <code>detect_dark_vessels</code> (Oil spill slick detection)</span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 7: DSAS Coastal Dynamics & Sub-pixel Waterlines -->
+        <section id="coastal-kinematics" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12c.6 0 1.2-.2 1.7-.6.9-.7 2.2-.7 3.1 0 .9.7 2.2.7 3.1 0 .9-.7 2.2-.7 3.1 0 .9.7 2.2.7 3.1 0 .9-.7 2.2-.7 3.1 0 .5.4 1.1.6 1.7.6"></path><path d="M2 18c.6 0 1.2-.2 1.7-.6.9-.7 2.2-.7 3.1 0 .9.7 2.2.7 3.1 0 .9-.7 2.2-.7 3.1 0 .9.7 2.2.7 3.1 0 .9-.7 2.2-.7 3.1 0 .5.4 1.1.6 1.7.6"></path></svg>
+              Coastal Morphodynamics &amp; DSAS Transect Kinematics
+            </h2>
+            <p>
+              Sub-pixel satellite shoreline extraction, perpendicular transect casting, and geostatistical erosion and accretion modeling.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-erosion" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>analyze_coastal_erosion</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Sub-Pixel Satellite Waterline Extraction (CoastSat Protocol)</h4>
+            <p>
+              Monitoring beach retreat and coastal erosion requires resolving spatial movements smaller than the native satellite pixel size (e.g., $10\,\text{m}$ for Sentinel-2, $30\,\text{m}$ for Landsat). <code>eo-mcp</code> adopts the CoastSat methodology (Vos et al., 2019):
+            </p>
+            <ol style="margin: 8px 0 14px 20px; font-size: 14.5px; line-height: 1.65; color: var(--ink-soft);">
+              <li>Computation of Modified Normalized Difference Water Index (MNDWI) surface reflectance arrays.</li>
+              <li>Dynamic image-specific threshold determination via Otsu between-class variance maximization.</li>
+              <li>Continuous sub-pixel boundary tracing via marching squares contour interpolation, yielding horizontal shoreline positional accuracy $< 5.0\,\text{m}$.</li>
+            </ol>
+
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Otsu Between-Class Variance Threshold Maximization</span>
+                <span class="formula-badge">Image Segmentation</span>
+              </div>
+              <div class="formula-math-display">
+                $$\sigma_B^2(T) = \omega_0(T) \cdot \omega_1(T) \cdot \left[ \mu_0(T) - \mu_1(T) \right]^2 \qquad \Longrightarrow \qquad T^* = \arg\max_T \sigma_B^2(T)$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\sigma_B^2(T)$$</dt>
+                  <dd>Between-class variance of the image histogram bifurcated at threshold $T$</dd>
+                  <dt>$$\omega_0(T), \omega_1(T)$$</dt>
+                  <dd>Probabilities of pixel occurrence in background (land) and foreground (water) classes</dd>
+                  <dt>$$\mu_0(T), \mu_1(T)$$</dt>
+                  <dd>Mean spectral index values of respective classes</dd>
+                  <dt>$$T^*$$</dt>
+                  <dd>Optimal dynamic threshold maximizing statistical class separability</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Otsu (1979). Eliminates operator subjectivity by adapting dynamically to instantaneous illumination, turbidity, and wave-induced surf froth.
+              </div>
+            </div>
+
+            <!-- DSAS Metrics -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Digital Shoreline Analysis System (DSAS) Rate Formulations</span>
+                <span class="formula-badge">Geomorphological Metrics</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{EPR} = \frac{D_{\text{latest}} - D_{\text{oldest}}}{t_{\text{latest}} - t_{\text{oldest}}} \qquad\qquad \text{LRR} = \frac{\sum_{i=1}^n (t_i - \bar{t})(D_i - \bar{D})}{\sum_{i=1}^n (t_i - \bar{t})^2}$$
+              </div>
+              <div class="formula-math-display">
+                $$\text{NSM} = D_{\text{latest}} - D_{\text{oldest}} \qquad\qquad \text{SCE} = \max_i(D_i) - \min_i(D_i)$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\text{EPR}$$</dt>
+                  <dd>End Point Rate ($\text{m/year}$), measuring annualized change between earliest and latest available scenes</dd>
+                  <dt>$$\text{LRR}$$</dt>
+                  <dd>Linear Regression Rate ($\text{m/year}$), representing the slope of the least-squares regression line through all historical shoreline positions</dd>
+                  <dt>$$\text{NSM}$$</dt>
+                  <dd>Net Shoreline Movement ($\text{m}$), total horizontal displacement across the observation baseline</dd>
+                  <dt>$$\text{SCE}$$</dt>
+                  <dd>Shoreline Change Envelope ($\text{m}$), maximum distance envelope between all shoreline intersections on the transect</dd>
+                  <dt>$$D_i$$</dt>
+                  <dd>Cross-shore distance along the perpendicular transect from baseline to waterline at time $t_i$</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                USGS standard formulations (Thieler et al., 2009; Himmelstoss et al., 2018). Transects are cast perpendicular to an offshore/onshore baseline at regular along-shore intervals (typically $25 - 50\,\text{m}$).
+              </div>
+            </div>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Thieler, E. R., Himmelstoss, E. A., Zichichi, J. L., &amp; Ergul, A. (2009).</strong> Digital Shoreline Analysis System (DSAS) version 4.0—An ArcGIS extension for calculating shoreline change. <em>U.S. Geological Survey Open-File Report 2008-1278</em>, 72 p.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.3133/ofr20081278" class="doi-link" target="_blank" rel="noopener">DOI: 10.3133/ofr20081278</a>
+                <span class="citation-applied">Applied in: <code>analyze_coastal_erosion</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Vos, K., Splinter, K. D., Harley, M. D., Simmons, J. A., &amp; Turner, I. L. (2019).</strong> CoastSat: A Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. <em>Environmental Modelling &amp; Software</em>, 122, 104528.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/j.envsoft.2019.104528" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.envsoft.2019.104528</a>
+                <span class="citation-applied">Applied in: <code>analyze_coastal_erosion</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 8: Copernicus DEM & 8-Neighbor Hydrologic Inundation -->
+        <section id="dem-flooding" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
+              Copernicus DEM &amp; 8-Neighbor Hydrologic Inundation
+            </h2>
+            <p>
+              Digital elevation model geodetic specifications, local topographic gradients, and hydro-connected coastal inundation percolation modeling.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;">
+            <a href="docs.html#tool-inundation" class="tool-ref-link" style="margin-bottom: 0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              <span>Tool: <code>simulate_sea_level_rise</code> &rarr;</span>
+            </a>
+            <a href="docs.html#tool-elevation" class="tool-ref-link" style="margin-bottom: 0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              <span>Tool: <code>get_elevation_profile</code> &rarr;</span>
+            </a>
+          </div>
+
+          <div class="science-box">
+            <h4>Copernicus DEM GLO-30 Geodetic Specifications</h4>
+            <p>
+              Topographic analysis in <code>eo-mcp</code> utilizes the European Space Agency's Copernicus DEM GLO-30 product (30 m / 1 arcsecond resolution), derived from TanDEM-X interferometric X-band radar. Independent global validation using airborne LiDAR and ICESat-2 spaceborne altimetry proves that Copernicus DEM achieves a vertical Linear Error at 90% confidence ($\text{LE}90 < 2.0\,\text{m}$), substantially outperforming SRTM and NASADEM across coastal zones (ESA, 2020; Guth &amp; Geoffroy, 2021).
+            </p>
+
+            <!-- Horn Topographic Derivatives -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Local Topographic Surface Derivatives (Horn's Formulation)</span>
+                <span class="formula-badge">Terrain Analysis</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{Slope } S = \arctan \sqrt{\left(\frac{\partial z}{\partial x}\right)^2 + \left(\frac{\partial z}{\partial y}\right)^2} \qquad\qquad \text{Aspect } \theta = 270^{\circ} - \arctan2\left(\frac{\partial z}{\partial y}, -\frac{\partial z}{\partial x}\right)$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\frac{\partial z}{\partial x}, \frac{\partial z}{\partial y}$$</dt>
+                  <dd>East-West and North-South partial elevation gradients calculated over a 3x3 pixel kernel using distance-weighted finite differences (Horn, 1981)</dd>
+                  <dt>$$S$$</dt>
+                  <dd>Local topographic terrain slope (degrees or radians, $[0^{\circ}, 90^{\circ}]$)</dd>
+                  <dt>$$\theta$$</dt>
+                  <dd>Downslope azimuth aspect direction clockwise from geographic North ($[0^{\circ}, 360^{\circ}]$)</dd>
+                </dl>
+              </div>
+            </div>
+
+            <!-- 8-Neighbor Hydrologic Flood-Fill -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Hydro-Connected Flood-Fill vs. Planar Bathtub Inundation</span>
+                <span class="formula-badge">Hydraulic Modeling</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{Flooded}(p) = \text{True} \iff Z(p) \le h_{\text{tide}} + \Delta_{\text{SLR}} \quad \land \quad \exists \text{ path } \mathcal{P} = (p_0, p_1, \dots, p) \text{ such that } \forall q \in \mathcal{P}, Z(q) \le h_{\text{tide}} + \Delta_{\text{SLR}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$Z(p)$$</dt>
+                  <dd>Orthometric ground surface elevation above mean sea level (EGM2008 geoid) at pixel $p$</dd>
+                  <dt>$$h_{\text{tide}}$$</dt>
+                  <dd>Astronomical tide height above datum (e.g. Mean Higher High Water, MHHW)</dd>
+                  <dt>$$\Delta_{\text{SLR}}$$</dt>
+                  <dd>Scenario-driven sea level rise increment (IPCC AR6 projection)</dd>
+                  <dt>$$\mathcal{P}$$</dt>
+                  <dd>Continuous 8-connected grid percolation path originating from oceanic seed boundary cells $p_0$</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Poulter &amp; Halpin (2008); Gesch (2009, 2018). Standard naive "bathtub" models assume any pixel with $Z(p) \le h$ will drown, generating severe false-positive flooding in low-lying agricultural polders, coastal basins, and dry interior depressions protected by natural berms, dikes, or elevated roadbeds. <code>eo-mcp</code> requires verified 8-connected topological percolation before flagging inundation.
+              </div>
+            </div>
+          </div>
+
+          <h3>IPCC AR6 Sea Level Rise Scenario Projections</h3>
+          <div class="sensor-table-wrap">
+            <table class="sensor-table">
+              <thead>
+                <tr><th>IPCC AR6 Scenario</th><th>Socioeconomic Narrative</th><th>Median SLR by 2050 (m)</th><th>Median SLR by 2100 (m)</th><th>Likely Range by 2100 (5th–95th %)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>SSP1-2.6</strong></td><td>Aggressive global decarbonization, net-zero greenhouse gases by 2050</td><td>+0.19 m</td><td>+0.44 m</td><td>0.32 m – 0.61 m</td></tr>
+                <tr><td><strong>SSP2-4.5</strong></td><td>Intermediate emissions pathway, current national policy trajectories</td><td>+0.23 m</td><td>+0.56 m</td><td>0.41 m – 0.76 m</td></tr>
+                <tr><td><strong>SSP5-8.5</strong></td><td>High-fossil development without additional climate mitigation</td><td>+0.30 m</td><td>+0.77 m</td><td>0.63 m – 1.01 m</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Poulter, B., &amp; Halpin, P. N. (2008).</strong> Raster modelling of coastal flooding from sea-level rise. <em>International Journal of Geographical Information Science</em>, 22(2), 167–182.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1080/13658810701371858" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/13658810701371858</a>
+                <span class="citation-applied">Applied in: <code>simulate_sea_level_rise</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Gesch, D. B. (2018).</strong> Best practices for elevation-based assessments of sea-level rise and coastal flooding exposure. <em>Frontiers in Earth Science</em>, 6, 230.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.3389/feart.2018.00230" class="doi-link" target="_blank" rel="noopener">DOI: 10.3389/feart.2018.00230</a>
+                <span class="citation-applied">Applied in: <code>simulate_sea_level_rise</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Fox-Kemper, B. et al. (2021).</strong> Ocean, cryosphere and sea level change. In <em>Climate Change 2021: The Physical Science Basis. Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change</em>, pp. 1211–1362. Cambridge University Press.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1017/9781009157896.011" class="doi-link" target="_blank" rel="noopener">DOI: 10.1017/9781009157896.011</a>
+                <span class="citation-applied">Applied in: <code>simulate_sea_level_rise</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 9: Multi-Decadal Surface Water & Reservoir Drought -->
+        <section id="surface-water" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+              Multi-Decadal Surface Water Dynamics &amp; Reservoir Drought
+            </h2>
+            <p>
+              Long-term hydrological transition analysis, JRC global water recurrence dynamics, and hypsometric reservoir volume modeling.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-drought" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>analyze_reservoir_drought</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>EC JRC Global Surface Water (GSW) Multi-Decadal Physics</h4>
+            <p>
+              Quantifying hydrological drought and reservoir depletion requires isolating seasonal water fluctuations from multi-decadal climate trends. <code>eo-mcp</code> builds upon the European Commission Joint Research Centre (JRC) Global Surface Water methodology developed by Pekel et al. (2016, Nature), analyzing over 3 million Landsat scenes spanning 38 years (1984–present).
+            </p>
+
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Multi-Decadal Water Occurrence ($WO$) Formulation</span>
+                <span class="formula-badge">Hydrological Persistence</span>
+              </div>
+              <div class="formula-math-display">
+                $$WO = \frac{\sum_{t=1}^{T} W_{\text{water}}(t)}{\sum_{t=1}^{T} V_{\text{valid}}(t)} \times 100\%$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$WO$$</dt>
+                  <dd>Water Occurrence frequency percentage over the entire observation window ($[0\%, 100\%]$)</dd>
+                  <dt>$$W_{\text{water}}(t)$$</dt>
+                  <dd>Binary water detection flag (1 if classified as water via MNDWI and multispectral rules, 0 otherwise) at time $t$</dd>
+                  <dt>$$V_{\text{valid}}(t)$$</dt>
+                  <dd>Binary observation validity flag (1 if unobstructed by clouds, snow, or sensor anomalies, 0 otherwise) at time $t$</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Pekel et al. (2016). Based on $WO$ thresholds, pixels are partitioned into hydrological recurrence classes:
+                <strong>Permanent Water</strong> ($WO \ge 80\%$), <strong>Seasonal Water</strong> ($20\% \le WO < 80\%$), and <strong>Ephemeral / Occasional Water</strong> ($0\% < WO < 20\%$). Loss of permanent water over consecutive years serves as an unambiguous remote sensing indicator of severe regional meteorological drought.
+              </div>
+            </div>
+
+            <!-- Hypsometric Volume -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Hypsometric Reservoir Volume Estimation</span>
+                <span class="formula-badge">Volumetric Integration</span>
+              </div>
+              <div class="formula-math-display">
+                $$V(h) = \int_{z_{\min}}^{h} A(z) \, dz \approx \sum_{k=1}^{M-1} \frac{A(z_k) + A(z_{k+1})}{2} \cdot (z_{k+1} - z_k)$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$V(h)$$</dt>
+                  <dd>Estimated water volume ($\text{m}^3$) stored in the reservoir at surface water elevation $h$</dd>
+                  <dt>$$A(z)$$</dt>
+                  <dd>Reservoir surface area ($\text{m}^2$) evaluated at contour elevation $z$ using the Copernicus DEM</dd>
+                  <dt>$$z_{\min}$$</dt>
+                  <dd>Lowest bathymetric ground elevation in the reservoir basin</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Trapezoidal hypsometric integration relating satellite-observed surface area expansion/contraction to volumetric water storage capacity.
+              </div>
+            </div>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Pekel, J.-F., Cottam, A., Gorelick, N., &amp; Belward, A. S. (2016).</strong> High-resolution mapping of global surface water and its long-term changes. <em>Nature</em>, 540(7633), 418–422.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1038/nature20584" class="doi-link" target="_blank" rel="noopener">DOI: 10.1038/nature20584</a>
+                <span class="citation-applied">Applied in: <code>analyze_reservoir_drought</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 10: Radiative Transfer LST & Urban Heat Island -->
+        <section id="urban-heat" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+              Radiative Transfer LST &amp; Urban Heat Island
+            </h2>
+            <p>
+              Single-channel atmospheric radiative transfer inversion, Planck blackbody derivation, and Fractional Vegetation Cover emissivity estimation.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-thermal" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>analyze_urban_heat_island</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Thermal Infrared Radiative Transfer Physics</h4>
+            <p>
+              Retrieving kinetic Land Surface Temperature ($T_s$) from satellite thermal sensors (such as Landsat 8/9 TIRS Band 10, $10.60 - 11.19\,\mu\text{m}$) requires solving the thermal infrared Radiative Transfer Equation (RTE). At thermal infrared wavelengths, sensor-observed radiance consists of three components:
+            </p>
+            <ol style="margin: 8px 0 14px 20px; font-size: 14px; line-height: 1.6; color: var(--ink-soft);">
+              <li>Surface thermal radiance attenuated by atmospheric transmittance $\tau$.</li>
+              <li>Reflected downwelling atmospheric thermal irradiance $(1 - \epsilon) L^{\downarrow}$ transmitted to sensor.</li>
+              <li>Thermal upwelling atmospheric path radiance $L^{\uparrow}$ emitted directly toward the sensor aperture.</li>
+            </ol>
+
+            <!-- RTE Equation -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Thermal Radiative Transfer Equation (RTE) &amp; Radiance Inversion</span>
+                <span class="formula-badge">Single-Channel RTE</span>
+              </div>
+              <div class="formula-math-display">
+                $$L_{\text{sensor}} = \left[ \epsilon \cdot B(T_s) + (1 - \epsilon) L^{\downarrow} \right] \tau + L^{\uparrow} \quad \Longrightarrow \quad B(T_s) = \frac{L_{\text{sensor}} - L^{\uparrow} - \tau (1 - \epsilon) L^{\downarrow}}{\tau \cdot \epsilon}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$L_{\text{sensor}}$$</dt>
+                  <dd>At-sensor calibrated Top-of-Atmosphere spectral radiance ($\text{W}\cdot\text{m}^{-2}\cdot\text{sr}^{-1}\cdot\mu\text{m}^{-1}$)</dd>
+                  <dt>$$B(T_s)$$</dt>
+                  <dd>Planck blackbody spectral radiance emitted by the surface at kinetic temperature $T_s$</dd>
+                  <dt>$$\epsilon$$</dt>
+                  <dd>Land Surface Emissivity (dimensionless, $[0.95, 0.99]$)</dd>
+                  <dt>$$\tau$$</dt>
+                  <dd>Atmospheric spectral transmittance in the thermal infrared band</dd>
+                  <dt>$$L^{\uparrow}, L^{\downarrow}$$</dt>
+                  <dd>Upwelling atmospheric path radiance and downwelling hemispherical sky irradiance</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Sobrino, Jiménez-Muñoz, &amp; Paolini (2004); Jiménez-Muñoz et al. (2009). Atmospheric parameters ($\tau, L^{\uparrow}, L^{\downarrow}$) are derived from atmospheric profile soundings or MODTRAN simulations.
+              </div>
+            </div>
+
+            <!-- Planck Inversion -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Planck Function Inversion for Land Surface Temperature ($T_s$)</span>
+                <span class="formula-badge">Thermodynamic Inversion</span>
+              </div>
+              <div class="formula-math-display">
+                $$T_s = \frac{K_2}{\ln\left( \frac{K_1}{B(T_s)} + 1 \right)} \qquad\qquad T_{\text{Celsius}} = T_s - 273.15$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$T_s$$</dt>
+                  <dd>Kinetic Land Surface Temperature in Kelvin</dd>
+                  <dt>$$K_1, K_2$$</dt>
+                  <dd>Thermal calibration constants for Landsat 8/9 TIRS Band 10: $K_1 = 774.8853\,\text{W}/(\text{m}^2\cdot\text{sr}\cdot\mu\text{m})$, $K_2 = 1321.0789\,\text{K}$</dd>
+                </dl>
+              </div>
+            </div>
+
+            <!-- Sobrino Emissivity & FVC -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Fractional Vegetation Cover (FVC) &amp; Sobrino Emissivity Estimation</span>
+                <span class="formula-badge">Surface Physics</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{FVC} = \left( \frac{\text{NDVI} - \text{NDVI}_{\text{soil}}}{\text{NDVI}_{\text{veg}} - \text{NDVI}_{\text{soil}}} \right)^2 \qquad\qquad \epsilon = \begin{cases} \epsilon_{\text{soil}} & \text{if } \text{NDVI} < 0.2 \\ \epsilon_{\text{veg}} \cdot \text{FVC} + \epsilon_{\text{soil}} \cdot (1 - \text{FVC}) + d\epsilon & \text{if } 0.2 \le \text{NDVI} \le 0.5 \\ \epsilon_{\text{veg}} + d\epsilon & \text{if } \text{NDVI} > 0.5 \end{cases}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\text{FVC}$$</dt>
+                  <dd>Fractional Vegetation Cover (Valor &amp; Caselles, 1996). Standard thresholds: $\text{NDVI}_{\text{soil}} = 0.2$, $\text{NDVI}_{\text{veg}} = 0.5$</dd>
+                  <dt>$$\epsilon_{\text{soil}}, \epsilon_{\text{veg}}$$</dt>
+                  <dd>Soil emissivity ($\approx 0.960$) and healthy dense canopy emissivity ($\approx 0.985$)</dd>
+                  <dt>$$d\epsilon$$</dt>
+                  <dd>Internal cavity geometric term: $d\epsilon \approx (1 - \epsilon_{\text{soil}}) \epsilon_{\text{veg}} F'(1 - \text{FVC})$ where $F' \approx 0.55$</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Sobrino et al. (2004, 2008). Accurately captures high thermal emissivity over vegetative green spaces and low emissivity over urban impervious concrete, enabling accurate Urban Heat Island (UHI) temperature anomaly quantification.
+              </div>
+            </div>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Sobrino, J. A., Jiménez-Muñoz, J. C., &amp; Paolini, L. (2004).</strong> Land surface temperature retrieval from LANDSAT TM 5. <em>Remote Sensing of Environment</em>, 90(4), 434–440.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/j.rse.2004.02.003" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2004.02.003</a>
+                <span class="citation-applied">Applied in: <code>analyze_urban_heat_island</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Valor, E., &amp; Caselles, V. (1996).</strong> Mapping land surface emissivity from NDVI: Application to European, African, and South American areas. <em>Remote Sensing of Environment</em>, 57(3), 167–184.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/0034-4257(96)00039-9" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/0034-4257(96)00039-9</a>
+                <span class="citation-applied">Applied in: <code>analyze_urban_heat_island</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Jiménez-Muñoz, J. C., Cristóbal, J., Sobrino, J. A., Sòria, G., Ninyerola, M., &amp; Pons, X. (2009).</strong> Revision of the single-channel algorithm for land surface temperature retrieval from Landsat thermal-infrared data. <em>IEEE Transactions on Geoscience and Remote Sensing</em>, 47(1), 339–349.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1109/TGRS.2008.2007125" class="doi-link" target="_blank" rel="noopener">DOI: 10.1109/TGRS.2008.2007125</a>
+                <span class="citation-applied">Applied in: <code>analyze_urban_heat_island</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 11: Active Fire (FRP) & Burn Severity -->
+        <section id="thermal-wildfires" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+              Active Wildfires (FRP) &amp; Post-Fire Burn Severity
+            </h2>
+            <p>
+              Mid-infrared sub-pixel thermal anomaly physics, Fire Radiative Power biomass combustion rates, and relativized burn severity metrics.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;">
+            <a href="docs.html#tool-wildfire" class="tool-ref-link" style="margin-bottom: 0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              <span>Tool: <code>detect_active_wildfires</code> &rarr;</span>
+            </a>
+            <a href="docs.html#tool-burn" class="tool-ref-link" style="margin-bottom: 0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              <span>Tool: <code>calculate_burn_severity</code> &rarr;</span>
+            </a>
+          </div>
+
+          <div class="science-box">
+            <h4>Active Fire Physics: Wien's Displacement Law &amp; Mid-Infrared Sensitivity</h4>
+            <p>
+              According to Wien's Displacement Law ($\lambda_{\max} \cdot T = 2898\,\mu\text{m}\cdot\text{K}$), the peak emission of ambient Earth surfaces ($\approx 300\,\text{K}$) occurs in the Thermal Infrared (TIR) at $\approx 9.7\,\mu\text{m}$. In contrast, actively flaming biomass combustion ($800 - 1200\,\text{K}$) shifts the blackbody emission curve dramatically toward the Mid-Infrared (MIR, $3.7 - 4.0\,\mu\text{m}$).
+            </p>
+            <p>
+              By observing in the $3.9\,\mu\text{m}$ atmospheric window (VIIRS Band I4, $375\,\text{m}$ GSD), a sub-pixel fire occupying as little as $0.01\%$ of a pixel increases observed MIR radiance by several hundred percent, while barely affecting the $11\,\mu\text{m}$ TIR channel (VIIRS Band I5).
+            </p>
+
+            <!-- Brightness Temp Difference -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Contextual Brightness Temperature Anomaly ($\Delta T$)</span>
+                <span class="formula-badge">Thermal Anomaly</span>
+              </div>
+              <div class="formula-math-display">
+                $$\Delta T = T_{3.9} - T_{11} \qquad \Longrightarrow \qquad \text{Active Fire} \iff T_{3.9} > T_{3.9,\text{bg}} + n \cdot \delta_{3.9} \quad \land \quad \Delta T > \Delta T_{\text{bg}} + n \cdot \delta_{\Delta T}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$T_{3.9}, T_{11}$$</dt>
+                  <dd>Brightness temperatures (Kelvin) inverted from calibrated radiances in Mid-Infrared ($3.9\,\mu\text{m}$) and Thermal-Infrared ($11\,\mu\text{m}$)</dd>
+                  <dt>$$T_{3.9,\text{bg}}, \Delta T_{\text{bg}}$$</dt>
+                  <dd>Mean background brightness temperature and temperature difference calculated over surrounding non-fire cloud-free pixels</dd>
+                  <dt>$$\delta$$</dt>
+                  <dd>Standard deviation of background context; $n$ is threshold multiplier ($n \ge 3.0$)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                VIIRS 375 m active fire detection algorithm (Schroeder et al., 2014; Giglio et al., 2016). Contextual adaptive statistics suppress false alarms over sunlit bare rock and cloud edges.
+              </div>
+            </div>
+
+            <!-- Fire Radiative Power -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Fire Radiative Power (FRP) &amp; Biomass Combustion Rate</span>
+                <span class="formula-badge">Energetic Formulation</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{FRP} = \frac{A_{\text{pixel}} \cdot \sigma}{a \cdot \tau_{\text{MIR}}} \left( L_{\text{MIR}} - L_{\text{MIR,bg}} \right) \qquad\qquad \frac{dM}{dt} = C_{\text{biomass}} \cdot \text{FRP}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\text{FRP}$$</dt>
+                  <dd>Fire Radiative Power ($\text{MW}$), instantaneous rate of radiative heat energy released by burning biomass</dd>
+                  <dt>$$A_{\text{pixel}}$$</dt>
+                  <dd>Ground pixel footprint area ($375 \times 375\,\text{m}^2 \approx 140,625\,\text{m}^2$ for VIIRS at nadir)</dd>
+                  <dt>$$\sigma = 5.6704 \times 10^{-8}$$</dt>
+                  <dd>Stefan-Boltzmann constant ($\text{W}\cdot\text{m}^{-2}\cdot\text{K}^{-4}$)</dd>
+                  <dt>$$a$$</dt>
+                  <dd>Sensor-specific empirical MIR radiance fitting coefficient ($a \approx 3.0 \times 10^{-9}\,\text{W}\cdot\text{m}^{-2}\cdot\text{sr}^{-1}\cdot\mu\text{m}^{-1}\cdot\text{K}^{-4}$)</dd>
+                  <dt>$$\frac{dM}{dt}$$</dt>
+                  <dd>Fuel biomass consumption rate ($\text{kg/s}$)</dd>
+                  <dt>$$C_{\text{biomass}}$$</dt>
+                  <dd>Combustion factor ($C_{\text{biomass}} = 0.368 \pm 0.015\,\text{kg/MJ}$)</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Wooster et al. (2003, 2005). Proves direct physical proportionality between Fire Radiative Energy (FRE) and total combusted fuel mass, providing smoke and carbon emission inputs for climate models.
+              </div>
+            </div>
+
+            <!-- dNBR and RBR -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Differenced NBR ($dNBR$) &amp; Relativized Burn Ratio ($RBR$)</span>
+                <span class="formula-badge">Burn Severity</span>
+              </div>
+              <div class="formula-math-display">
+                $$dNBR = (NBR_{\text{pre}} - NBR_{\text{post}}) \times 1000 \qquad\qquad RBR = \frac{dNBR}{NBR_{\text{pre}} + 1.001}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$NBR_{\text{pre}}, NBR_{\text{post}}$$</dt>
+                  <dd>Pre-fire and post-fire Normalized Burn Ratio arrays ($(\rho_{\text{NIR}} - \rho_{\text{SWIR2}}) / (\rho_{\text{NIR}} + \rho_{\text{SWIR2}})$)</dd>
+                  <dt>$$dNBR$$</dt>
+                  <dd>Difference Normalized Burn Ratio (Key &amp; Benson, 2006)</dd>
+                  <dt>$$RBR$$</dt>
+                  <dd>Relativized Burn Ratio (Parks et al., 2014), adding $1.001$ to denominator to avoid division by zero while normalizing for low pre-fire vegetative cover</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <h3>USGS &amp; European Forest Fire Information System (EFFIS) Thresholds</h3>
+          <div class="sensor-table-wrap">
+            <table class="sensor-table">
+              <thead>
+                <tr><th>Severity Level</th><th>dNBR Index Range</th><th>RBR Index Range</th><th>Ecological Landscape Interpretation</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Enhanced Regrowth</strong></td><td>$< -100$</td><td>$< -50$</td><td>Vigorous post-fire vegetative sprouting or herbaceous flush</td></tr>
+                <tr><td><strong>Unburned</strong></td><td>$-100 \text{ to } +99$</td><td>$-50 \text{ to } +99$</td><td>Intact green canopy, unburned duff and surface litter</td></tr>
+                <tr><td><strong>Low Severity</strong></td><td>$+100 \text{ to } +269$</td><td>$+100 \text{ to } +174$</td><td>Surface fire, scorched understory, minor tree crown needle scorch</td></tr>
+                <tr><td><strong>Moderate-Low</strong></td><td>$+270 \text{ to } +439$</td><td>$+175 \text{ to } +269$</td><td>Understory consumed, 25–50% canopy foliage scorched</td></tr>
+                <tr><td><strong>Moderate-High</strong></td><td>$+440 \text{ to } +659$</td><td>$+270 \text{ to } +399$</td><td>Deep charring, 50–80% canopy mortality, soil organic layer consumed</td></tr>
+                <tr><td><strong>High Severity</strong></td><td>$\ge +660$</td><td>$\ge +400$</td><td>Complete overstory canopy mortality ($>80\%$), deep white ash, mineral soil alteration</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Schroeder, W., Oliva, P., Giglio, L., &amp; Csiszar, I. A. (2014).</strong> The New VIIRS 375 m active fire detection data product: Algorithm description and initial assessment. <em>Remote Sensing of Environment</em>, 143, 85–96.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/j.rse.2013.12.008" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2013.12.008</a>
+                <span class="citation-applied">Applied in: <code>detect_active_wildfires</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Wooster, M. J., Roberts, G., Perry, G. L. W., &amp; Kaufman, Y. J. (2005).</strong> Retrieval of biomass combustion rates and totals from fire radiative power observations: FRP derivation and calibration relationships. <em>Journal of Geophysical Research: Atmospheres</em>, 110(D24), D24311.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1029/2005JD006318" class="doi-link" target="_blank" rel="noopener">DOI: 10.1029/2005JD006318</a>
+                <span class="citation-applied">Applied in: <code>detect_active_wildfires</code> (FRP biomass rate)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Parks, S. A., Dillon, G. K., &amp; Miller, C. (2014).</strong> A new metric for quantifying burn severity: The Relativized Burn Ratio. <em>Remote Sensing</em>, 6(3), 1827–1844.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.3390/rs6031827" class="doi-link" target="_blank" rel="noopener">DOI: 10.3390/rs6031827</a>
+                <span class="citation-applied">Applied in: <code>calculate_burn_severity</code> (RBR metric)</span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 12: Atmospheric Chemistry & TROPOMI DOAS Telemetry -->
+        <section id="tropomi-doas" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path><path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path><path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path></svg>
+              Atmospheric Chemistry &amp; TROPOMI DOAS Spectroscopy
+            </h2>
+            <p>
+              Pushbroom grating spectrometer physics, Differential Optical Absorption Spectroscopy, Air Mass Factor conversions, and trace gas retrievals.
+            </p>
+          </div>
+
+          <a href="docs.html#tool-emissions" class="tool-ref-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Operational Tool Reference: <code>monitor_atmospheric_emissions</code> &rarr;</span>
+          </a>
+
+          <div class="science-box">
+            <h4>Differential Optical Absorption Spectroscopy (DOAS) Physics</h4>
+            <p>
+              The TROPOspheric Monitoring Instrument (TROPOMI) aboard Copernicus Sentinel-5 Precursor (S5P) is an advanced pushbroom grating imaging spectrometer measuring backscattered solar radiation across Ultraviolet (UV, $270 - 495\,\text{nm}$), Visible (VIS, $405 - 500\,\text{nm}$), Near-Infrared (NIR, $675 - 775\,\text{nm}$), and Shortwave-Infrared (SWIR, $2305 - 2385\,\text{nm}$) at $3.5 \times 5.5\,\text{km}^2$ nadir resolution (Veefkind et al., 2012).
+            </p>
+            <p>
+              Retrieval of trace gas atmospheric columns relies on the <strong>DOAS principle</strong>, separating narrow molecular absorption bands from broadband Rayleigh and aerosol scattering:
+            </p>
+
+            <!-- DOAS Beer-Lambert Equation -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>DOAS Spectral Fitting Equation (Beer-Lambert Inversion)</span>
+                <span class="formula-badge">Spectroscopic Law</span>
+              </div>
+              <div class="formula-math-display">
+                $$\ln\left( \frac{I_0(\lambda)}{I(\lambda)} \right) = \sum_{i} \sigma_i(\lambda) \cdot S_i + P(\lambda) + \alpha_{\text{Rayleigh}}(\lambda) + \alpha_{\text{Mie}}(\lambda)$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$I_0(\lambda), I(\lambda)$$</dt>
+                  <dd>Solar extraterrestrial reference irradiance and earthshine radiance measured at top of atmosphere</dd>
+                  <dt>$$\sigma_i(\lambda)$$</dt>
+                  <dd>Laboratory-measured molecular absorption cross-section of trace gas species $i$ ($\text{cm}^2/\text{molecule}$)</dd>
+                  <dt>$$S_i$$</dt>
+                  <dd>Slant Column Density (SCD) integrated along the effective atmospheric optical photon path ($\text{mol}/\text{m}^2$ or $\text{molec}/\text{cm}^2$)</dd>
+                  <dt>$$P(\lambda)$$</dt>
+                  <dd>Low-order polynomial accounting for smooth broadband surface reflectance and aerosol extinction</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                DOAS spectral fitting separates high-frequency ro-vibrational absorption fingerprints from continuum scattering.
+              </div>
+            </div>
+
+            <!-- AMF and Stratospheric Separation -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Air Mass Factor (AMF) &amp; Stratosphere-Troposphere Separation</span>
+                <span class="formula-badge">Vertical Column Derivation</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{VCD}_{\text{total}} = \frac{\text{SCD}}{\text{AMF}} \qquad\qquad \text{VCD}_{\text{trop}} = \text{VCD}_{\text{total}} - \text{VCD}_{\text{strat}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\text{VCD}$$</dt>
+                  <dd>Vertical Column Density ($\text{mol}/\text{m}^2$ or $\mu\text{mol}/\text{m}^2$), representing the vertical integral of gas concentration from surface to top of atmosphere</dd>
+                  <dt>$$\text{AMF}$$</dt>
+                  <dd>Air Mass Factor computed from radiative transfer models (e.g. DAK), integrating viewing geometry, cloud fraction, surface albedo, and a priori vertical gas profile shapes</dd>
+                  <dt>$$\text{VCD}_{\text{trop}}$$</dt>
+                  <dd>Tropospheric Vertical Column Density, isolating boundary-layer anthropogenic pollution from natural stratospheric background reservoirs</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                van Geffen et al. (2020). Chemical transport models (such as TM5-MP) assimilate meteorological fields and high-altitude soundings to subtract the stratospheric ozone and $\text{NO}_2$ column, delivering boundary layer urban emissions.
+              </div>
+            </div>
+          </div>
+
+          <h3>Target Atmospheric Species &amp; Retrieval Windows</h3>
+          <div class="sensor-table-wrap">
+            <table class="sensor-table">
+              <thead>
+                <tr><th>Trace Gas Molecule</th><th>Fitting Spectral Band</th><th>Typical Tropospheric Column</th><th>Atmospheric Lifetime</th><th>Anthropogenic Emission Sources</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Nitrogen Dioxide ($\text{NO}_2$)</strong></td><td>VIS ($405 - 465\,\text{nm}$)</td><td>$10 - 250\,\mu\text{mol}/\text{m}^2$</td><td>2 – 8 hours (boundary layer)</td><td>Thermal power generation, vehicle internal combustion engines, industrial boilers</td></tr>
+                <tr><td><strong>Carbon Monoxide ($\text{CO}$)</strong></td><td>SWIR ($2305 - 2385\,\text{nm}$)</td><td>$1.5 - 4.5\,\text{mmol}/\text{m}^2$</td><td>1 – 2 months</td><td>Incomplete fossil fuel combustion, large-scale tropical biomass wildfires</td></tr>
+                <tr><td><strong>Methane ($\text{CH}_4$)</strong></td><td>SWIR ($2305 - 2385\,\text{nm}$)</td><td>$1800 - 1950\,\text{ppb}$ mixing ratio</td><td>9 – 12 years</td><td>Oil &amp; gas pipeline fugitive leaks, agricultural ruminants, landfill outgassing</td></tr>
+                <tr><td><strong>Sulfur Dioxide ($\text{SO}_2$)</strong></td><td>UV ($312 - 390\,\text{nm}$)</td><td>$< 1.0\,\text{DU}$ (background) to $> 50\,\text{DU}$</td><td>1 – 2 days</td><td>Coal-fired power plants, metal smelters, volcanic explosive eruptions</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>Peer-Reviewed Foundations</h4>
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Veefkind, J. P., Aben, I., McMullan, K., Förster, H., de Vries, J., Otter, G., Claas, J., Eskes, H. J., de Haan, J. F., Kleipool, Q., van Weele, M., Hasekamp, O., Hoogeveen, R., Landgraf, J., Snel, R., Tol, P., Ingmann, P., Voors, R., Kruizinga, B., Vink, R., Visser, H., &amp; Levelt, P. F. (2012).</strong> TROPOMI on the ESA Sentinel-5 Precursor: A GMES mission for global observations of the atmospheric composition for climate, air quality and ozone layer applications. <em>Remote Sensing of Environment</em>, 120, 70–83.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.1016/j.rse.2011.09.027" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2011.09.027</a>
+                <span class="citation-applied">Applied in: <code>monitor_atmospheric_emissions</code></span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>van Geffen, J., Boersma, K. F., Eskes, H., Sneep, M., ter Linden, M., Zara, M., &amp; Veefkind, J. P. (2020).</strong> S5P TROPOMI NO2 slant column retrieval: Method, stability, uncertainties and comparisons with OMI. <em>Atmospheric Measurement Techniques</em>, 13(3), 1315–1335.
+              <div class="citation-meta">
+                <a href="https://doi.org/10.5194/amt-13-1315-2020" class="doi-link" target="_blank" rel="noopener">DOI: 10.5194/amt-13-1315-2020</a>
+                <span class="citation-applied">Applied in: <code>monitor_atmospheric_emissions</code></span>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <!-- Section 13: Peer-Reviewed Bibliography & Citations -->
+        <section id="bibliography" class="doc-section">
+          <div class="doc-section-header">
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              Verified Peer-Reviewed Scientific Bibliography
+            </h2>
+            <p>
+              Authoritative foundational literature, geodetic standards, and algorithmic citations underpinning the <code>eo-mcp</code> planetary protocol.
+            </p>
+          </div>
+
+          <ul class="citation-list">
+            <li class="citation-item">
+              <strong>Alpers, W., &amp; Hühnerfuss, H. (1988).</strong> Radar signatures of oil films floating on the sea surface and the Marangoni effect. <em>Journal of Geophysical Research: Oceans</em>, 93(C4), 3642–3648.
+              <div class="citation-meta"><a href="https://doi.org/10.1029/JC093iC04p03642" class="doi-link" target="_blank" rel="noopener">DOI: 10.1029/JC093iC04p03642</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Bioresita, F., Puissant, A., Stumpf, A., &amp; Malet, J.-P. (2018).</strong> A method for automatic and rapid mapping of water surfaces from Sentinel-1 imagery. <em>Remote Sensing</em>, 10(2), 217.
+              <div class="citation-meta"><a href="https://doi.org/10.3390/rs10020217" class="doi-link" target="_blank" rel="noopener">DOI: 10.3390/rs10020217</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Crisp, D. J. (2004).</strong> The state-of-the-art in ship detection in synthetic aperture radar imagery. <em>Defence Science and Technology Organisation (DSTO)</em>, Research Report DSTO-RR-0272.
+              <div class="citation-meta"><a href="https://apps.dtic.mil/sti/citations/ADA426451" class="doi-link" target="_blank" rel="noopener">DTIC: ADA426451</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>European Space Agency. (2020).</strong> Copernicus Complex Digital Elevation Model (COP-DEM) Validation Report. <em>Issue 4.0</em>, Airbus Defence and Space &amp; ESA.
+              <div class="citation-meta"><a href="https://spacedata.copernicus.eu/documents/20126/0/Copernicus+DEM+Validation+Report+v4.0.pdf" class="doi-link" target="_blank" rel="noopener">Official ESA Report</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Finn, H. M., &amp; Johnson, R. S. (1968).</strong> Adaptive detection mode with threshold control as a function of spatially sampled clutter-level estimates. <em>RCA Review</em>, 29(3), 414–464.
+              <div class="citation-meta"><span class="citation-applied">Foundational CA-CFAR Radar Derivation</span></div>
+            </li>
+            <li class="citation-item">
+              <strong>Fox-Kemper, B. et al. (2021).</strong> Ocean, cryosphere and sea level change. In <em>Climate Change 2021: The Physical Science Basis. Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change</em>, pp. 1211–1362. Cambridge University Press.
+              <div class="citation-meta"><a href="https://doi.org/10.1017/9781009157896.011" class="doi-link" target="_blank" rel="noopener">DOI: 10.1017/9781009157896.011</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Gao, B.-C. (1996).</strong> NDWI—A normalized difference water index for remote sensing of vegetation liquid water from space. <em>Remote Sensing of Environment</em>, 58(3), 257–266.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/S0034-4257(96)00067-3" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/S0034-4257(96)00067-3</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Gesch, D. B. (2018).</strong> Best practices for elevation-based assessments of sea-level rise and coastal flooding exposure. <em>Frontiers in Earth Science</em>, 6, 230.
+              <div class="citation-meta"><a href="https://doi.org/10.3389/feart.2018.00230" class="doi-link" target="_blank" rel="noopener">DOI: 10.3389/feart.2018.00230</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Giglio, L., Schroeder, W., &amp; Justice, C. O. (2016).</strong> The collection 6 MODIS active fire detection algorithm and fire products. <em>Remote Sensing of Environment</em>, 178, 31–41.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/j.rse.2016.02.054" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2016.02.054</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Guth, P. L., &amp; Geoffroy, T. M. (2021).</strong> LiDAR point cloud and ICESat-2 evaluation of 1 second global digital elevation models: Copernicus wins. <em>Transactions in GIS</em>, 25(5), 2245–2261.
+              <div class="citation-meta"><a href="https://doi.org/10.1111/tgis.12825" class="doi-link" target="_blank" rel="noopener">DOI: 10.1111/tgis.12825</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Himmelstoss, E. A., Henderson, R. E., Kratzmann, M. G., &amp; Farris, A. S. (2018).</strong> Digital Shoreline Analysis System (DSAS) version 5.0 user guide. <em>U.S. Geological Survey Open-File Report 2018-1179</em>, 110 p.
+              <div class="citation-meta"><a href="https://doi.org/10.3133/ofr20181179" class="doi-link" target="_blank" rel="noopener">DOI: 10.3133/ofr20181179</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Horn, B. K. P. (1981).</strong> Hill shading and the reflectance map. <em>Proceedings of the IEEE</em>, 69(1), 14–47.
+              <div class="citation-meta"><a href="https://doi.org/10.1109/PROC.1981.11918" class="doi-link" target="_blank" rel="noopener">DOI: 10.1109/PROC.1981.11918</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Huete, A. et al. (2002).</strong> Overview of the radiometric and biophysical performance of the MODIS vegetation indices. <em>Remote Sensing of Environment</em>, 83(1–2), 195–213.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/S0034-4257(02)00096-2" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/S0034-4257(02)00096-2</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Jiménez-Muñoz, J. C., Cristóbal, J., Sobrino, J. A., Sòria, G., Ninyerola, M., &amp; Pons, X. (2009).</strong> Revision of the single-channel algorithm for land surface temperature retrieval from Landsat thermal-infrared data. <em>IEEE Transactions on Geoscience and Remote Sensing</em>, 47(1), 339–349.
+              <div class="citation-meta"><a href="https://doi.org/10.1109/TGRS.2008.2007125" class="doi-link" target="_blank" rel="noopener">DOI: 10.1109/TGRS.2008.2007125</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Jönsson, P., &amp; Eklundh, L. (2004).</strong> TIMESAT—A program for analyzing time-series of satellite sensor data. <em>Computers &amp; Geosciences</em>, 30(8), 833–845.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/j.cageo.2004.05.006" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.cageo.2004.05.006</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Key, C. H., &amp; Benson, N. C. (2006).</strong> Landscape Assessment (LA): Sampling and analysis methods. <em>FIREMON: Fire Effects Monitoring and Inventory System</em>, USDA Forest Service GTR-RMRS-164-CD, pp. LA 1–55.
+              <div class="citation-meta"><a href="https://www.fs.usda.gov/treesearch/pubs/24503" class="doi-link" target="_blank" rel="noopener">USDA Treesearch: 24503</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>McFeeters, S. K. (1996).</strong> The use of the Normalized Difference Water Index (NDWI) in the delineation of open water features. <em>International Journal of Remote Sensing</em>, 17(7), 1425–1432.
+              <div class="citation-meta"><a href="https://doi.org/10.1080/01431169608948714" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/01431169608948714</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Otsu, N. (1979).</strong> A threshold selection method from gray-level histograms. <em>IEEE Transactions on Systems, Man, and Cybernetics</em>, 9(1), 62–66.
+              <div class="citation-meta"><a href="https://doi.org/10.1109/TSMC.1979.4310076" class="doi-link" target="_blank" rel="noopener">DOI: 10.1109/TSMC.1979.4310076</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Parks, S. A., Dillon, G. K., &amp; Miller, C. (2014).</strong> A new metric for quantifying burn severity: The Relativized Burn Ratio. <em>Remote Sensing</em>, 6(3), 1827–1844.
+              <div class="citation-meta"><a href="https://doi.org/10.3390/rs6031827" class="doi-link" target="_blank" rel="noopener">DOI: 10.3390/rs6031827</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Pekel, J.-F., Cottam, A., Gorelick, N., &amp; Belward, A. S. (2016).</strong> High-resolution mapping of global surface water and its long-term changes. <em>Nature</em>, 540(7633), 418–422.
+              <div class="citation-meta"><a href="https://doi.org/10.1038/nature20584" class="doi-link" target="_blank" rel="noopener">DOI: 10.1038/nature20584</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Pelich, R. et al. (2019).</strong> Large-scale automatic vessel monitoring based on dual-polarization Sentinel-1 and AIS data. <em>Remote Sensing</em>, 11(9), 1078.
+              <div class="citation-meta"><a href="https://doi.org/10.3390/rs11091078" class="doi-link" target="_blank" rel="noopener">DOI: 10.3390/rs11091078</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Poulter, B., &amp; Halpin, P. N. (2008).</strong> Raster modelling of coastal flooding from sea-level rise. <em>International Journal of Geographical Information Science</em>, 22(2), 167–182.
+              <div class="citation-meta"><a href="https://doi.org/10.1080/13658810701371858" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/13658810701371858</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Rouse, J. W., Haas, R. H., Schell, J. A., &amp; Deering, D. W. (1974).</strong> Monitoring vegetation systems in the Great Plains with ERTS. <em>Third Earth Resources Technology Satellite-1 Symposium</em>, NASA SP-351, 1, 309–317.
+              <div class="citation-meta"><span class="citation-applied">NASA Accession No. N74-30724 (Foundational NDVI paper)</span></div>
+            </li>
+            <li class="citation-item">
+              <strong>Schroeder, W., Oliva, P., Giglio, L., &amp; Csiszar, I. A. (2014).</strong> The New VIIRS 375 m active fire detection data product: Algorithm description and initial assessment. <em>Remote Sensing of Environment</em>, 143, 85–96.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/j.rse.2013.12.008" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2013.12.008</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Sobrino, J. A., Jiménez-Muñoz, J. C., &amp; Paolini, L. (2004).</strong> Land surface temperature retrieval from LANDSAT TM 5. <em>Remote Sensing of Environment</em>, 90(4), 434–440.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/j.rse.2004.02.003" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2004.02.003</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Thieler, E. R., Himmelstoss, E. A., Zichichi, J. L., &amp; Ergul, A. (2009).</strong> Digital Shoreline Analysis System (DSAS) version 4.0—An ArcGIS extension for calculating shoreline change. <em>U.S. Geological Survey Open-File Report 2008-1278</em>, 72 p.
+              <div class="citation-meta"><a href="https://doi.org/10.3133/ofr20081278" class="doi-link" target="_blank" rel="noopener">DOI: 10.3133/ofr20081278</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Tucker, C. J. (1979).</strong> Red and photographic infrared linear combinations for monitoring vegetation. <em>Remote Sensing of Environment</em>, 8(2), 127–150.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/0034-4257(79)90013-0" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/0034-4257(79)90013-0</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Twele, A., Cao, W., Plank, S., &amp; Martinis, S. (2016).</strong> Sentinel-1-based flood mapping: A fully automated processing chain. <em>International Journal of Remote Sensing</em>, 37(13), 2990–3004.
+              <div class="citation-meta"><a href="https://doi.org/10.1080/01431161.2016.1192304" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/01431161.2016.1192304</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Valor, E., &amp; Caselles, V. (1996).</strong> Mapping land surface emissivity from NDVI: Application to European, African, and South American areas. <em>Remote Sensing of Environment</em>, 57(3), 167–184.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/0034-4257(96)00039-9" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/0034-4257(96)00039-9</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>van Geffen, J. et al. (2020).</strong> S5P TROPOMI NO2 slant column retrieval: Method, stability, uncertainties and comparisons with OMI. <em>Atmospheric Measurement Techniques</em>, 13(3), 1315–1335.
+              <div class="citation-meta"><a href="https://doi.org/10.5194/amt-13-1315-2020" class="doi-link" target="_blank" rel="noopener">DOI: 10.5194/amt-13-1315-2020</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Veefkind, J. P. et al. (2012).</strong> TROPOMI on the ESA Sentinel-5 Precursor: A GMES mission for global observations of the atmospheric composition for climate, air quality and ozone layer applications. <em>Remote Sensing of Environment</em>, 120, 70–83.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/j.rse.2011.09.027" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.rse.2011.09.027</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Vos, K., Splinter, K. D., Harley, M. D., Simmons, J. A., &amp; Turner, I. L. (2019).</strong> CoastSat: A Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. <em>Environmental Modelling &amp; Software</em>, 122, 104528.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/j.envsoft.2019.104528" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/j.envsoft.2019.104528</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Wooster, M. J., Roberts, G., Perry, G. L. W., &amp; Kaufman, Y. J. (2005).</strong> Retrieval of biomass combustion rates and totals from fire radiative power observations: FRP derivation and calibration relationships. <em>Journal of Geophysical Research: Atmospheres</em>, 110(D24), D24311.
+              <div class="citation-meta"><a href="https://doi.org/10.1029/2005JD006318" class="doi-link" target="_blank" rel="noopener">DOI: 10.1029/2005JD006318</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Xu, H. (2006).</strong> Modification of normalised difference water index (NDWI) to enhance open water features in remotely sensed imagery. <em>International Journal of Remote Sensing</em>, 27(14), 3025–3033.
+              <div class="citation-meta"><a href="https://doi.org/10.1080/01431160600589179" class="doi-link" target="_blank" rel="noopener">DOI: 10.1080/01431160600589179</a></div>
+            </li>
+            <li class="citation-item">
+              <strong>Zhang, X. et al. (2003).</strong> Monitoring vegetation phenology using MODIS. <em>Remote Sensing of Environment</em>, 84(3), 471–475.
+              <div class="citation-meta"><a href="https://doi.org/10.1016/S0034-4257(02)00135-9" class="doi-link" target="_blank" rel="noopener">DOI: 10.1016/S0034-4257(02)00135-9</a></div>
+            </li>
+          </ul>
+
+          <div class="code-box" style="margin-top: 32px;">
+            <div class="code-box-header">
+              <span>BibTeX Reference Database (docs/methodology/references.bib)</span>
+              <button class="copy-btn" onclick="copySnippet(this)">Copy BibTeX</button>
+            </div>
+            <pre><code>@article{tucker1979red,
+  author  = {Tucker, Compton J.},
+  title   = {Red and photographic infrared linear combinations for monitoring vegetation},
+  journal = {Remote Sensing of Environment},
+  volume  = {8},
+  number  = {2},
+  pages   = {127--150},
+  year    = {1979},
+  doi     = {10.1016/0034-4257(79)90013-0}
+}
+
+@article{pekel2016high,
+  author  = {Pekel, Jean-Fran{\c{c}}ois and Cottam, Andrew and Gorelick, Noel and Belward, Alan S.},
+  title   = {High-resolution mapping of global surface water and its long-term changes},
+  journal = {Nature},
+  volume  = {540},
+  number  = {7633},
+  pages   = {418--422},
+  year    = {2016},
+  doi     = {10.1038/nature20584}
+}
+
+@article{sobrino2004land,
+  author  = {Sobrino, Jos{\'e} A. and Jim{\'e}nez-Mu{\~n}oz, Juan Carlos and Paolini, Leonardo},
+  title   = {Land surface temperature retrieval from LANDSAT TM 5},
+  journal = {Remote Sensing of Environment},
+  volume  = {90},
+  number  = {4},
+  pages   = {434--440},
+  year    = {2004},
+  doi     = {10.1016/j.rse.2004.02.003}
+}
+
+@article{pelich2019large,
+  author  = {Pelich, Ramona and Chini, Marco and Hostache, Renaud and Matgen, Patrick and L{\'o}pez-Mart{\'i}nez, Carlos and Nuevo, Miguel and Ries, Philippe and Eiden, Gaston},
+  title   = {Large-Scale Automatic Vessel Monitoring Based on Dual-Polarization Sentinel-1 and AIS Data},
+  journal = {Remote Sensing},
+  volume  = {11},
+  number  = {9},
+  pages   = {1078},
+  year    = {2019},
+  doi     = {10.3390/rs11091078}
+}</code></pre>
+          </div>
+        </section>
+
+      </article>
+    </div>
+  </main>
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        <strong>eo-mcp</strong> — The Open Source Agentic Earth Observation Protocol.
+      </div>
+
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="docs.html">Documentation</a></li>
+        <li><a href="methodology.html" style="color: var(--ink); font-weight: 600;">Methodology</a></li>
+        <li><a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Spec</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="privacy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Use</a></li>
+      </ul>
+
+      <div>
+        Created by <a href="https://sounny.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Dr. Sounny</a>. Apache 2.0 License.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // KaTeX Auto-Render Initializer
+    document.addEventListener("DOMContentLoaded", function() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code", "option"],
+          ignoredClasses: ["code-box", "param-table"],
+          throwOnError: false,
+          errorColor: "#dc2626"
+        });
+      }
+    });
+
+    // Copy code snippet helper
+    function copySnippet(button) {
+      const codeBox = button.closest('.code-box');
+      const code = codeBox.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = button.innerText;
+        button.innerText = 'Copied!';
+        setTimeout(() => { button.innerText = orig; }, 1500);
+      });
+    }
+
+    // Sticky nav scroll blur listener
+    const updateNavScroll = () => {
+      const nav = document.querySelector('.site-nav');
+      if (!nav) return;
+      if (window.scrollY > 24) {
+        nav.classList.add('is-scrolled');
+      } else {
+        nav.classList.remove('is-scrolled');
+      }
+    };
+    window.addEventListener('scroll', updateNavScroll, { passive: true });
+    window.addEventListener('resize', updateNavScroll, { passive: true });
+    document.addEventListener('DOMContentLoaded', updateNavScroll);
+    updateNavScroll();
+
+    // Active sidebar link tracker on scroll (Scrollspy)
+    const sections = document.querySelectorAll('.doc-section');
+    const navLinks = document.querySelectorAll('.sidebar-links a');
+    
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 120;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    }, { passive: true });
+  </script>
+</body>
+</html>

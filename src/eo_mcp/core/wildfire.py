@@ -1,8 +1,31 @@
-"""NASA FIRMS active wildfire & thermal anomaly detection engine.
+"""
+NASA FIRMS active wildfire & thermal anomaly detection engine.
 
 Zero-infrastructure MCP capability leveraging free public NASA FIRMS REST APIs
 and open VIIRS / MODIS thermal STAC archives to monitor active wildfires,
 fire radiative power (FRP in MW), and burn perimeter clustering.
+
+References:
+- Schroeder, W., Oliva, P., Giglio, L., & Csiszar, I. A. (2014). The New VIIRS 375 m
+  active fire detection data product: Algorithm description and initial assessment.
+  Remote Sensing of Environment, 143, 85-96. DOI: 10.1016/j.rse.2013.12.008
+- Giglio, L., Schroeder, W., & Justice, C. O. (2016). The collection 6 MODIS active
+  fire detection algorithm and fire products. Remote Sensing of Environment, 178,
+  31-41. DOI: 10.1016/j.rse.2016.02.054
+- Wooster, M. J. (2003). Fire radiative energy for quantitative study of biomass
+  burning: Derivation from the BIRD experimental satellite and comparison to MODIS
+  fire products. Remote Sensing of Environment, 86(1), 83-107.
+  DOI: 10.1016/S0034-4257(03)00070-1
+- Wooster, M. J., Roberts, G., Perry, G. L. W., & Kaufman, Y. J. (2005). Retrieval of
+  biomass combustion rates and totals from fire radiative power observations: FRP
+  derivation and calibration relationships. Journal of Geophysical Research: Atmospheres,
+  110(D24), D24311. DOI: 10.1029/2005JD006318
+- Key, C. H., & Benson, N. C. (2006). Landscape Assessment (LA): Sampling and analysis
+  methods. In FIREMON: Fire Effects Monitoring and Inventory System, USDA Forest
+  Service RMRS-GTR-164-CD, pp. LA 1-55.
+- Parks, S. A., Dillon, G. K., & Miller, C. (2014). A new metric for quantifying
+  burn severity: The Relativized Burn Ratio. Remote Sensing, 6(3), 1827-1844.
+  DOI: 10.3390/rs6031827
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -32,6 +55,12 @@ def fetch_firms_hotspots(
 
     Returns:
         List of hotspot records with lat, lon, frp, brightness_temp_k, confidence, acquisition_time.
+
+    References:
+    - Schroeder et al. (2014). Remote Sensing of Environment, 143, 85-96.
+      DOI: 10.1016/j.rse.2013.12.008
+    - Giglio et al. (2016). Remote Sensing of Environment, 178, 31-41.
+      DOI: 10.1016/j.rse.2016.02.054
     """
     min_lon, min_lat, max_lon, max_lat = bbox
     hotspots = []
@@ -109,6 +138,12 @@ def cluster_fire_perimeters(
     """
     Cluster active fire thermal points into contiguous fire perimeters.
     Computes total Fire Radiative Power (MW) and convex hull polygon coordinates.
+
+    References:
+    - Wooster, M. J. (2003). Remote Sensing of Environment, 86(1), 83-107.
+      DOI: 10.1016/S0034-4257(03)00070-1
+    - Wooster, M. J., et al. (2005). Journal of Geophysical Research: Atmospheres,
+      110(D24), D24311. DOI: 10.1029/2005JD006318
     """
     if not hotspots:
         return []
@@ -244,6 +279,11 @@ def calculate_burn_severity_dnbr(
     following USGS and EFFIS (European Forest Fire Information System) standards.
 
     dNBR = Pre_NBR - Post_NBR
+
+    References:
+    - Key, C. H., & Benson, N. C. (2006). USDA Forest Service RMRS-GTR-164-CD, pp. LA 1-55.
+    - Parks, S. A., Dillon, G. K., & Miller, C. (2014). Remote Sensing, 6(3), 1827-1844.
+      DOI: 10.3390/rs6031827
     """
     dnbr = pre_nbr.astype(np.float32) - post_nbr.astype(np.float32)
     valid_mask = ~np.isnan(dnbr)

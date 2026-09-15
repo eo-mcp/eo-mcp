@@ -9,11 +9,12 @@
 [![MCP Specification](https://img.shields.io/badge/MCP-2024--11--05-green.svg)](https://modelcontextprotocol.io)
 [![STAC API](https://img.shields.io/badge/STAC-v1.0.0-orange.svg)](https://stacspec.org)
 [![Zero Config](https://img.shields.io/badge/Zero--Config-Free%20Gov%20APIs-emerald.svg)](#free-government-catalogs)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-eo--mcp-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/eo-mcp/)
 
 **Empower AI agents to autonomously discover, stream, and compute satellite analytics from free government archives.**  
 Plugs directly into **Claude Desktop**, **Cursor**, **Codex**, **Antigravity**, and autonomous Python agent loops with zero vendor lock-in and zero proprietary API costs.
 
-[Website & Live Interactive Demo](https://eo-mcp.github.io/) • [Quickstart](#quickstart) • [Tools Reference](#tools-reference) • [Architecture](#architecture)
+[Website & Live Interactive Demo](https://eo-mcp.github.io/) • [LinkedIn Page](https://www.linkedin.com/company/eo-mcp/) • [Quickstart](#quickstart) • [Tools Reference](#tools-reference) • [Architecture](#architecture)
 
 <p align="center">
   <img src="assets/hero-earth.gif" alt="eo-mcp — Autonomous Planetary Earth Observation Protocol" width="720" style="max-width: 100%; border-radius: 8px;" />
@@ -155,11 +156,63 @@ Add to your workspace or global `.antigravity/mcp.json`:
 
 ---
 
-## Tools Reference
+---
 
-`eo-mcp` exposes high-level turnkey tools designed specifically for LLM reasoning and agent tool use:
+## Tools Reference & Architecture Patterns
 
-### 1. `eo_geocode(query: str) -> dict`
+`eo-mcp` adopts the modern **Ergonomic Workflow** and **Progressive Tool Discovery** architecture (pioneered by Neon Postgres and modern agentic coding clients like Codex, Claude Code, Cursor, and Antigravity):
+
+1. **Ergonomic Workflow Tools ("The Create with Compute Pattern")**: Bundles multi-step satellite chains (geocoding → STAC discovery → cloud filtering → band math → hazard modeling) into single-turn calls. Eliminates 4–6 round trips and prevents LLM chaining errors.
+2. **Category Scoping & Lean Context Windows**: Scope tools via `EO_MCP_PROFILE` or `--profile` (`workflows`, `hazards`, `climate`, `maritime`, `minimal`) to reduce prompt bloat by up to 70%.
+3. **Progressive Tool Discovery**: Clients dynamically search and inspect tools via `discover_eo_tools`.
+4. **Code Mode Ergonomics**: Pythonic imports (`from eo_mcp import assess_location_hazard, environmental_site_audit`) allow autonomous agents in code execution sandboxes to run multi-step pipelines directly with zero JSON-RPC overhead.
+
+---
+
+### 🌟 Ergonomic Workflow Tools (High-Level Turnkey Operations)
+
+#### 1. `assess_location_hazard(location: str, hazard_type: str, ...)`
+**All-in-one disaster & climate hazard assessment.** Accepts a natural language place name (`"Valencia, Spain"`, `"Rhodes, Greece"`) or bounding box. Automatically geocodes, queries open STAC catalogs, and runs specialized hazard modeling:
+- `hazard_type="flood_inundation"`: Sea-level rise and storm surge inundation (EU Floods Directive).
+- `hazard_type="wildfire"`: Active thermal hotspots, FRP (MW), and EFFIS clustered perimeters.
+- `hazard_type="burn_severity"`: Multi-temporal dNBR and post-fire scar classification.
+- `hazard_type="coastal_erosion"`: Multi-year shoreline retreat rates (m/year) via perpendicular transects.
+- `hazard_type="drought"`: Freshwater reservoir depletion and desiccated dry margins.
+- `hazard_type="urban_heat"`: Land Surface Temperature (LST) and thermal hotspot gradients.
+- `hazard_type="dark_vessels"`: Sentinel-1 SAR ship detection and AIS correlation.
+**Outputs:** Formatted summary with ASCII preview maps, GIS-ready GeoJSON (`format="geojson"`), or CSV (`format="csv"`).
+
+#### 2. `environmental_site_audit(location: str, datetime_range: str = "2024-06-01/2024-08-31", format: str = "summary")`
+**Comprehensive Regional Environmental Scorecard.** In a single call, synthesizes:
+- **Vegetation Vigor & Biomass**: Sentinel-2 NDVI distribution and canopy vigor status.
+- **Surface Water & Wetness**: NDWI distribution and moisture index.
+- **Topography & Terrain**: Copernicus DEM GLO-30 elevation (min/mean/max) and slope gradients.
+- **Vulnerability Indices**: Integrated flood susceptibility and vegetative stress risk classification.
+**Outputs:** Executive JSON scorecard or GIS polygon GeoJSON.
+
+#### 3. `run_pipeline(spec: str, location: str = None, format: str = "summary", parameters: str = None)`
+**Zero-Infrastructure User-Defined Pipeline Orchestrator.** Enables researchers, environmental agencies, and autonomous AI agents to build, configure, and execute custom multi-step Earth Observation processing pipelines:
+- **Turnkey Compound Recipes**:
+  1. `compound_wildfire_runoff_risk`: High-severity dNBR burn scars + Copernicus DEM slope gradient $\rightarrow$ Post-fire debris flow and runoff risk.
+  2. `coastal_storm_surge_infrastructure_exposure`: Copernicus DEM + IPCC AR6 Sea Level Rise + storm surge $\rightarrow$ Submerged transport networks & isolated medical facilities.
+  3. `agricultural_drought_thermal_stress`: Sentinel-2 NDVI canopy vigor + Landsat LST surface thermal anomalies + reservoir surface water shrinkage.
+  4. `maritime_environmental_patrol`: Sentinel-1 SAR CFAR target detection + Live Baltic AIS transponders + low-backscatter oil slick screening.
+- **Custom Declarative Pipelines**: Accepts custom JSON specifications chaining primitives (`fetch_raster`, `spectral_index`, `terrain_analysis`, `inundation_model`, `wildfire_activity`, `burn_severity`, `maritime_sar_ais`, `exposure_overlay`, `compound_risk_synthesis`).
+- **OpenStreetMap Critical Infrastructure Overlay**: Automatically intersects hazard footprints with public roads, bridges, hospitals, fire stations, and ports via the public Overpass API with local spatial fallback.
+- **Outputs**: Comprehensive JSON report with ASCII hazard map, GIS-ready GeoJSON FeatureCollection (`format="geojson"`), or CSV (`format="csv"`).
+
+#### 4. `list_pipeline_recipes()` & `describe_pipeline_recipe(recipe_name: str)`
+Inspect and introspect available compound hazard and multi-spectral processing recipes, their default parameters, and execution step definitions.
+
+#### 5. `discover_eo_tools(category: str = None, query: str = None)`
+**Progressive Tool Discovery.** Allows agents to inspect available tool capabilities on demand without loading all 25 tool schemas upfront:
+- Categories: `workflows`, `core`, `spectral`, `hazards`, `climate`, `maritime`, `advanced`.
+
+---
+
+### 🛠️ Primitives & Specialized Planetary Tools
+
+#### 4. `eo_geocode(query: str) -> dict`
 Translates natural language place names (e.g. `"Valencia, Spain"`, `"Imperial Valley, CA"`, `"Lake Chad"`) into standard WGS84 bounding boxes `[min_lon, min_lat, max_lon, max_lat]`.
 
 ### 2. `stac_search(bbox: list, datetime_range: str, collections: list, max_cloud_cover: float = 20.0) -> list`
@@ -284,6 +337,13 @@ flowchart TD
         CLI["Rich Terminal CLI Engine"]
         Router["Catalog Router & Geocoder"]
         
+        subgraph WorkflowTools["Ergonomic & Pipeline Orchestrator Tools"]
+            W1["run_pipeline"]
+            W2["list_pipeline_recipes"]
+            W3["assess_location_hazard"]
+            W4["environmental_site_audit"]
+        end
+
         subgraph StandardTools["Standard Satellite Tools"]
             T1["stac_search"]
             T2["calculate_spectral_index"]
@@ -309,6 +369,7 @@ flowchart TD
             FIRMS["Thermal Anomaly & FRP Clusterer"]
             TROPOMI["S5P Column & OpenAQ Correlator"]
             GSW["Surface Water Dynamics Engine"]
+            PipeEng["Declarative In-Memory Pipeline Engine"]
         end
     end
 
@@ -319,15 +380,39 @@ flowchart TD
         NASA_API["NASA FIRMS Open Fire API"]
         OPENAQ_API["OpenAQ Air Quality REST API"]
         JRC_API["EC JRC Global Surface Water COGs"]
+        OSM_API["OpenStreetMap Overpass API (Public Infrastructure)"]
     end
 
     Clients -->|stdio / SSE / CLI| Server
     CLI --> Router
+    Router --> WorkflowTools
     Router --> StandardTools
     Router --> PlanetaryTools
+    WorkflowTools --> Core
     StandardTools --> Core
     PlanetaryTools --> Core
     Core --> Archives
+```
+
+---
+
+### 💻 User-Defined Pipeline CLI Quickstart
+
+```bash
+# 1. List available compound hazard recipes
+eo-mcp pipeline list
+
+# 2. Inspect recipe steps, parameters, and input/output contracts
+eo-mcp pipeline describe coastal_storm_surge_infrastructure_exposure
+
+# 3. Execute pre-built compound hazard recipe
+eo-mcp pipeline run --recipe coastal_storm_surge_infrastructure_exposure --location "Valencia, Spain" --format summary
+
+# 4. Export compound multi-hazard GIS layers (RFC 7946 GeoJSON)
+eo-mcp pipeline run --recipe compound_wildfire_runoff_risk --location "Rhodes, Greece" --format geojson > wildfire_debris_flow.geojson
+
+# 5. Execute custom user-defined JSON pipeline specification
+eo-mcp pipeline run --spec my_pipeline.json --location "Venice, Italy" --format summary
 ```
 
 ---
@@ -364,6 +449,30 @@ Traditional GIS downloads entire satellite scenes (often 800MB to 1.5GB) before 
      eo-mcp auth set --provider cdse --username "user@example.com" --password "secret"
      eo-mcp auth
      ```
+
+---
+
+## Scientific Foundation & Literature
+
+All algorithms, spectral indices, radar clutter models, and environmental hazard metrics in `eo-mcp` are strictly grounded in canonical peer-reviewed scientific literature, geodetic standards, and European space policy frameworks (such as the EU Floods Directive 2007/60/EC, Marine Strategy Framework Directive MSFD Descriptor 8, and EU Climate Adaptation Strategy).
+
+Detailed technical derivations, equations, calibration constants, and validation protocols are documented in [`docs/methodology/`](docs/methodology/overview.md):
+
+| Domain & Tool | Methodology Document | Primary Scientific Literature | Policy & Standard Framework |
+| :--- | :--- | :--- | :--- |
+| **Optical Spectral Indices**<br>`calculate_spectral_index` | [`docs/methodology/spectral_indices.md`](docs/methodology/spectral_indices.md) | • Rouse et al. (1974) [NASA SP-351]<br>• Tucker (1979) [DOI: 10.1016/0034-4257(79)90013-0](https://doi.org/10.1016/0034-4257(79)90013-0)<br>• McFeeters (1996) [DOI: 10.1080/01431169608948714](https://doi.org/10.1080/01431169608948714)<br>• Gao (1996) [DOI: 10.1016/S0034-4257(96)00067-3](https://doi.org/10.1016/S0034-4257(96)00067-3)<br>• Huete et al. (2002) [DOI: 10.1016/S0034-4257(02)00096-2](https://doi.org/10.1016/S0034-4257(02)00096-2) | CEOS Cal/Val Standards |
+| **Maritime Radar & Dark Vessels**<br>`detect_dark_vessels` | [`docs/methodology/maritime_radar.md`](docs/methodology/maritime_radar.md) | • Finn & Johnson (1968) CA-CFAR<br>• Novak et al. (1993)<br>• Crisp (2004) [DSTO-RR-0272]<br>• Stasolla & Greidanus (2016) [DOI: 10.1080/2150704X.2016.1226522](https://doi.org/10.1080/2150704X.2016.1226522)<br>• Pelich et al. (2019) [DOI: 10.3390/rs11091078](https://doi.org/10.3390/rs11091078)<br>• Alpers & Hühnerfuss (1988) [DOI: 10.1029/JC093iC04p03642](https://doi.org/10.1029/JC093iC04p03642) | MSFD Descriptor 8<br>European Maritime Safety Agency (EMSA) |
+| **Coastal Erosion & Shorelines**<br>`analyze_coastal_erosion` | [`docs/methodology/coastal_dynamics.md`](docs/methodology/coastal_dynamics.md) | • Xu (2006) MNDWI [DOI: 10.1080/01431160600589179](https://doi.org/10.1080/01431160600589179)<br>• Otsu (1979) [DOI: 10.1109/TSMC.1979.4310076](https://doi.org/10.1109/TSMC.1979.4310076)<br>• Thieler et al. (2009) [DOI: 10.3133/ofr20081278](https://doi.org/10.3133/ofr20081278)<br>• Himmelstoss et al. (2018) [DOI: 10.3133/ofr20181179](https://doi.org/10.3133/ofr20181179)<br>• Vos et al. (CoastSat, 2019) [DOI: 10.1016/j.envsoft.2019.104528](https://doi.org/10.1016/j.envsoft.2019.104528) | EU Climate Adaptation Strategy<br>USGS DSAS Protocol |
+| **Sea Level Rise Inundation**<br>`simulate_sea_level_rise` | [`docs/methodology/inundation_dem.md`](docs/methodology/inundation_dem.md) | • Poulter & Halpin (2008) [DOI: 10.1080/13658810701371858](https://doi.org/10.1080/13658810701371858)<br>• Gesch (2009, 2018) [DOI: 10.3389/feart.2018.00230](https://doi.org/10.3389/feart.2018.00230)<br>• Fox-Kemper et al. (IPCC AR6, 2021) [DOI: 10.1017/9781009157896.011](https://doi.org/10.1017/9781009157896.011) | EU Floods Directive (2007/60/EC Art. 6)<br>IPCC SSP Scenarios |
+| **Active Wildfires & FRP**<br>`detect_active_wildfires` | [`docs/methodology/thermal_wildfires.md`](docs/methodology/thermal_wildfires.md) | • Schroeder et al. (VIIRS 375m, 2014) [DOI: 10.1016/j.rse.2013.12.008](https://doi.org/10.1016/j.rse.2013.12.008)<br>• Giglio et al. (MODIS C6, 2016) [DOI: 10.1016/j.rse.2016.02.054](https://doi.org/10.1016/j.rse.2016.02.054)<br>• Wooster (2003) [DOI: 10.1016/S0034-4257(03)00070-1](https://doi.org/10.1016/S0034-4257(03)00070-1)<br>• Wooster et al. (2005) [DOI: 10.1029/2005JD006318](https://doi.org/10.1029/2005JD006318) | EFFIS European Forest Fire Information System<br>NASA FIRMS |
+| **Post-Fire Burn Severity**<br>`calculate_burn_severity` | [`docs/methodology/thermal_wildfires.md`](docs/methodology/thermal_wildfires.md) | • Key & Benson (FIREMON dNBR, 2006) [USDA GTR-RMRS-164]<br>• Parks et al. (RBR, 2014) [DOI: 10.3390/rs6031827](https://doi.org/10.3390/rs6031827) | USGS & EFFIS Burn Severity Scale |
+| **Tropospheric Emissions**<br>`monitor_atmospheric_emissions` | [`docs/methodology/atmospheric_chemistry.md`](docs/methodology/atmospheric_chemistry.md) | • Veefkind et al. (TROPOMI, 2012) [DOI: 10.1016/j.rse.2011.09.027](https://doi.org/10.1016/j.rse.2011.09.027)<br>• van Geffen et al. (2020) [DOI: 10.5194/amt-13-1315-2020](https://doi.org/10.5194/amt-13-1315-2020) | EU Ambient Air Quality Directive (2008/50/EC)<br>EU Methane Regulation (2024/1787) |
+| **Surface Water & Drought**<br>`analyze_reservoir_drought` | [`docs/methodology/surface_water_drought.md`](docs/methodology/surface_water_drought.md) | • Pekel, Cottam, Gorelick, & Belward (2016 Nature) [DOI: 10.1038/nature20584](https://doi.org/10.1038/nature20584) | Water Framework Directive (WFD 2000/60/EC)<br>UN SDG Indicator 6.6.1 |
+| **Urban Heat Island & LST**<br>`analyze_urban_heat_island` | [`docs/methodology/urban_heat_island.md`](docs/methodology/urban_heat_island.md) | • Valor & Caselles (1996) [DOI: 10.1016/0034-4257(96)00039-9](https://doi.org/10.1016/0034-4257(96)00039-9)<br>• Sobrino et al. (2004, 2008) [DOI: 10.1016/j.rse.2004.02.003](https://doi.org/10.1016/j.rse.2004.02.003)<br>• Jiménez-Muñoz et al. (2009) [DOI: 10.1109/TGRS.2008.2007125](https://doi.org/10.1109/TGRS.2008.2007125) | EU Green Deal Climate Resilience |
+| **Crop Phenology Dynamics**<br>`monitor_crop_phenology` | [`docs/methodology/crop_phenology.md`](docs/methodology/crop_phenology.md) | • Reed et al. (1994) [DOI: 10.2307/3235884](https://doi.org/10.2307/3235884)<br>• Zhang et al. (2003) [DOI: 10.1016/S0034-4257(02)00135-9](https://doi.org/10.1016/S0034-4257(02)00135-9)<br>• Jönsson & Eklundh (TIMESAT, 2004) [DOI: 10.1016/j.cageo.2004.05.006](https://doi.org/10.1016/j.cageo.2004.05.006) | Common Agricultural Policy (CAP)<br>Agro-Climatic Monitoring |
+| **Topography & Radar Hydrology**<br>`get_elevation_profile`, `detect_water_sar` | [`docs/methodology/inundation_dem.md`](docs/methodology/inundation_dem.md) | • Horn (1981) [DOI: 10.1109/PROC.1981.11918](https://doi.org/10.1109/PROC.1981.11918)<br>• Zevenbergen & Thorne (1987) [DOI: 10.1002/esp.3290120107](https://doi.org/10.1002/esp.3290120107)<br>• Guth & Geoffroy (2021) [DOI: 10.1111/tgis.12825](https://doi.org/10.1111/tgis.12825)<br>• Twele et al. (2016) [DOI: 10.1080/01431161.2016.1192304](https://doi.org/10.1080/01431161.2016.1192304)<br>• Bioresita et al. (2018) [DOI: 10.3390/rs10020217](https://doi.org/10.3390/rs10020217) | Copernicus DEM Validation Report (ESA, 2020)<br>Copernicus Emergency Management Service (CEMS) |
+
+For the complete formal bibliography and BibTeX database, inspect [`docs/methodology/references.md`](docs/methodology/references.md) and [`docs/methodology/references.bib`](docs/methodology/references.bib).
 
 ---
 

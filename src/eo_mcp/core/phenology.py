@@ -1,8 +1,19 @@
-"""Vegetation Phenology and Agricultural Crop Dynamics Engine.
+"""
+Vegetation Phenology and Agricultural Crop Dynamics Engine.
 
 Models multi-temporal vegetation trajectories (NDVI/EVI time-series) to extract
 key agro-climatic phenological milestones: Start of Season (SOS), Peak of Season (POS),
 End of Season (EOS), Length of Season (LOS), and crop vigor anomalies.
+
+References:
+- Reed, B. C., Brown, J. F., VanderZee, D., Loveland, T. R., Merchant, J. W., &
+  Ohlen, D. O. (1994). Measuring phenological variability from satellite imagery.
+  Journal of Vegetation Science, 5(5), 703-714. DOI: 10.2307/3235884
+- Zhang, X., et al. (2003). Monitoring vegetation phenology using MODIS. Remote
+  Sensing of Environment, 84(3), 471-475. DOI: 10.1016/S0034-4257(02)00135-9
+- Jönsson, P., & Eklundh, L. (2004). TIMESAT—A program for analyzing time-series
+  of satellite sensor data. Computers & Geosciences, 30(8), 833-845.
+  DOI: 10.1016/j.cageo.2004.05.006
 """
 
 from typing import Dict, Any, List, Optional
@@ -24,6 +35,14 @@ def analyze_crop_phenology_trajectory(
 
     Returns:
         Phenological milestones, seasonal metrics, and crop vigor anomaly.
+
+    References:
+    - Reed, B. C., et al. (1994). Journal of Vegetation Science, 5(5), 703-714.
+      DOI: 10.2307/3235884
+    - Zhang, X., et al. (2003). Remote Sensing of Environment, 84(3), 471-475.
+      DOI: 10.1016/S0034-4257(02)00135-9
+    - Jönsson, P., & Eklundh, L. (2004). Computers & Geosciences, 30(8), 833-845.
+      DOI: 10.1016/j.cageo.2004.05.006
     """
     if not observations:
         return {"error": "No temporal observations provided."}

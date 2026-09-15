@@ -1,8 +1,24 @@
-"""Land Surface Temperature (LST) and Urban Heat Island (UHI) analysis engine.
+"""
+Land Surface Temperature (LST) and Urban Heat Island (UHI) analysis engine.
 
 Leverages Landsat 8/9 Thermal Infrared Sensor (TIRS Band 10: 10.6-11.19 µm)
 and NDVI-derived Fractional Vegetation Cover (FVC) to derive calibrated
 Land Surface Temperature (LST in °C and K) and map urban microclimate heat risks.
+
+References:
+- Valor, E., & Caselles, V. (1996). Mapping land surface emissivity from NDVI:
+  Application to European, African, and South American areas. Remote Sensing of
+  Environment, 57(3), 167-184. DOI: 10.1016/0034-4257(96)00039-9
+- Sobrino, J. A., Jiménez-Muñoz, J. C., & Paolini, L. (2004). Land surface temperature
+  retrieval from LANDSAT TM 5. Remote Sensing of Environment, 90(4), 434-440.
+  DOI: 10.1016/j.rse.2004.02.003
+- Sobrino, J. A., et al. (2008). Land surface emissivity retrieval from different
+  VNIR and TIR sensors. IEEE Transactions on Geoscience and Remote Sensing, 46(2),
+  316-327. DOI: 10.1109/TGRS.2007.904834
+- Jiménez-Muñoz, J. C., et al. (2009). Revision of the single-channel algorithm for
+  land surface temperature retrieval from Landsat thermal-infrared data. IEEE
+  Transactions on Geoscience and Remote Sensing, 47(1), 339-349.
+  DOI: 10.1109/TGRS.2008.2007125
 """
 
 from typing import Dict, Any, List, Optional, Tuple
@@ -32,6 +48,10 @@ def compute_fractional_vegetation_cover(ndvi: np.ndarray, ndvi_min: float = 0.2,
     """
     Calculate Fractional Vegetation Cover (FVC or Pv) from NDVI.
     Pv = ((NDVI - NDVI_min) / (NDVI_max - NDVI_min))^2
+
+    References:
+    - Valor, E., & Caselles, V. (1996). Remote Sensing of Environment, 57(3), 167-184.
+      DOI: 10.1016/0034-4257(96)00039-9
     """
     fvc = np.clip((ndvi - ndvi_min) / max(1e-4, (ndvi_max - ndvi_min)), 0.0, 1.0) ** 2
     return fvc
@@ -44,6 +64,14 @@ def compute_land_surface_emissivity(fvc: np.ndarray, ndvi: np.ndarray) -> np.nda
     - Soil (NDVI < 0.2): 0.960
     - Mixed (0.2 <= NDVI <= 0.5): 0.970 + 0.018 * Pv
     - Dense Vegetation (NDVI > 0.5): 0.985
+
+    References:
+    - Valor, E., & Caselles, V. (1996). Remote Sensing of Environment, 57(3), 167-184.
+      DOI: 10.1016/0034-4257(96)00039-9
+    - Sobrino, J. A., et al. (2004). Remote Sensing of Environment, 90(4), 434-440.
+      DOI: 10.1016/j.rse.2004.02.003
+    - Sobrino, J. A., et al. (2008). IEEE TGRS, 46(2), 316-327.
+      DOI: 10.1109/TGRS.2007.904834
     """
     emissivity = np.full_like(ndvi, 0.970, dtype=np.float32)
     emissivity[ndvi < 0.0] = 0.995
@@ -64,6 +92,12 @@ def calculate_land_surface_temperature(
     Calculate Land Surface Temperature (LST in °C) from thermal radiance and surface emissivity.
 
     LST = TB / (1 + (lambda * TB / rho) * ln(emissivity))
+
+    References:
+    - Sobrino, J. A., et al. (2004). Remote Sensing of Environment, 90(4), 434-440.
+      DOI: 10.1016/j.rse.2004.02.003
+    - Jiménez-Muñoz, J. C., et al. (2009). IEEE TGRS, 47(1), 339-349.
+      DOI: 10.1109/TGRS.2008.2007125
     """
     # 1. Compute NDVI & Fractional Vegetation Cover
     ndvi = compute_ndvi(nir=nir_band, red=red_band)
