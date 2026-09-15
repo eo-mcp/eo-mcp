@@ -1364,63 +1364,247 @@
             <p>Spatial indexing, catalog exploration, authenticated egress, and safe arbitrary Python code execution.</p>
           </div>
 
+          <!-- eo_geocode -->
           <div class="tool-card" id="tool-geocode">
             <div class="tool-header">
               <div class="tool-title-wrap">
                 <span class="tool-tag zero-config">Zero-Config</span>
                 <span class="tool-title">eo_geocode</span>
               </div>
-              <span class="tool-signature">OpenStreetMap Nominatim</span>
+              <span class="tool-signature">OpenStreetMap Nominatim Engine</span>
             </div>
             <div class="tool-body">
               <p class="tool-desc">
-                Translates natural language place names (e.g. <code>"Gulf of Corinth"</code>, <code>"Valencia, Spain"</code>, <code>"Mount Saint Helens"</code>) into standardized WGS84 bounding boxes <code>[min_lon, min_lat, max_lon, max_lat]</code> required by all downstream satellite processing tools.
+                Translates natural language place names (e.g. <code>"Huerta de Valencia, Spain"</code>, <code>"Gulf of Corinth"</code>, <code>"Lake Chad"</code>, <code>"Imperial Valley, CA"</code>) into standardized WGS84 bounding boxes <code>[min_lon, min_lat, max_lon, max_lat]</code> required by all downstream satellite discovery and processing engines.
               </p>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Status</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>query</code></td><td>string</td><td><em>required</em></td><td>Natural language place name, municipality, watershed, or landmark.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC)</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "eo_geocode",
+  "arguments": {
+    "query": "Valencia, Spain"
+  }
+}</code></pre>
+              </div>
             </div>
           </div>
 
+          <!-- stac_search -->
           <div class="tool-card" id="tool-stac">
             <div class="tool-header">
               <div class="tool-title-wrap">
                 <span class="tool-tag zero-config">Zero-Config</span>
                 <span class="tool-title">stac_search</span>
               </div>
-              <span class="tool-signature">Spatio-Temporal Asset Catalog (STAC) Spec</span>
+              <span class="tool-signature">SpatioTemporal Asset Catalog (STAC) v1.0.0</span>
             </div>
             <div class="tool-body">
               <p class="tool-desc">
-                Executes spatio-temporal catalog queries across open STAC endpoints (AWS Earth Search, NASA CMR, Copernicus CDSE). Returns scene IDs, acquisition dates, cloud coverage metrics, and direct Cloud-Optimized GeoTIFF asset links.
+                Queries open government spatio-temporal catalogs (AWS Earth Search, NASA CMR, Copernicus CDSE public endpoints) to discover available satellite scenes matching spatial bounds, cloud cover constraints, and acquisition dates.
               </p>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>bbox</code></td><td>list[float]</td><td><em>required</em></td><td>WGS84 bounding box: <code>[min_lon, min_lat, max_lon, max_lat]</code>.</td></tr>
+                    <tr><td><code>datetime_range</code></td><td>string</td><td><em>required</em></td><td>ISO 8601 acquisition window, e.g. <code>"2024-06-01/2024-06-30"</code>.</td></tr>
+                    <tr><td><code>collections</code></td><td>list[string]</td><td><code>["sentinel-2-l2a"]</code></td><td>Collections to search: <code>sentinel-2-l2a</code>, <code>landsat-c2-l2</code>, <code>cop-dem-glo-30</code>.</td></tr>
+                    <tr><td><code>max_cloud_cover</code></td><td>float</td><td><code>20.0</code></td><td>Maximum cloud cover percentage threshold.</td></tr>
+                    <tr><td><code>limit</code></td><td>integer</td><td><code>10</code></td><td>Maximum number of scenes returned.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC)</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "stac_search",
+  "arguments": {
+    "bbox": [-0.42, 39.38, -0.31, 39.52],
+    "datetime_range": "2024-06-01/2024-06-30",
+    "collections": ["sentinel-2-l2a"],
+    "max_cloud_cover": 15.0,
+    "limit": 5
+  }
+}</code></pre>
+              </div>
             </div>
           </div>
 
+          <!-- run_geospatial_script -->
           <div class="tool-card" id="tool-script">
             <div class="tool-header">
               <div class="tool-title-wrap">
                 <span class="tool-tag">Sandbox</span>
                 <span class="tool-title">run_geospatial_script</span>
               </div>
-              <span class="tool-signature">Isolated Python Engine</span>
+              <span class="tool-signature">Isolated Python Geospatial Runtime</span>
             </div>
             <div class="tool-body">
               <p class="tool-desc">
-                Allows autonomous coding agents to execute customized Python scripts inside an isolated runtime pre-loaded with <code>rasterio</code>, <code>numpy</code>, <code>shapely</code>, <code>xarray</code>, and <code>geopandas</code> for specialized mathematical analyses beyond standard tools.
+                Allows autonomous coding agents to execute customized Python workflows in an isolated runtime environment pre-injected with <code>rasterio</code>, <code>numpy</code>, <code>shapely</code>, <code>xarray</code>, and <code>geopandas</code> for specialized mathematical analyses beyond standard predefined tools.
               </p>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Status</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>script_code</code></td><td>string</td><td><em>required</em></td><td>Complete executable Python code to run in the geospatial sandbox.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC)</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "run_geospatial_script",
+  "arguments": {
+    "script_code": "import numpy as np\narr = np.random.rand(10, 10)\nprint('Mean:', float(arr.mean()))"
+  }
+}</code></pre>
+              </div>
             </div>
           </div>
 
-          <div class="tool-card" id="tool-credentials">
+          <!-- configure_credentials -->
+          <div class="tool-card" id="tool-configure-credentials">
             <div class="tool-header">
               <div class="tool-title-wrap">
                 <span class="tool-tag">Authentication</span>
-                <span class="tool-title">configure_credentials / download_copernicus_granule</span>
+                <span class="tool-title">configure_credentials</span>
               </div>
-              <span class="tool-signature">Copernicus Data Space Ecosystem (CDSE) &amp; NASA Earthdata</span>
+              <span class="tool-signature">Dynamic Runtime Provider Ingestion</span>
             </div>
             <div class="tool-body">
               <p class="tool-desc">
-                While standard streaming tools require zero authentication, these tools allow agents to store optional CDSE or NASA OAuth tokens and trigger authenticated full-granule SAFE package downloads directly from official European Space Agency archives.
+                Dynamically configures or updates external satellite provider credentials in-session without restarting the server. Unlocks advanced authenticated features (such as official CDSE full-granule SAFE downloads, NASA Earthdata restricted collections, or Microsoft Planetary Computer signed keys) whenever useful.
               </p>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>provider</code></td><td>string</td><td><em>required</em></td><td>Target provider: <code>"cdse"</code>, <code>"earthdata"</code>, <code>"planetary_computer"</code>, or <code>"firms"</code>.</td></tr>
+                    <tr><td><code>username</code></td><td>string</td><td><code>None</code></td><td>User email or account login name.</td></tr>
+                    <tr><td><code>password</code></td><td>string</td><td><code>None</code></td><td>Account password.</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td><code>None</code></td><td>Bearer token or subscription key.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC) &amp; CLI Equivalent</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "configure_credentials",
+  "arguments": {
+    "provider": "cdse",
+    "username": "user@university.edu",
+    "password": "••••••••••••"
+  }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- get_credential_status -->
+          <div class="tool-card" id="tool-credential-status">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag zero-config">Zero-Config Audit</span>
+                <span class="tool-title">get_credential_status</span>
+              </div>
+              <span class="tool-signature">Provider Authentication Diagnostics</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Safely inspects active credential configurations and zero-config public mode status across all supported satellite catalog providers. Masks secrets to prevent leaking credentials into agent conversational memory.
+              </p>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC)</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "get_credential_status",
+  "arguments": {}
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- download_copernicus_granule -->
+          <div class="tool-card" id="tool-download-granule">
+            <div class="tool-header">
+              <div class="tool-title-wrap">
+                <span class="tool-tag">CDSE Granule Egress</span>
+                <span class="tool-title">download_copernicus_granule</span>
+              </div>
+              <span class="tool-signature">Copernicus Data Space Ecosystem (CDSE) OData API</span>
+            </div>
+            <div class="tool-body">
+              <p class="tool-desc">
+                Generates authenticated download links, OData API manifests, and direct curl commands to pull official full-granule SAFE package archives from the European Space Agency Copernicus Data Space Ecosystem.
+              </p>
+
+              <div class="param-table-wrap">
+                <table class="param-table">
+                  <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>product_id</code></td><td>string</td><td><em>required</em></td><td>CDSE Product UUID or Granule Identifier.</td></tr>
+                    <tr><td><code>output_dir</code></td><td>string</td><td><code>None</code></td><td>Local target folder for downloaded files.</td></tr>
+                    <tr><td><code>username</code></td><td>string</td><td><code>None</code></td><td>CDSE username (if not already set via environment).</td></tr>
+                    <tr><td><code>password</code></td><td>string</td><td><code>None</code></td><td>CDSE password (if not already set via environment).</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Tool Invocation (JSON-RPC)</span>
+                  <button class="copy-btn" onclick="copySnippet(this)">Copy</button>
+                </div>
+                <pre><code>{
+  "name": "download_copernicus_granule",
+  "arguments": {
+    "product_id": "b1b7a2d4-1a3b-4c5d-6e7f-8a9b0c1d2e3f",
+    "output_dir": "./data/sentinel_granules"
+  }
+}</code></pre>
+              </div>
             </div>
           </div>
         </section>

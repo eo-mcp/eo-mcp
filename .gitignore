@@ -66,3 +66,7 @@ scratch/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Antigravity & Agent metadata
+.agents/
+.antigravity/

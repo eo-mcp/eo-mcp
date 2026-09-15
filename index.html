@@ -8,6 +8,9 @@
   <meta property="og:title" content="eo-mcp — Open Source Agentic Earth Observation">
   <meta property="og:description" content="Connect Claude, Cursor, and AI coding agents directly to planetary-scale Earth Observation data. Stream Sentinel-2, Landsat, and SAR directly from cloud COGs.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://eo-mcp.github.io/assets/eo_mcp_logo.jpg">
+  <link rel="icon" type="image/jpeg" href="assets/eo_mcp_logo.jpg">
+  <link rel="apple-touch-icon" href="assets/eo_mcp_logo.jpg">
   <meta name="theme-color" content="#fafafa">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -201,13 +204,22 @@
       letter-spacing: -0.02em;
     }
     .brand-icon {
-      width: 28px;
-      height: 28px;
-      background: var(--ink);
-      color: #fff;
-      border-radius: 7px;
-      display: grid;
-      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: var(--paper-warm);
+      flex-shrink: 0;
+    }
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
     .nav-menu {
       display: flex;
@@ -1001,11 +1013,7 @@
       <nav class="nav-pill" aria-label="Main navigation">
         <a href="#" class="brand">
           <div class="brand-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
+            <img src="assets/eo_mcp_logo.jpg" alt="eo-mcp logo" class="brand-logo-img">
           </div>
           <span>eo-mcp</span>
         </a>
