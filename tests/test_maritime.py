@@ -89,3 +89,40 @@ def test_correlate_sar_with_ais_dark_vessel():
     assert dark["status"] == "DARK_VESSEL"
     assert dark["ais_state"] == "UNREPORTED"
     assert dark["track_state"] == "SUSPECT"
+
+
+def test_cfar_sea_state_adaptation():
+    """Verify that CA-CFAR adapts dynamically to rough sea clutter and extracts signal-to-clutter ratio."""
+    np.random.seed(99)
+    # Simulate rough sea clutter with higher variance and wave crests
+    sar_db_rough = np.random.normal(loc=-13.0, scale=3.5, size=(50, 60))
+
+    # Inject ship target (2 connected pixels to form realistic target cluster)
+    sar_db_rough[20, 25] = 12.5
+    sar_db_rough[20, 26] = 10.8
+
+    # Auto sea-state detection should infer 'rough' and increase roughness factor
+    mask_auto, targets_auto = cfar_vessel_detector(sar_db_rough, pfa_factor=3.0, min_cluster_size=1, sea_state="auto")
+    
+    assert len(targets_auto) >= 1
+    trg = targets_auto[0]
+    assert trg["sea_state"] == "rough"
+    assert "signal_to_clutter_db" in trg
+    assert trg["signal_to_clutter_db"] > 10.0
+
+
+def test_server_detect_dark_vessels_with_sea_state():
+    """Verify server tool detect_dark_vessels accepts sea_state parameter."""
+    import json
+    from eo_mcp.server import detect_dark_vessels
+
+    bbox = [18.5, 54.3, 18.8, 54.6]
+    res_str = detect_dark_vessels(
+        bbox=bbox,
+        datetime_range="2024-06-01/2024-06-30",
+        sea_state="rough",
+        format="summary"
+    )
+    data = json.loads(res_str)
+    assert "dark_vessel_count" in data
+    assert data["dark_vessel_count"] >= 1

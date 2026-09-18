@@ -224,7 +224,7 @@
     .nav-menu {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 24px;
       list-style: none;
     }
     .nav-link {
@@ -236,6 +236,132 @@
     }
     .nav-link:hover {
       color: var(--accent-bright);
+    }
+    .nav-dropdown {
+      position: relative;
+      list-style: none;
+      display: flex;
+      align-items: center;
+    }
+    .nav-dropdown-trigger {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      line-height: inherit;
+    }
+    .nav-dropdown-trigger .dropdown-chevron {
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      stroke-width: 2.2;
+      opacity: 0.7;
+    }
+    .nav-dropdown:hover .nav-dropdown-trigger .dropdown-chevron,
+    .nav-dropdown:focus-within .nav-dropdown-trigger .dropdown-chevron,
+    .nav-dropdown.is-open .nav-dropdown-trigger .dropdown-chevron {
+      transform: rotate(180deg);
+      opacity: 1;
+      color: var(--accent-bright);
+    }
+    .nav-dropdown:hover .nav-dropdown-trigger,
+    .nav-dropdown:focus-within .nav-dropdown-trigger,
+    .nav-dropdown.is-open .nav-dropdown-trigger {
+      color: var(--accent-bright);
+    }
+    .nav-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 14px);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      width: 320px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-md);
+      box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+      padding: 8px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s ease;
+      z-index: 1050;
+    }
+    /* Hover bridge */
+    .nav-dropdown-menu::before {
+      content: "";
+      position: absolute;
+      top: -16px;
+      left: 0;
+      right: 0;
+      height: 16px;
+    }
+    .nav-dropdown:hover .nav-dropdown-menu,
+    .nav-dropdown:focus-within .nav-dropdown-menu,
+    .nav-dropdown.is-open .nav-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    .dropdown-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--ink);
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .dropdown-item:hover {
+      background: var(--paper-warm);
+    }
+    .dropdown-item-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-soft);
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: all 0.15s ease;
+    }
+    .dropdown-item:hover .dropdown-item-icon {
+      background: var(--accent-soft);
+      color: #065f46;
+      border-color: rgba(34, 197, 94, 0.35);
+      transform: scale(1.05);
+    }
+    .dropdown-item-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dropdown-item:hover .dropdown-item-title {
+      color: var(--accent-bright);
+    }
+    .dropdown-item-desc {
+      font-size: 12px;
+      color: var(--ink-mute);
+      line-height: 1.35;
+      margin-top: 3px;
+    }
+    .dropdown-divider {
+      height: 1px;
+      background: var(--line-soft);
+      margin: 6px 4px;
     }
     .nav-actions {
       display: flex;
@@ -1020,23 +1146,77 @@
 
         <ul class="nav-menu">
           <li><a href="#demo" class="nav-link">Interactive Demo</a></li>
-          <li><a href="docs.html" class="nav-link">Documentation</a></li>
-          <li><a href="methodology.html" class="nav-link">Methodology</a></li>
-          <li><a href="#features" class="nav-link">Features</a></li>
-          <li><a href="#architecture" class="nav-link">Architecture</a></li>
           <li><a href="#comparison" class="nav-link">Why eo-mcp</a></li>
+          <li class="nav-dropdown">
+            <button class="nav-link nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+              <span>Docs &amp; Specs</span>
+              <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a href="#features" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Features</div>
+                  <div class="dropdown-item-desc">Core capabilities, pipelines &amp; STAC tools</div>
+                </div>
+              </a>
+              <a href="#architecture" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Architecture</div>
+                  <div class="dropdown-item-desc">Agentic MCP protocol &amp; data flows</div>
+                </div>
+              </a>
+              <div class="dropdown-divider"></div>
+              <a href="docs.html" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Documentation</div>
+                  <div class="dropdown-item-desc">Full API, tool schemas &amp; reference</div>
+                </div>
+              </a>
+              <a href="methodology.html" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 2v7.31"></path>
+                    <path d="M14 9.3V2"></path>
+                    <path d="M8.5 2h7"></path>
+                    <path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path>
+                    <path d="M5.52 16h12.96"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Scientific Methodology</div>
+                  <div class="dropdown-item-desc">Peer-reviewed physics &amp; derivations</div>
+                </div>
+              </a>
+            </div>
+          </li>
           <li><a href="#quickstart" class="nav-link">Quickstart</a></li>
           <li><a href="contact.html" class="nav-link">Contact</a></li>
         </ul>
 
         <div class="nav-actions">
-          <a href="docs.html" class="btn btn-outline" style="padding: 8px 16px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-            <span>Docs &amp; Science</span>
-          </a>
           <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-outline" style="padding: 8px 16px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -1978,6 +2158,32 @@
     };
     window.addEventListener('scroll', updateNavScroll, { passive: true });
     updateNavScroll();
+
+    // Nav dropdown accessibility & touch support
+    document.querySelectorAll('.nav-dropdown-trigger').forEach(trigger => {
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        const dropdown = trigger.closest('.nav-dropdown');
+        const isOpen = dropdown.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded', isOpen);
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-dropdown')) {
+        document.querySelectorAll('.nav-dropdown.is-open').forEach(d => {
+          d.classList.remove('is-open');
+          d.querySelector('.nav-dropdown-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.nav-dropdown.is-open').forEach(d => {
+          d.classList.remove('is-open');
+          d.querySelector('.nav-dropdown-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
   </script>
 </body>
 </html>

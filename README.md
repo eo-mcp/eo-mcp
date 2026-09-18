@@ -235,8 +235,8 @@ Extracts Sentinel-1 C-Band SAR radar backscatter (sigma0 in dB). Radar signals s
 ### 6. `run_geospatial_script(script_code: str) -> dict`
 Allows autonomous coding agents to write and execute arbitrary Python geospatial workflows in an isolated sandbox pre-loaded with `rasterio`, `numpy`, `shapely`, and `scipy`.
 
-### 7. `detect_dark_vessels(bbox: list, datetime_range: str, ais_source: str = "open_baltic_api", pfa_factor: float = 3.2, format: str = "summary") -> str`
-Detects radar-reflective metallic ship hulls in Sentinel-1 SAR imagery using CA-CFAR adaptive thresholding and correlates them with existing open public AIS APIs (Digitraffic Baltic Sea open API or user-supplied AIS feeds) to flag unreported **Dark Vessels** (`DARK_VESSEL`), verified ships (`TRUSTED`), and spoofed signals (`SPOOF_OR_ABSENT`), alongside bilge/oil slick discharge alerts (MSFD Descriptor 8).  
+### 7. `detect_dark_vessels(bbox: list, datetime_range: str, ais_source: str = "open_baltic_api", pfa_factor: float = 3.2, sea_state: str = "auto", format: str = "summary") -> str`
+Detects radar-reflective metallic ship hulls in Sentinel-1 SAR imagery using **Sea-State Adaptive CA-CFAR** (Cell-Averaging Constant False Alarm Rate) with local annular clutter sliding windows (guard and training rings) and automatic ocean surface roughness compensation (suppressing wave-crest false alarms in rough seas). Correlates radar targets with open public AIS feeds (Digitraffic Baltic Sea open API or user-supplied AIS records) to isolate uncooperative **Dark Vessels** (`DARK_VESSEL`), verified ships (`TRUSTED`), and spoofed signals (`SPOOF_OR_ABSENT`), with Signal-to-Clutter Ratio (SCR in dB) and bilge/oil slick discharge alerts (MSFD Descriptor 8).  
 **Outputs:** JSON summary, GIS-ready GeoJSON FeatureCollection (`format="geojson"`), or tabular CSV (`format="csv"`).
 
 ### 8. `analyze_coastal_erosion(bbox: list, historical_date_range: str, recent_date_range: str, transect_sample_step: int = 5, format: str = "summary") -> str`
@@ -279,6 +279,23 @@ Inspects configured authentication status across all supported satellite catalog
 
 ### 18. `download_copernicus_granule(product_id: str, output_dir: str = None, username: str = None, password: str = None) -> dict`
 Generates authenticated download manifests, OData API links, and curl commands for official Copernicus Data Space Ecosystem (CDSE) full-granule archive products (Sentinel-1, Sentinel-2, Sentinel-3, Sentinel-5P).
+
+### 19. `query_nasa_opera(bbox: list, datetime_range: str, product_type: str = "dswx", max_cloud_cover: float = 20.0, limit: int = 5, format: str = "summary") -> str`
+Discovers and inspects NASA JPL OPERA (Observational Products for End-Users from Remote Sensing Analysis) datasets via NASA CMR STAC:
+- `dswx`: 30m Dynamic Surface Water Extent from HLS (open water, partial water, inundated vegetation).
+- `dist`: 30m Surface Disturbance alerts from HLS (vegetation loss, wildfire scars, deforestation).
+- `rtc`: 30m Radiometric Terrain Corrected Sentinel-1 SAR (all-weather radar backscatter).  
+**Outputs:** JSON summary with direct COG asset URLs, or GIS-ready GeoJSON (`format="geojson"`).
+
+### 20. `export_interactive_map(title: str, bbox: list, geojson: str = None, hazard_type: str = None, output_html_path: str = None) -> str`
+Generates a standalone, self-contained interactive MapLibre GL JS web application from hazard results. Features dark titanium glassmorphic styling, interactive feature popups, responsive bounding box fitting, and 3D perspective pitch toggling. Bridges headless agentic compute with interactive GeoLibre-compatible visualization.
+
+### 21. `export_geolibre_project(title: str, bbox: list, layers: str = None, output_json_path: str = None, basemap_theme: str = "dark") -> str`
+Exports a native `.geolibre` project configuration file. Enables one-click importing of `eo-mcp` hazard layers directly into GeoLibre Desktop (Tauri) or GeoLibre Web (`geolibre.app`).
+
+### 22. `query_spatial_sql(sql: str, geojson: str, table_name: str = "features") -> str`
+Executes spatial SQL queries against GeoJSON FeatureCollections and geospatial metadata. Modeled after GeoLibre's DuckDB Spatial engine. Supports standard SQL (`SELECT`, `WHERE`, `GROUP BY`, `ORDER BY`) and spatial functions (`ST_Area`, `ST_Centroid`, `ST_Length`, `ST_Intersects`).
+
 
 ---
 

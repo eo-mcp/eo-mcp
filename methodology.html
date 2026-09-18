@@ -224,6 +224,131 @@
     .nav-link.active {
       font-weight: 700;
     }
+    .nav-dropdown {
+      position: relative;
+      list-style: none;
+      display: flex;
+      align-items: center;
+    }
+    .nav-dropdown-trigger {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      line-height: inherit;
+    }
+    .nav-dropdown-trigger .dropdown-chevron {
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      stroke-width: 2.2;
+      opacity: 0.7;
+    }
+    .nav-dropdown:hover .nav-dropdown-trigger .dropdown-chevron,
+    .nav-dropdown:focus-within .nav-dropdown-trigger .dropdown-chevron,
+    .nav-dropdown.is-open .nav-dropdown-trigger .dropdown-chevron {
+      transform: rotate(180deg);
+      opacity: 1;
+      color: var(--accent-bright);
+    }
+    .nav-dropdown:hover .nav-dropdown-trigger,
+    .nav-dropdown:focus-within .nav-dropdown-trigger,
+    .nav-dropdown.is-open .nav-dropdown-trigger {
+      color: var(--accent-bright);
+    }
+    .nav-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 14px);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      width: 320px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-md);
+      box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+      padding: 8px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s ease;
+      z-index: 1050;
+    }
+    .nav-dropdown-menu::before {
+      content: "";
+      position: absolute;
+      top: -16px;
+      left: 0;
+      right: 0;
+      height: 16px;
+    }
+    .nav-dropdown:hover .nav-dropdown-menu,
+    .nav-dropdown:focus-within .nav-dropdown-menu,
+    .nav-dropdown.is-open .nav-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    .dropdown-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--ink);
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .dropdown-item:hover, .dropdown-item.active {
+      background: var(--paper-warm);
+    }
+    .dropdown-item-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-soft);
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: all 0.15s ease;
+    }
+    .dropdown-item:hover .dropdown-item-icon, .dropdown-item.active .dropdown-item-icon {
+      background: var(--accent-soft);
+      color: #065f46;
+      border-color: rgba(34, 197, 94, 0.35);
+      transform: scale(1.05);
+    }
+    .dropdown-item-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dropdown-item:hover .dropdown-item-title, .dropdown-item.active .dropdown-item-title {
+      color: var(--accent-bright);
+    }
+    .dropdown-item-desc {
+      font-size: 12px;
+      color: var(--ink-mute);
+      line-height: 1.35;
+      margin-top: 3px;
+    }
+    .dropdown-divider {
+      height: 1px;
+      background: var(--line-soft);
+      margin: 6px 4px;
+    }
     .nav-actions {
       display: flex;
       align-items: center;
@@ -772,10 +897,72 @@
 
         <ul class="nav-menu">
           <li><a href="index.html#demo" class="nav-link">Interactive Demo</a></li>
-          <li><a href="index.html#features" class="nav-link">Features</a></li>
-          <li><a href="index.html#architecture" class="nav-link">Architecture</a></li>
-          <li><a href="docs.html" class="nav-link">Documentation</a></li>
-          <li><a href="methodology.html" class="nav-link active">Methodology</a></li>
+          <li><a href="index.html#comparison" class="nav-link">Why eo-mcp</a></li>
+          <li class="nav-dropdown">
+            <button class="nav-link nav-dropdown-trigger active" aria-expanded="false" aria-haspopup="true">
+              <span>Docs &amp; Specs</span>
+              <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a href="index.html#features" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Features</div>
+                  <div class="dropdown-item-desc">Core capabilities, pipelines &amp; STAC tools</div>
+                </div>
+              </a>
+              <a href="index.html#architecture" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Architecture</div>
+                  <div class="dropdown-item-desc">Agentic MCP protocol &amp; data flows</div>
+                </div>
+              </a>
+              <div class="dropdown-divider"></div>
+              <a href="docs.html" class="dropdown-item">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Documentation</div>
+                  <div class="dropdown-item-desc">Full API, tool schemas &amp; reference</div>
+                </div>
+              </a>
+              <a href="methodology.html" class="dropdown-item active">
+                <div class="dropdown-item-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 2v7.31"></path>
+                    <path d="M14 9.3V2"></path>
+                    <path d="M8.5 2h7"></path>
+                    <path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path>
+                    <path d="M5.52 16h12.96"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="dropdown-item-title">Scientific Methodology <span style="font-size: 10px; font-weight: 700; background: var(--accent-soft); color: #065f46; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">CURRENT</span></div>
+                  <div class="dropdown-item-desc">Peer-reviewed physics &amp; derivations</div>
+                </div>
+              </a>
+            </div>
+          </li>
           <li><a href="index.html#quickstart" class="nav-link">Quickstart</a></li>
           <li><a href="contact.html" class="nav-link">Contact</a></li>
         </ul>
@@ -1463,30 +1650,55 @@
             <!-- CA-CFAR Formulations -->
             <div class="formula-card">
               <div class="formula-title">
-                <span>Cell-Averaging Constant False Alarm Rate (CA-CFAR) Derivation</span>
+                <span>Sea-State Adaptive Cell-Averaging CFAR (CA-CFAR) Derivation</span>
                 <span class="formula-badge">Statistical Detector</span>
               </div>
               <div class="formula-math-display">
-                $$P_n = \frac{1}{N} \sum_{i=1}^{N} x_i \qquad \alpha = N \left( P_{\text{fa}}^{-1/N} - 1 \right) \qquad T = \alpha \cdot P_n$$
+                $$\mu_{\text{annular}} = \frac{N_{\text{train}}\mu_{\text{train}} - N_{\text{guard}}\mu_{\text{guard}}}{N_{\text{train}} - N_{\text{guard}}} \qquad \sigma_{\text{annular}} = \sqrt{\max\left(0, \frac{N_{\text{train}}\overline{x^2}_{\text{train}} - N_{\text{guard}}\overline{x^2}_{\text{guard}}}{N_{\text{train}} - N_{\text{guard}}} - \mu_{\text{annular}}^2\right)}$$
+              </div>
+              <div class="formula-math-display">
+                $$T_{\text{local}}(x,y) = \mu_{\text{blended}}(x,y) + \left(k_{\text{pfa}} \cdot \kappa_{\text{sea}}\right) \cdot \sigma_{\text{blended}}(x,y)$$
               </div>
               <div class="formula-variables">
                 <dl>
-                  <dt>$$P_n$$</dt>
-                  <dd>Locally estimated background sea clutter power across reference training cells</dd>
-                  <dt>$$x_i$$</dt>
-                  <dd>Linear intensity of pixel $i$ within the background training window</dd>
-                  <dt>$$N$$</dt>
-                  <dd>Number of training cells in the outer rectangular sliding stencil (excluding guard cells)</dd>
-                  <dt>$$P_{\text{fa}}$$</dt>
-                  <dd>Designated probability of false alarm (typically $10^{-5}$ to $10^{-6}$)</dd>
-                  <dt>$$\alpha$$</dt>
-                  <dd>Analytical threshold scaling factor derived from the cumulative exponential distribution</dd>
-                  <dt>$$T$$</dt>
-                  <dd>Adaptive detection threshold applied to the central Cell Under Test (CUT)</dd>
+                  <dt>$$\mu_{\text{annular}}, \sigma_{\text{annular}}$$</dt>
+                  <dd>Local background sea clutter mean and standard deviation estimated over an annular ring between outer training stencil ($N_{\text{train}}$) and inner guard stencil ($N_{\text{guard}}$)</dd>
+                  <dt>$$\mu_{\text{blended}}, \sigma_{\text{blended}}$$</dt>
+                  <dd>Convex combination ($0.75 \cdot \text{local} + 0.25 \cdot \text{global}$) protecting image boundaries and sparse littoral margins</dd>
+                  <dt>$$k_{\text{pfa}}$$</dt>
+                  <dd>Baseline probability of false alarm multiplier ($k = 3.2$ by default)</dd>
+                  <dt>$$\kappa_{\text{sea}}$$</dt>
+                  <dd>Dynamic sea-state compensation factor: $\kappa = 1.00$ (calm), $\kappa = 1.10$ (moderate: $\sigma > 2.2\,\text{dB}$ or $\mu > -18\,\text{dB}$), $\kappa = 1.25$ (rough: $\sigma > 3.0\,\text{dB}$ or $\mu > -14\,\text{dB}$)</dd>
+                  <dt>$$T_{\text{local}}$$</dt>
+                  <dd>Adaptive detection threshold surface applied to each cell under test (CUT)</dd>
                 </dl>
               </div>
               <div class="formula-caption">
-                Derivation from Finn &amp; Johnson (1968) and Crisp (2004). An inner guard ring (typically 3x3 to 5x5 pixels) surrounds the CUT to prevent vessel sidelobe energy from corrupting the background clutter estimate $P_n$.
+                Derivation from Finn &amp; Johnson (1968), Novak et al. (1993), and Crisp (2004). An inner guard ring (typically $3\times 3$ pixels) isolates target sidelobes and prevents vessel specular energy from contaminating background sea clutter estimates.
+              </div>
+            </div>
+
+            <!-- Signal-to-Clutter Ratio (SCR) -->
+            <div class="formula-card">
+              <div class="formula-title">
+                <span>Signal-to-Clutter Ratio (SCR) &amp; Vessel Contrast Formulation</span>
+                <span class="formula-badge">Target Radiometry</span>
+              </div>
+              <div class="formula-math-display">
+                $$\text{SCR}\,(\text{dB}) = \sigma_{\text{peak}}^0 - \mu_{\text{annular}}$$
+              </div>
+              <div class="formula-variables">
+                <dl>
+                  <dt>$$\text{SCR}$$</dt>
+                  <dd>Target contrast in decibels above the immediate surrounding ocean clutter baseline</dd>
+                  <dt>$$\sigma_{\text{peak}}^0$$</dt>
+                  <dd>Maximum backscatter intensity measured within the connected component metallic hull cluster</dd>
+                  <dt>$$\mu_{\text{annular}}$$</dt>
+                  <dd>Surrounding sea clutter mean. Metallic hulls typically exhibit $\text{SCR} \ge 15.0\,\text{dB}$ to $28.0\,\text{dB}$, providing high classification confidence</dd>
+                </dl>
+              </div>
+              <div class="formula-caption">
+                Quantifies vessel prominence for autonomous agent confidence weighting and false-alarm suppression in high sea states.
               </div>
             </div>
 
@@ -1537,6 +1749,18 @@
               <strong>Finn, H. M., &amp; Johnson, R. S. (1968).</strong> Adaptive detection mode with threshold control as a function of spatially sampled clutter-level estimates. <em>RCA Review</em>, 29(3), 414–464.
               <div class="citation-meta">
                 <span class="citation-applied">Applied in: <code>detect_dark_vessels</code> (CA-CFAR algorithm)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Crisp, D. J. (2004).</strong> The state-of-the-art in ship detection in synthetic aperture radar imagery. <em>Defence Science and Technology Organisation (DSTO)</em>, Research Report DSTO-RR-0272.
+              <div class="citation-meta">
+                <span class="citation-applied">Applied in: <code>detect_dark_vessels</code> (Sea-state roughness scaling and guard/training window geometries)</span>
+              </div>
+            </li>
+            <li class="citation-item">
+              <strong>Novak, L. M., Owirka, G. J., &amp; Netishen, C. M. (1993).</strong> Performance of a high-resolution polarimetric SAR automatic target recognition system. <em>The Lincoln Laboratory Journal</em>, 6(1), 11–24.
+              <div class="citation-meta">
+                <span class="citation-applied">Applied in: <code>detect_dark_vessels</code> (Signal-to-clutter ratio and target component modeling)</span>
               </div>
             </li>
             <li class="citation-item">
@@ -2444,6 +2668,14 @@
   pages   = {1078},
   year    = {2019},
   doi     = {10.3390/rs11091078}
+}
+
+@techreport{crisp2004state,
+  author      = {Crisp, David J.},
+  title       = {The State-of-the-Art in Ship Detection in Synthetic Aperture Radar Imagery},
+  institution = {Defence Science and Technology Organisation (DSTO)},
+  number      = {DSTO-RR-0272},
+  year        = {2004}
 }</code></pre>
           </div>
         </section>
@@ -2539,6 +2771,32 @@
         }
       });
     }, { passive: true });
+
+    // Nav dropdown accessibility & touch support
+    document.querySelectorAll('.nav-dropdown-trigger').forEach(trigger => {
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        const dropdown = trigger.closest('.nav-dropdown');
+        const isOpen = dropdown.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded', isOpen);
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-dropdown')) {
+        document.querySelectorAll('.nav-dropdown.is-open').forEach(d => {
+          d.classList.remove('is-open');
+          d.querySelector('.nav-dropdown-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.nav-dropdown.is-open').forEach(d => {
+          d.classList.remove('is-open');
+          d.querySelector('.nav-dropdown-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
   </script>
 </body>
 </html>

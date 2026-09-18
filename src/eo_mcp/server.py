@@ -97,6 +97,14 @@ from eo_mcp.core.pipeline import (
     list_pipeline_recipes as _list_pipeline_recipes,
     describe_pipeline_recipe as _describe_pipeline_recipe
 )
+from eo_mcp.providers.opera import search_opera_products, list_opera_product_types
+from eo_mcp.core.geolibre import (
+    generate_interactive_maplibre_html,
+    export_geolibre_project_json,
+    plan_geoagent_actions
+)
+from eo_mcp.core.spatial_sql import execute_spatial_sql_query
+
 
 # Initialize FastMCP Server
 mcp = FastMCP(
@@ -587,6 +595,7 @@ def detect_dark_vessels(
     datetime_range: str,
     ais_source: str = "open_baltic_api",
     pfa_factor: float = 3.2,
+    sea_state: str = "auto",
     custom_ais_records: Optional[List[Dict[str, Any]]] = None,
     format: str = "summary"
 ) -> str:
@@ -600,6 +609,7 @@ def detect_dark_vessels(
         datetime_range: Date or date range (e.g. '2024-06-01/2024-06-30').
         ais_source: 'open_baltic_api' to query live Finnish/Baltic public marine AIS endpoint, or 'custom'.
         pfa_factor: CFAR threshold sensitivity multiplier above ocean clutter standard deviation (default 3.2).
+        sea_state: Ocean roughness condition ('calm', 'moderate', 'rough', or 'auto' for adaptive clutter tuning).
         custom_ais_records: Optional user-supplied list of AIS dicts ({mmsi, lat, lon, speed_knots, course_deg}).
         format: Output format ('summary', 'geojson', or 'csv').
 
@@ -642,11 +652,12 @@ def detect_dark_vessels(
         dark_r, dark_c = grid_rows // 2, grid_cols // 2
         sar_db[dark_r, dark_c] = 9.8
 
-        # 3. Execute CFAR detection
+        # 3. Execute CFAR detection with dynamic sea-state roughness adaptation
         detection_mask, detected_targets = cfar_vessel_detector(
             sar_db,
             pfa_factor=pfa_factor,
-            min_cluster_size=1
+            min_cluster_size=1,
+            sea_state=sea_state
         )
 
         # 4. Correlate with AIS telemetry
@@ -1407,5 +1418,246 @@ def monitor_crop_phenology(
 
     except Exception as exc:
         return json.dumps({"error": f"Crop phenology analysis failed: {str(exc)}"})
+
+
+@eo_tool()
+def query_nasa_opera(
+    bbox: List[float],
+    datetime_range: str,
+    product_type: str = "dswx",
+    max_cloud_cover: float = 20.0,
+    limit: int = 5,
+    format: str = "summary"
+) -> str:
+    """
+    Search and inspect NASA JPL OPERA (Observational Products for End-Users from Remote Sensing Analysis) datasets.
+    
+    Supported Products:
+    - 'dswx': Dynamic Surface Water Extent from HLS (30m). Delineates open water, partial water, and flooded vegetation.
+    - 'dist': Surface Disturbance Alert from HLS (30m). Detects vegetation loss, wildfire scars, and deforestation.
+    - 'rtc': Radiometric Terrain Corrected SAR from Sentinel-1 (30m). Normalized C-band backscatter for all-weather mapping.
+
+    Args:
+        bbox: Bounding box [min_lon, min_lat, max_lon, max_lat] in WGS84.
+        datetime_range: Observation date or range (e.g. '2024-06-01/2024-06-30').
+        product_type: Product line ('dswx', 'dist', 'rtc').
+        max_cloud_cover: Cloud cover threshold (0 - 100).
+        limit: Max scenes to discover.
+        format: Output format ('summary' or 'geojson').
+
+    Returns:
+        JSON string containing discovered OPERA granules, asset URLs (COGs), and coverage metadata.
+    """
+    try:
+        products = search_opera_products(
+            product_type=product_type,
+            bbox=bbox,
+            datetime_range=datetime_range,
+            max_cloud_cover=max_cloud_cover,
+            limit=limit
+        )
+
+        if format.lower() == "geojson":
+            features = []
+            for p in products:
+                b = p.bbox
+                geom = {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]], [b[0], b[1]]
+                    ]]
+                }
+                features.append({
+                    "type": "Feature",
+                    "id": p.id,
+                    "geometry": geom,
+                    "properties": {
+                        "collection": p.collection_id,
+                        "product_type": p.product_type,
+                        "datetime": p.datetime,
+                        "cloud_cover": p.cloud_cover,
+                        "assets": p.assets,
+                        **p.properties
+                    }
+                })
+            return json.dumps({
+                "type": "FeatureCollection",
+                "features": features,
+                "metadata": {
+                    "provider": "NASA JPL OPERA",
+                    "count": len(features),
+                    "product_type": product_type
+                }
+            }, indent=2)
+
+        summary = {
+            "provider": "NASA JPL OPERA via NASA CMR",
+            "product_type": product_type,
+            "granules_found": len(products),
+            "bbox": bbox,
+            "datetime_range": datetime_range,
+            "items": [
+                {
+                    "id": p.id,
+                    "datetime": p.datetime,
+                    "cloud_cover": p.cloud_cover,
+                    "assets": p.assets,
+                    "collection": p.collection_id
+                }
+                for p in products
+            ]
+        }
+        return json.dumps(summary, indent=2)
+    except Exception as exc:
+        return json.dumps({"error": f"NASA OPERA query failed: {str(exc)}"})
+
+
+@eo_tool()
+def export_interactive_map(
+    title: str,
+    bbox: List[float],
+    geojson: Optional[str] = None,
+    hazard_type: Optional[str] = None,
+    output_html_path: Optional[str] = None
+) -> str:
+    """
+    Generate a standalone interactive MapLibre GL JS HTML application from hazard results.
+    Bridges eo-mcp planetary analytics with rich client-side GIS visualization (compatible with GeoLibre).
+    
+    Features:
+    - Dark titanium glassmorphic UI overlay
+    - Interactive vector layers (points, polygons, lines) with attribute inspection popups
+    - 3D perspective pitch toggle and responsive bounding box fitting
+
+    Args:
+        title: Title of the map application (e.g. 'Valencia Flood Inundation Assessment').
+        bbox: Bounding box [min_lon, min_lat, max_lon, max_lat] in WGS84.
+        geojson: Optional GeoJSON FeatureCollection string (from any eo-mcp hazard tool).
+        hazard_type: Optional hazard descriptor ('flood', 'wildfire', 'vessels', 'erosion', 'opera').
+        output_html_path: Optional file path to save HTML directly to disk.
+
+    Returns:
+        Confirmation JSON with file path and status, or HTML content preview.
+    """
+    try:
+        parsed_geojson = None
+        if geojson:
+            try:
+                parsed_geojson = json.loads(geojson)
+            except Exception:
+                parsed_geojson = None
+
+        html_content = generate_interactive_maplibre_html(
+            title=title,
+            bbox=bbox,
+            geojson_data=parsed_geojson,
+            hazard_type=hazard_type
+        )
+
+        if output_html_path:
+            with open(output_html_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            return json.dumps({
+                "status": "success",
+                "message": f"Interactive MapLibre viewer saved successfully to {output_html_path}",
+                "output_path": output_html_path,
+                "title": title,
+                "engine": "MapLibre GL JS (GeoLibre compatible)"
+            }, indent=2)
+
+        return json.dumps({
+            "status": "success",
+            "title": title,
+            "engine": "MapLibre GL JS",
+            "html_bytes": len(html_content),
+            "html_snippet": html_content[:300] + "... (full HTML generated)"
+        }, indent=2)
+    except Exception as exc:
+        return json.dumps({"error": f"Interactive map generation failed: {str(exc)}"})
+
+
+@eo_tool()
+def export_geolibre_project(
+    title: str,
+    bbox: List[float],
+    layers: Optional[str] = None,
+    output_json_path: Optional[str] = None,
+    basemap_theme: str = "dark"
+) -> str:
+    """
+    Export a native GeoLibre project configuration file (.geolibre / .json).
+    Allows one-click importing of eo-mcp analysis layers directly into GeoLibre Desktop (Tauri) or Web (geolibre.app).
+
+    Args:
+        title: Project title.
+        bbox: Bounding box [min_lon, min_lat, max_lon, max_lat].
+        layers: Optional JSON string of layer specifications or GeoJSON layer references.
+        output_json_path: Optional destination file path (e.g. 'valencia_flood.geolibre').
+        basemap_theme: Basemap style ('dark', 'positron', 'voyager', 'satellite').
+
+    Returns:
+        JSON string of GeoLibre project definition or file confirmation.
+    """
+    try:
+        parsed_layers = []
+        if layers:
+            try:
+                parsed_layers = json.loads(layers)
+                if not isinstance(parsed_layers, list):
+                    parsed_layers = [parsed_layers]
+            except Exception:
+                parsed_layers = []
+
+        project = export_geolibre_project_json(
+            title=title,
+            bbox=bbox,
+            layers=parsed_layers,
+            basemap_theme=basemap_theme
+        )
+
+        if output_json_path:
+            with open(output_json_path, "w", encoding="utf-8") as f:
+                json.dump(project, f, indent=2)
+            return json.dumps({
+                "status": "success",
+                "message": f"GeoLibre project exported to {output_json_path}",
+                "output_path": output_json_path,
+                "target_platform": "GeoLibre Desktop / Web"
+            }, indent=2)
+
+        return json.dumps(project, indent=2)
+    except Exception as exc:
+        return json.dumps({"error": f"GeoLibre project export failed: {str(exc)}"})
+
+
+@eo_tool()
+def query_spatial_sql(
+    sql: str,
+    geojson: str,
+    table_name: str = "features"
+) -> str:
+    """
+    Execute spatial SQL queries on GeoJSON FeatureCollections or tabular geospatial metadata.
+    Modeled after GeoLibre's DuckDB Spatial query panel.
+    
+    Supports:
+    - Standard SQL: SELECT, WHERE, GROUP BY, ORDER BY, LIMIT
+    - Spatial Predicates: ST_Area, ST_Centroid, ST_Length, ST_Intersects
+
+    Args:
+        sql: SQL query string (e.g. "SELECT id, severity, ST_Area(geom) as area_ha FROM features WHERE severity = 'HIGH'")
+        geojson: GeoJSON FeatureCollection string (from any eo-mcp tool).
+        table_name: Virtual table name (default 'features').
+
+    Returns:
+        JSON string containing result columns, rows, and matched feature count.
+    """
+    try:
+        data = json.loads(geojson)
+        res = execute_spatial_sql_query(sql=sql, features_geojson=data, table_name=table_name)
+        return json.dumps(res, indent=2)
+    except Exception as exc:
+        return json.dumps({"error": f"Spatial SQL query failed: {str(exc)}"})
+
 
 

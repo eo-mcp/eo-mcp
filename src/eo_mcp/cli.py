@@ -504,6 +504,70 @@ def cli_audit(args):
         print(res)
 
 
+def cli_opera(args):
+    """CLI handler for NASA OPERA product search and inspection."""
+    from eo_mcp.providers.opera import search_opera_products
+    with console.status(f"[bold blue]Searching NASA CMR for OPERA {args.product.upper()} granules...[/bold blue]"):
+        products = search_opera_products(
+            product_type=args.product,
+            bbox=args.bbox,
+            datetime_range=args.date,
+            limit=args.limit
+        )
+
+    if args.format == "summary":
+        table = Table(title=f"NASA JPL OPERA {args.product.upper()} Products", safe_box=True)
+        table.add_column("Granule ID", style="bold cyan", width=38)
+        table.add_column("Date", style="green", width=18)
+        table.add_column("Assets", style="yellow")
+        for p in products:
+            table.add_row(p.id[:36] + "...", p.datetime[:16], ", ".join(list(p.assets.keys())[:4]))
+        console.print(table)
+    elif args.format == "geojson":
+        from eo_mcp.server import query_nasa_opera
+        print(query_nasa_opera(bbox=args.bbox, datetime_range=args.date, product_type=args.product, format="geojson"))
+    else:
+        for p in products:
+            console.print(f"- {p.id}: {p.datetime}")
+
+
+def cli_export_map(args):
+    """CLI handler for generating standalone interactive MapLibre / GeoLibre maps."""
+    from eo_mcp.core.geolibre import generate_interactive_maplibre_html
+    geojson_data = None
+    if args.geojson_path:
+        with open(args.geojson_path, "r", encoding="utf-8") as f:
+            geojson_data = json.load(f)
+
+    html = generate_interactive_maplibre_html(
+        title=args.title,
+        bbox=args.bbox,
+        geojson_data=geojson_data,
+        hazard_type=getattr(args, "hazard", None)
+    )
+
+    out_file = args.output or "map.html"
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write(html)
+    console.print(f"[bold green]Successfully generated interactive MapLibre viewer:[/bold green] [cyan]{out_file}[/cyan]")
+
+
+def cli_spatial_sql(args):
+    """CLI handler for running spatial SQL queries."""
+    from eo_mcp.core.spatial_sql import execute_spatial_sql_query
+    with open(args.geojson_path, "r", encoding="utf-8") as f:
+        geojson_data = json.load(f)
+
+    res = execute_spatial_sql_query(sql=args.sql, features_geojson=geojson_data)
+    table = Table(title=f"Spatial SQL: {args.sql}", safe_box=True)
+    for col in res["columns"]:
+        table.add_column(str(col), style="cyan")
+    for row in res["rows"]:
+        table.add_row(*[str(cell) for cell in row])
+    console.print(table)
+
+
+
 def cli_pipeline(args):
     """CLI handler for user-defined pipeline orchestration and recipes."""
     from eo_mcp.core.pipeline import (
@@ -691,6 +755,24 @@ def app():
     p_drought.add_argument("--recent-year", type=int, default=2024, help="Recent comparison year")
     p_drought.add_argument("--format", choices=["summary", "geojson", "csv"], default="summary", help="Output format")
 
+    p_opera = subparsers.add_parser("opera", help="Search and inspect NASA JPL OPERA datasets (DSWx, DIST, RTC)")
+    p_opera.add_argument("--product", type=str, choices=["dswx", "dist", "rtc"], default="dswx", help="OPERA product line")
+    p_opera.add_argument("--bbox", nargs=4, type=float, default=[-0.42, 39.42, -0.32, 39.50], help="min_lon min_lat max_lon max_lat")
+    p_opera.add_argument("--date", type=str, default="2024-06-01/2024-06-30", help="Date range")
+    p_opera.add_argument("--limit", type=int, default=5, help="Max scenes to discover")
+    p_opera.add_argument("--format", choices=["summary", "geojson"], default="summary", help="Output format")
+
+    p_export_map = subparsers.add_parser("export-map", help="Export standalone interactive MapLibre / GeoLibre HTML viewer")
+    p_export_map.add_argument("--title", type=str, default="Planetary Hazard Assessment", help="Title of the map")
+    p_export_map.add_argument("--bbox", nargs=4, type=float, default=[-0.42, 39.42, -0.32, 39.50], help="min_lon min_lat max_lon max_lat")
+    p_export_map.add_argument("--geojson-path", type=str, default=None, help="Path to GeoJSON file to render")
+    p_export_map.add_argument("--hazard", type=str, default="general", help="Hazard type descriptor")
+    p_export_map.add_argument("--output", type=str, default="map.html", help="Output HTML file path")
+
+    p_spatial_sql = subparsers.add_parser("spatial-sql", help="Execute spatial SQL query on GeoJSON data")
+    p_spatial_sql.add_argument("--sql", type=str, required=True, help="SQL query string")
+    p_spatial_sql.add_argument("--geojson-path", type=str, required=True, help="Path to GeoJSON file")
+
     args = parser.parse_args()
 
     # Handle profile setting
@@ -731,6 +813,12 @@ def app():
         cli_drought(args)
     elif args.command == "pipeline":
         cli_pipeline(args)
+    elif args.command == "opera":
+        cli_opera(args)
+    elif args.command == "export-map":
+        cli_export_map(args)
+    elif args.command == "spatial-sql":
+        cli_spatial_sql(args)
     else:
         run_server()
 

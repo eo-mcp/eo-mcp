@@ -63,8 +63,8 @@ $$\sigma^0\text{ [dB]} = 10 \log_{10}(\sigma^0 + \epsilon)$$
 
 Where $A_i$ is the calibration lookup table gain value provided in product metadata, and $\epsilon = 10^{-10}$ is a numerical stabilizer preventing logarithmic singularity.
 
-### 2.2 Two-Parameter Cell-Averaging Constant False Alarm Rate (CA-CFAR)
-To detect vessels across varying wind conditions and sea states without manual threshold tuning, an adaptive sliding window inspects each test cell $(x, y)$:
+### 2.2 Sea-State Adaptive Cell-Averaging CFAR (CA-CFAR)
+To detect vessels across varying wind conditions and sea states without manual threshold tuning, an adaptive concentric sliding window inspects each test cell $(x, y)$:
 
 ```
 +-------------------------------------------------------+
@@ -82,26 +82,38 @@ To detect vessels across varying wind conditions and sea states without manual t
 ```
 
 1. **Cell Under Test (CUT):** The central pixel evaluated for target presence.
-2. **Guard Window ($N_{\text{guard}} \times N_{\text{guard}}$):** Pixels immediately surrounding the CUT excluded from clutter estimation to prevent vessel energy leakage into the background statistics.
-3. **Training Clutter Window ($N_{\text{train}} \times N_{\text{train}}$):** The outer annular region used to estimate local ocean clutter mean $\mu_{\text{clutter}}$ and standard deviation $\sigma_{\text{clutter}}$:
+2. **Guard Window ($W_{\text{guard}} \times W_{\text{guard}}$, default $3 \times 3$):** Pixels immediately surrounding the CUT excluded from clutter estimation to prevent vessel energy leakage into background statistics.
+3. **Training Window ($W_{\text{train}} \times W_{\text{train}}$, default $15 \times 15$):** Outer sliding window measuring surrounding radar backscatter.
+4. **Annular Clutter Region:** The valid clutter annulus formed by subtracting guard pixels from the training footprint:
 
-$$\mu_{\text{clutter}} = \frac{1}{N} \sum_{i=1}^N x_i$$
+$$\mu_{\text{annular}}(x,y) = \frac{1}{W_{\text{train}}^2 - W_{\text{guard}}^2} \left[ \sum_{(u,v) \in W_{\text{train}}} I(u,v) - \sum_{(u,v) \in W_{\text{guard}}} I(u,v) \right]$$
 
-$$\sigma_{\text{clutter}} = \sqrt{\frac{1}{N-1} \sum_{i=1}^N (x_i - \mu_{\text{clutter}})^2}$$
+$$\sigma_{\text{annular}}(x,y) = \sqrt{\frac{1}{W_{\text{train}}^2 - W_{\text{guard}}^2} \left[ \sum_{(u,v) \in W_{\text{train}}} I^2(u,v) - \sum_{(u,v) \in W_{\text{guard}}} I^2(u,v) \right] - \mu_{\text{annular}}^2(x,y)}$$
 
-Where $N = N_{\text{train}}^2 - N_{\text{guard}}^2$ is the total number of valid clutter pixels.
+#### Dynamic Sea-State Roughness Scaling ($\kappa_{\text{sea}}$)
+Under elevated sea states (Beaufort scale 5+), wave crest breaking and sea spray induce heavy-tailed non-Rayleigh clutter, causing spurious false alarms in classical two-parameter CFAR. To maintain rigorous constant false alarm rates, `eo-mcp` applies a sea-state roughness multiplier $\kappa_{\text{sea}}$:
 
-The adaptive detection threshold $T$ is computed as:
+| Sea State Profile | Operational Criteria | Threshold Multiplier ($\kappa_{\text{sea}}$) |
+| :--- | :--- | :--- |
+| **`calm`** | Low wind / Capillary sea ($\sigma_{\text{sea}} < 1.8\text{ dB}$) | $\kappa_{\text{sea}} = 1.00$ |
+| **`moderate`** | Moderate chop / 10–20 kt winds ($1.8 \le \sigma_{\text{sea}} \le 3.0\text{ dB}$) | $\kappa_{\text{sea}} = 1.10$ |
+| **`rough`** | High sea state / Gale conditions ($\sigma_{\text{sea}} > 3.0\text{ dB}$) | $\kappa_{\text{sea}} = 1.25$ |
+| **`auto`** | Image-wide background dispersion estimation: $\hat{\sigma} = \text{std}(\text{sar\_db})$ | Dynamically mapped |
 
-$$T = \mu_{\text{clutter}} + k_{\text{pfa}} \cdot \sigma_{\text{clutter}}$$
+The adaptive local detection threshold $T(x,y)$ is formulated as:
+
+$$T(x,y) = \mu_{\text{annular}}(x,y) + \left(k_{\text{pfa}} \cdot \kappa_{\text{sea}}\right) \cdot \sigma_{\text{annular}}(x,y)$$
 
 A pixel is flagged as a potential vessel detection if:
 
-$$x_{\text{CUT}} > T$$
+$$x_{\text{CUT}}(x,y) > T(x,y)$$
 
-The parameter $k_{\text{pfa}}$ controls the design probability of false alarm ($P_{\text{fa}}$) under Gaussian or log-normal clutter assumptions:
+#### Signal-to-Clutter Ratio (SCR)
+For each detected target cluster, `eo-mcp` extracts the localized Signal-to-Clutter Ratio (SCR) in decibels:
 
-$$P_{\text{fa}} = \left(1 + \frac{T}{N}\right)^{-(N-1)}$$
+$$\text{SCR} = \sigma^0_{\text{peak}} - \mu_{\text{annular}} \quad \text{[dB]}$$
+
+This enables downstream filtering of non-vessel radar artifacts and provides direct confidence scoring for coast guard operators.
 
 ### 2.3 Morphological Target Clustering & Vessel Sizing
 Contiguous target pixels are grouped via connected component analysis. The vessel length $L_{\text{est}}$ and beam $W_{\text{est}}$ are calculated from the spatial covariance matrix (inertia tensor) of pixel coordinates $(x_k, y_k)$:
@@ -152,19 +164,25 @@ The maritime intelligence pipeline is implemented in `src/eo_mcp/core/maritime.p
 
 def cfar_vessel_detector(
     sar_db: np.ndarray,
-    guard_size: int = 5,
-    train_size: int = 15,
+    guard_window_size: int = 3,
+    training_window_size: int = 15,
     pfa_factor: float = 3.5,
     min_cluster_pixels: int = 3,
-    max_cluster_pixels: int = 500
+    max_cluster_pixels: int = 500,
+    sea_state: str = "auto"
 ) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
-    """Two-parameter Cell-Averaging CFAR detector.
+    """Sea-state adaptive concentric Cell-Averaging CFAR detector.
     
-    Computes local sliding background clutter statistics, excluding guard pixels.
-    Extracts centroid, estimated length, and peak RCS in decibels.
+    Computes local sliding background clutter statistics via annular uniform
+    filters (excluding guard window). Dynamically scales the PFA multiplier based on 
+    sea-state roughness ('auto', 'calm', 'moderate', 'rough').
+    
+    Extracts centroid, estimated length/width, peak RCS, and localized SCR (dB).
     """
-    # Excludes guard cells from clutter window using box filters
-    # Flags pixels where CUT > mean_clutter + pfa_factor * std_clutter
+    # Computes annular clutter mean and variance via 2D convolution
+    # Applies sea_state roughness multiplier kappa_sea
+    # Thresholds CUT > local_mean + (pfa_factor * kappa_sea) * local_std
+    # Labels connected target components and extracts vessel geometry & SCR
     ...
 ```
 

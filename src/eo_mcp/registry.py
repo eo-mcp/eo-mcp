@@ -29,6 +29,7 @@ TOOL_CATEGORIES = {
             "stac_search",
             "list_supported_collections",
             "discover_eo_tools",
+            "query_nasa_opera",
         ]
     },
     "spectral": {
@@ -40,12 +41,13 @@ TOOL_CATEGORIES = {
         ]
     },
     "hazards": {
-        "description": "Planetary hazard assessment: sea level rise, wildfires, burn severity, and coastal erosion.",
+        "description": "Planetary hazard assessment: sea level rise, wildfires, burn severity, coastal erosion, and OPERA alerts.",
         "tools": [
             "simulate_sea_level_rise",
             "detect_active_wildfires",
             "calculate_burn_severity",
             "analyze_coastal_erosion",
+            "query_nasa_opera",
         ]
     },
     "climate": {
@@ -70,6 +72,15 @@ TOOL_CATEGORIES = {
             "configure_credentials",
             "get_credential_status",
             "download_copernicus_granule",
+            "query_spatial_sql",
+        ]
+    },
+    "geolibre": {
+        "description": "GeoLibre & MapLibre visual GIS integration, interactive HTML map generation, project export, and spatial SQL.",
+        "tools": [
+            "export_interactive_map",
+            "export_geolibre_project",
+            "query_spatial_sql",
         ]
     }
 }
@@ -77,12 +88,13 @@ TOOL_CATEGORIES = {
 # Pre-defined profiles mapping to one or more categories
 PROFILES = {
     "all": list(TOOL_CATEGORIES.keys()),
-    "workflows": ["workflows", "core"],
-    "hazards": ["workflows", "hazards", "core"],
-    "climate": ["workflows", "climate", "core"],
-    "maritime": ["workflows", "maritime", "core"],
+    "workflows": ["workflows", "core", "geolibre"],
+    "hazards": ["workflows", "hazards", "core", "geolibre"],
+    "climate": ["workflows", "climate", "core", "geolibre"],
+    "maritime": ["workflows", "maritime", "core", "geolibre"],
     "minimal": ["workflows", "core"],
     "spectral": ["workflows", "spectral", "core"],
+    "geolibre": ["geolibre", "core"],
 }
 
 

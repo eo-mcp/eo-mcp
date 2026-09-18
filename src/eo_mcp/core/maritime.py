@@ -107,17 +107,26 @@ def cfar_vessel_detector(
     sar_db: np.ndarray,
     pfa_factor: float = 3.2,
     min_cluster_size: int = 2,
-    max_cluster_size: int = 250
+    max_cluster_size: int = 250,
+    guard_window_size: int = 3,
+    training_window_size: int = 15,
+    sea_state: str = "auto"
 ) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
     """
-    Adaptive Two-Parameter / CA-CFAR (Constant False Alarm Rate) target detector for SAR imagery.
-    Detects bright metallic targets (vessel hulls) against the ocean surface clutter.
+    Adaptive Two-Parameter / CA-CFAR (Cell-Averaging Constant False Alarm Rate) target detector
+    for SAR imagery with local clutter sliding window estimation and sea-state roughness compensation.
+
+    Detects bright metallic targets (vessel hulls) against dynamic ocean surface clutter without
+    requiring manual threshold retuning across shifting sea states.
 
     Args:
         sar_db: 2D numpy array of SAR backscatter in decibels (e.g. VV or VH polarization).
-        pfa_factor: Threshold multiplier k above clutter mean (T = mean + k * std).
+        pfa_factor: Baseline threshold multiplier k above clutter standard deviation (T = mean + k * std).
         min_cluster_size: Minimum contiguous pixels to consider a valid vessel.
         max_cluster_size: Maximum contiguous pixels (to exclude coastal artifacts/islands).
+        guard_window_size: Size (in pixels) of the inner guard window around test cells.
+        training_window_size: Size (in pixels) of the outer training window for local clutter estimation.
+        sea_state: Sea surface condition ('calm', 'moderate', 'rough', or 'auto' to infer from clutter variance).
 
     Returns:
         (binary_detection_mask, list_of_detected_targets)
@@ -126,7 +135,10 @@ def cfar_vessel_detector(
     - Finn, H. M., & Johnson, R. S. (1968). RCA Review, 29(3), 414-464.
     - Novak, L. M., Owirka, G. J., & Netishen, C. M. (1993). The Lincoln Laboratory Journal,
       6(1), 11-24.
-    - Crisp, D. J. (2004). DSTO Research Report DSTO-RR-0272.
+    - Crisp, D. J. (2004). The state-of-the-art in ship detection in synthetic aperture
+      radar imagery. DSTO Research Report DSTO-RR-0272.
+    - Pelich, R., et al. (2019). Large-scale automatic vessel monitoring based on
+      dual-polarization Sentinel-1 and AIS data. Remote Sensing, 11(9), 1078.
     """
     if sar_db.ndim == 3:
         sar_db = sar_db[0]
@@ -135,17 +147,75 @@ def cfar_vessel_detector(
     if not np.any(valid_mask):
         return np.zeros_like(sar_db, dtype=bool), []
 
-    # Calculate global background stats over water
-    clutter_mean = float(np.nanmean(sar_db))
-    clutter_std = float(np.nanstd(sar_db))
+    # 1. Global ocean clutter baseline
+    global_mean = float(np.nanmean(sar_db))
+    global_std = float(np.nanstd(sar_db))
 
-    # Adaptive detection threshold
-    threshold_db = clutter_mean + (pfa_factor * clutter_std)
+    # 2. Dynamic sea-state roughness estimation
+    # High standard deviation in ocean clutter indicates wind-driven capillary waves, swells, or sea spray
+    roughness_factor = 1.0
+    inferred_sea_state = sea_state.lower()
+    if inferred_sea_state == "auto":
+        if global_std > 3.0 or global_mean > -14.0:
+            inferred_sea_state = "rough"
+            roughness_factor = 1.25  # Increase multiplier to suppress false alarm crests
+        elif global_std > 2.2 or global_mean > -18.0:
+            inferred_sea_state = "moderate"
+            roughness_factor = 1.10
+        else:
+            inferred_sea_state = "calm"
+            roughness_factor = 1.00
+    elif inferred_sea_state == "rough":
+        roughness_factor = 1.25
+    elif inferred_sea_state == "moderate":
+        roughness_factor = 1.10
+    else:
+        roughness_factor = 1.00
 
-    # Initial candidate detections
-    candidates = (sar_db > threshold_db) & valid_mask
+    effective_pfa = pfa_factor * roughness_factor
 
-    # Label connected components
+    # 3. Local Clutter Sliding Window Estimation (Guard + Training Rings)
+    # Uses 2D uniform filter convolution to compute local background mean & variance efficiently
+    from scipy.ndimage import uniform_filter
+
+    clean_sar = np.where(valid_mask, sar_db, global_mean)
+    t_size = max(5, int(training_window_size))
+    g_size = max(1, int(guard_window_size))
+    if t_size % 2 == 0:
+        t_size += 1
+    if g_size % 2 == 0:
+        g_size += 1
+
+    # Training window mean and second moment
+    t_mean = uniform_filter(clean_sar, size=t_size, mode="reflect")
+    t_sq_mean = uniform_filter(clean_sar ** 2, size=t_size, mode="reflect")
+    
+    # Guard window mean and second moment to exclude target energy from clutter estimate
+    g_mean = uniform_filter(clean_sar, size=g_size, mode="reflect")
+    g_sq_mean = uniform_filter(clean_sar ** 2, size=g_size, mode="reflect")
+
+    # Clutter ring area weights
+    n_training = t_size * t_size
+    n_guard = g_size * g_size
+    n_ring = max(1, n_training - n_guard)
+
+    # Clutter statistics in annular ring (training minus guard)
+    local_mean = (n_training * t_mean - n_guard * g_mean) / n_ring
+    local_sq_mean = (n_training * t_sq_mean - n_guard * g_sq_mean) / n_ring
+    local_var = np.maximum(0.0, local_sq_mean - (local_mean ** 2))
+    local_std = np.sqrt(local_var)
+
+    # Blend local clutter stats with global prior to protect boundaries and sparse regions
+    blended_mean = 0.75 * local_mean + 0.25 * global_mean
+    blended_std = 0.75 * local_std + 0.25 * global_std
+
+    # Dynamic local CA-CFAR threshold surface
+    adaptive_threshold = blended_mean + (effective_pfa * blended_std)
+
+    # 4. Target candidate extraction
+    candidates = (sar_db > adaptive_threshold) & valid_mask
+
+    # 5. Label connected metallic components
     labeled_array, num_features = label(candidates)
 
     detected_targets = []
@@ -161,7 +231,7 @@ def cfar_vessel_detector(
             # Centroid in pixel coordinates (row, col)
             r_center, c_center = center_of_mass(component_mask)
             
-            # Peak backscatter intensity
+            # Backscatter intensity statistics
             component_db = sar_db[component_mask]
             peak_db = float(np.max(component_db))
             mean_db = float(np.mean(component_db))
@@ -171,6 +241,12 @@ def cfar_vessel_detector(
             length_px = float(np.max(rows) - np.min(rows) + 1)
             width_px = float(np.max(cols) - np.min(cols) + 1)
 
+            # Local Signal-to-Clutter Ratio (SCR)
+            r_idx = min(int(round(r_center)), sar_db.shape[0] - 1)
+            c_idx = min(int(round(c_center)), sar_db.shape[1] - 1)
+            local_clutter_val = float(blended_mean[r_idx, c_idx])
+            scr_db = round(peak_db - local_clutter_val, 2)
+
             detected_targets.append({
                 "target_id": f"SAR-TRG-{len(detected_targets)+1:03d}",
                 "pixel_row": round(float(r_center), 2),
@@ -179,7 +255,9 @@ def cfar_vessel_detector(
                 "length_px": length_px,
                 "width_px": width_px,
                 "peak_backscatter_db": round(peak_db, 2),
-                "mean_backscatter_db": round(mean_db, 2)
+                "mean_backscatter_db": round(mean_db, 2),
+                "signal_to_clutter_db": scr_db,
+                "sea_state": inferred_sea_state
             })
 
     return detection_mask, detected_targets

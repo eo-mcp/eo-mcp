@@ -292,7 +292,16 @@ def assess_location_hazard(
     elif h_type in ("dark_vessels", "maritime", "ships"):
         dt_range = datetime_range or "2024-06-01/2024-06-30"
         ais_source = kwargs.get("ais_source", "open_baltic_api")
-        vessel_results = cfar_vessel_detector(bbox=bbox, datetime_range=dt_range, ais_source=ais_source)
+        sea_state = kwargs.get("sea_state", "auto")
+        from eo_mcp.server import detect_dark_vessels
+        raw_res = detect_dark_vessels(
+            bbox=bbox,
+            datetime_range=dt_range,
+            ais_source=ais_source,
+            sea_state=sea_state,
+            format="summary"
+        )
+        vessel_results = json.loads(raw_res)
         vessel_results["workflow"] = "assess_location_hazard:dark_vessels"
         vessel_results["location"] = {"query": location, "resolved_name": display_name, "bbox": bbox}
 
