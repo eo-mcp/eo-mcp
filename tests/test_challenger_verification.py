@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 import pytest
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HTML_PAGES = ["index.html", "docs.html", "methodology.html", "contact.html"]
+HTML_PAGES = ["index.html", "docs.html", "methodology.html", "contact.html", "privacy.html", "terms.html"]
 DOCS_MD_DIR = os.path.join(ROOT_DIR, "docs", "methodology")
 
 
@@ -43,7 +43,7 @@ def test_html_structural_integrity():
         if not content.strip().lower().startswith("<!doctype html>"):
             errors.append(f"{page}: Missing <!DOCTYPE html>")
 
-        soup = BeautifulSoup(content, "lxml")
+        soup = BeautifulSoup(content, "html.parser")
         if not soup.html:
             errors.append(f"{page}: Missing <html> tag")
         if not soup.head:
@@ -78,7 +78,7 @@ def test_anchor_links_and_cross_references():
     for page in HTML_PAGES:
         page_path = os.path.join(ROOT_DIR, page)
         with open(page_path, "r", encoding="utf-8") as f:
-            soup = BeautifulSoup(f.read(), "lxml")
+            soup = BeautifulSoup(f.read(), "html.parser")
         page_soups[page] = soup
         ids = set()
         for el in soup.find_all(attrs={"id": True}):

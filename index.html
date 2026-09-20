@@ -202,6 +202,11 @@
       font-weight: 800;
       font-size: 19px;
       letter-spacing: -0.02em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .brand span {
+      white-space: nowrap;
     }
     .brand-icon {
       width: 30px;
@@ -1104,10 +1109,135 @@
       color: var(--ink);
     }
 
+    /* Mobile Menu Toggle Button */
+    .mobile-menu-btn {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--ink);
+      flex-shrink: 0;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .mobile-menu-btn:hover, .mobile-menu-btn:focus-visible {
+      background: var(--paper-warm);
+      border-color: var(--line-dark);
+    }
+    .mobile-menu-btn svg {
+      display: block;
+    }
+    .mobile-menu-btn .icon-close {
+      display: none;
+    }
+    .mobile-menu-btn[aria-expanded="true"] .icon-hamburger {
+      display: none;
+    }
+    .mobile-menu-btn[aria-expanded="true"] .icon-close {
+      display: block;
+    }
+
+    /* Mobile Drawer */
+    .mobile-drawer {
+      display: none;
+    }
+
     @media (max-width: 768px) {
       .side-rail { display: none; }
-      .container { padding: 0 20px; }
+      .container { padding: 0 16px; }
       .nav-menu { display: none; }
+
+      /* Topbar Mobile Cleanup */
+      .topbar { padding: 7px 0; }
+      .topbar-inner { justify-content: center; text-align: center; }
+      .topbar-inner > div:not(.status-pulse) { display: none; }
+
+      /* Nav Pill & Actions Mobile */
+      .site-nav { padding: 8px 0; }
+      .site-nav.is-scrolled { padding: 6px 0; }
+      .nav-pill { padding: 6px 12px; gap: 8px; }
+      .brand { font-size: 17px; gap: 8px; }
+      .brand-icon { width: 26px; height: 26px; }
+      .nav-actions { display: flex; align-items: center; gap: 6px; }
+      .nav-actions .btn-secondary-action { display: none; }
+      .nav-actions .btn { padding: 6px 10px !important; font-size: 12px; }
+      .nav-actions .btn-text-mobile { display: none; }
+      .mobile-menu-btn { display: inline-flex; }
+
+      /* Mobile Drawer */
+      .mobile-drawer {
+        display: block;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        margin-top: 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.12);
+        padding: 0 14px;
+        transition: max-height 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, padding 0.22s ease, margin-top 0.22s ease;
+      }
+      .mobile-drawer.is-open {
+        max-height: 540px;
+        opacity: 1;
+        margin-top: 8px;
+        padding: 14px;
+      }
+      .mobile-drawer-links {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0;
+        margin: 0;
+      }
+      .mobile-drawer-links a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+      .mobile-drawer-links a:hover, .mobile-drawer-links a.active {
+        background: var(--paper-warm);
+        color: var(--accent-bright);
+      }
+      .mobile-drawer-links a .link-badge {
+        font-size: 10px;
+        font-weight: 700;
+        background: var(--accent-soft);
+        color: #065f46;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .mobile-drawer-divider {
+        height: 1px;
+        background: var(--line-soft);
+        margin: 10px 0;
+      }
+      .mobile-drawer-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .mobile-drawer-actions .btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 10px !important;
+        font-size: 12.5px;
+      }
     }
   </style>
 </head>
@@ -1221,19 +1351,59 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
             </svg>
-            <span>GitHub</span>
+            <span class="btn-text-mobile">GitHub</span>
           </a>
-          <a href="https://www.linkedin.com/company/eo-mcp/" target="_blank" rel="noopener" class="btn btn-outline" style="padding: 8px 16px;" title="Follow eo-mcp on LinkedIn">
+          <a href="https://www.linkedin.com/company/eo-mcp/" target="_blank" rel="noopener" class="btn btn-outline btn-secondary-action" style="padding: 8px 16px;" title="Follow eo-mcp on LinkedIn">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
             </svg>
             <span>LinkedIn</span>
           </a>
-          <a href="#quickstart" class="btn btn-dark" style="padding: 8px 16px;">
+          <a href="#quickstart" class="btn btn-dark btn-secondary-action" style="padding: 8px 16px;">
+            <span>Get Started</span>
+          </a>
+          <button class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav-drawer">
+            <svg class="icon-hamburger" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+            <svg class="icon-close" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Mobile Dropdown Drawer -->
+      <div class="mobile-drawer" id="mobile-nav-drawer" aria-hidden="true">
+        <ul class="mobile-drawer-links">
+          <li><a href="#" class="active"><span>Home</span></a></li>
+          <li><a href="#demo"><span>Interactive Demo</span></a></li>
+          <li><a href="#comparison"><span>Why eo-mcp</span></a></li>
+          <li><a href="#features"><span>Features &amp; Pipelines</span></a></li>
+          <li><a href="#architecture"><span>Architecture</span></a></li>
+          <li><a href="docs.html"><span>Documentation</span> <span class="link-badge">v0.1.0</span></a></li>
+          <li><a href="methodology.html"><span>Scientific Methodology</span> <span class="link-badge">Physics</span></a></li>
+          <li><a href="#quickstart"><span>Quickstart Guide</span></a></li>
+          <li><a href="contact.html"><span>Contact Maintainer</span></a></li>
+        </ul>
+        <div class="mobile-drawer-divider"></div>
+        <div class="mobile-drawer-actions">
+          <a href="https://github.com/eo-mcp/eo-mcp" target="_blank" rel="noopener" class="btn btn-outline">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span>GitHub</span>
+          </a>
+          <a href="https://www.linkedin.com/company/eo-mcp/" target="_blank" rel="noopener" class="btn btn-outline" title="LinkedIn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+          <a href="#quickstart" class="btn btn-dark">
             <span>Get Started</span>
           </a>
         </div>
-      </nav>
+      </div>
     </div>
   </header>
 
@@ -2182,8 +2352,44 @@
           d.classList.remove('is-open');
           d.querySelector('.nav-dropdown-trigger')?.setAttribute('aria-expanded', 'false');
         });
+        const mobileBtn = document.querySelector('.mobile-menu-btn');
+        const mobileDrawer = document.getElementById('mobile-nav-drawer');
+        if (mobileDrawer && mobileDrawer.classList.contains('is-open')) {
+          mobileBtn?.setAttribute('aria-expanded', 'false');
+          mobileDrawer.classList.remove('is-open');
+          mobileDrawer.setAttribute('aria-hidden', 'true');
+        }
       }
     });
+
+    // Mobile navigation drawer toggle
+    const mobileBtn = document.querySelector('.mobile-menu-btn');
+    const mobileDrawer = document.getElementById('mobile-nav-drawer');
+    if (mobileBtn && mobileDrawer) {
+      mobileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = mobileBtn.getAttribute('aria-expanded') === 'true';
+        mobileBtn.setAttribute('aria-expanded', !isExpanded);
+        mobileDrawer.classList.toggle('is-open');
+        mobileDrawer.setAttribute('aria-hidden', isExpanded ? 'true' : 'false');
+      });
+      // Close on clicking any link inside drawer
+      mobileDrawer.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          mobileBtn.setAttribute('aria-expanded', 'false');
+          mobileDrawer.classList.remove('is-open');
+          mobileDrawer.setAttribute('aria-hidden', 'true');
+        });
+      });
+      // Close on outside click
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.site-nav') && mobileDrawer.classList.contains('is-open')) {
+          mobileBtn.setAttribute('aria-expanded', 'false');
+          mobileDrawer.classList.remove('is-open');
+          mobileDrawer.setAttribute('aria-hidden', 'true');
+        }
+      });
+    }
   </script>
 </body>
 </html>

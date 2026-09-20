@@ -1,7 +1,9 @@
 """Generic STAC Client for multi-catalog satellite discovery."""
 
 from typing import List, Optional, Dict, Any
+import httpx
 from pystac_client import Client
+from pystac_client.stac_api_io import StacApiIO
 from eo_mcp.config import (
     EARTH_SEARCH_STAC_URL,
     PLANETARY_COMPUTER_STAC_URL,
@@ -9,6 +11,39 @@ from eo_mcp.config import (
     CDSE_STAC_URL
 )
 from eo_mcp.core.models import STACSearchResultItem
+
+
+class HttpxStacApiIO(StacApiIO):
+    """Resilient HTTPX-backed STAC API I/O avoiding urllib3 OpenSSL handshake issues on Windows."""
+
+    def __init__(self, headers: Optional[Dict[str, str]] = None, timeout: float = 30.0):
+        super().__init__(headers=headers)
+        self._client = httpx.Client(timeout=timeout, follow_redirects=True, headers=headers or {})
+
+    def request(
+        self,
+        href: str,
+        method: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        m = (method or "GET").upper()
+        if m == "POST":
+            r = self._client.post(str(href), json=parameters, headers=headers)
+        else:
+            r = self._client.get(str(href), params=parameters, headers=headers)
+        if r.status_code != 200:
+            import pystac_client.exceptions
+            raise pystac_client.exceptions.APIError(f"HTTP {r.status_code}: {r.text}")
+        return r.text
+
+
+def get_stac_client(catalog_url: str = EARTH_SEARCH_STAC_URL, headers: Optional[Dict[str, str]] = None) -> Client:
+    """Return a STAC client, preferring resilient HTTPX IO over standard requests on Windows."""
+    try:
+        return Client.open(catalog_url, headers=headers, stac_io=HttpxStacApiIO(headers=headers))
+    except Exception:
+        return Client.open(catalog_url, headers=headers)
 
 
 def search_stac_catalog(
@@ -33,7 +68,7 @@ def search_stac_catalog(
     Returns:
         List of STACSearchResultItem objects.
     """
-    client = Client.open(catalog_url)
+    client = get_stac_client(catalog_url)
     
     query = {}
     if max_cloud_cover is not None:

@@ -16,7 +16,7 @@ from eo_mcp.config import (
     update_credential,
     get_credentials_status_summary
 )
-from eo_mcp.providers.stac import search_stac_catalog
+from eo_mcp.providers.stac import search_stac_catalog, get_stac_client
 from eo_mcp.providers.cdse import (
     search_cdse_sentinel1,
     generate_cdse_download_info,
@@ -433,8 +433,7 @@ def calculate_spectral_index(
 
         scene = scenes[0]
         # Query STAC client directly for asset URLs
-        from pystac_client import Client
-        client = Client.open(EARTH_SEARCH_STAC_URL)
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
         stac_item = client.get_collection(collection).get_item(scene.id)
 
         index_upper = index.upper()
@@ -510,8 +509,7 @@ def get_elevation_profile(bbox: List[float], calculate_slope: bool = True) -> st
         if not scenes:
             return json.dumps({"error": f"No Copernicus DEM tiles found covering {bbox}."})
 
-        from pystac_client import Client
-        client = Client.open(EARTH_SEARCH_STAC_URL)
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
         item = client.get_collection("cop-dem-glo-30").get_item(scenes[0].id)
         elev_url = item.assets["data"].href
 
@@ -723,8 +721,7 @@ def analyze_coastal_erosion(
     - Vos, K., et al. (2019). Environmental Modelling & Software, 122, 104528. DOI: 10.1016/j.envsoft.2019.104528
     """
     try:
-        from pystac_client import Client
-        client = Client.open(EARTH_SEARCH_STAC_URL)
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
 
         # 1. Search historical scene
         hist_scenes = search_stac_catalog(
@@ -874,8 +871,7 @@ def simulate_sea_level_rise(
         )
 
         if scenes:
-            from pystac_client import Client
-            client = Client.open(EARTH_SEARCH_STAC_URL)
+            client = get_stac_client(EARTH_SEARCH_STAC_URL)
             item = client.get_collection("cop-dem-glo-30").get_item(scenes[0].id)
             elev_url = item.assets["data"].href
             dem_data, _ = stream_cog_window(elev_url, tuple(bbox), resampling_factor=0.5)
@@ -1143,8 +1139,7 @@ def calculate_burn_severity(
     - Parks, S. A., Dillon, G. K., & Miller, C. (2014). Remote Sensing, 6(3), 1827-1844. DOI: 10.3390/rs6031827
     """
     try:
-        from pystac_client import Client
-        client = Client.open(EARTH_SEARCH_STAC_URL)
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
 
         pre_nbr, post_nbr = None, None
         try:
@@ -1257,8 +1252,7 @@ def analyze_urban_heat_island(
     - Jiménez-Muñoz, J. C., et al. (2009). IEEE TGRS, 47(1), 339-349. DOI: 10.1109/TGRS.2008.2007125
     """
     try:
-        from pystac_client import Client
-        client = Client.open(EARTH_SEARCH_STAC_URL)
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
 
         red_arr, nir_arr, th_arr = None, None, None
         try:

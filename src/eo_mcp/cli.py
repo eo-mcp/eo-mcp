@@ -92,8 +92,8 @@ def run_doctor():
             mod = __import__(lib)
             ver = getattr(mod, "__version__", "installed")
             console.print(f"  [green][OK][/green] Library [bold]{lib}[/bold]: {ver}")
-        except ImportError:
-            console.print(f"  [red][MISSING][/red] Library [bold]{lib}[/bold] missing!")
+        except Exception as err:
+            console.print(f"  [yellow][BLOCKED/MISSING][/yellow] Library [bold]{lib}[/bold]: {err}")
 
     console.print("\n[bold blue]Testing public zero-config satellite feeds...[/bold blue]")
     test_connectivity()
@@ -226,6 +226,10 @@ def cli_sea_level_rise(args):
         return
 
     data = json.loads(res_str)
+    if "error" in data:
+        console.print(f"[bold red][ERROR][/bold red] {data['error']}")
+        return
+
     console.print(Panel.fit(
         f"[bold blue]Sea Level Rise & Storm Surge Inundation Simulation[/bold blue]\n"
         f"Total Water Elevation: [bold red]{data.get('total_water_elevation_m')} m[/bold red] "

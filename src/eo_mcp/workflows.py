@@ -157,8 +157,8 @@ def assess_location_hazard(
 
         if scenes:
             try:
-                from pystac_client import Client
-                client = Client.open(EARTH_SEARCH_STAC_URL)
+                from eo_mcp.providers.stac import get_stac_client
+                client = get_stac_client(EARTH_SEARCH_STAC_URL)
                 item = client.get_collection("cop-dem-glo-30").get_item(scenes[0].id)
                 elev_url = item.assets["data"].href
                 dem_data, _ = stream_cog_window(elev_url, tuple(bbox), resampling_factor=0.5)
@@ -368,8 +368,8 @@ def environmental_site_audit(
 
     if dem_scenes:
         try:
-            from pystac_client import Client
-            client = Client.open(EARTH_SEARCH_STAC_URL)
+            from eo_mcp.providers.stac import get_stac_client
+            client = get_stac_client(EARTH_SEARCH_STAC_URL)
             item = client.get_collection("cop-dem-glo-30").get_item(dem_scenes[0].id)
             elev_url = item.assets["data"].href
             dem_data, _ = stream_cog_window(elev_url, tuple(bbox), resampling_factor=0.5)

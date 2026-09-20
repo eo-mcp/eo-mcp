@@ -315,8 +315,8 @@ def _step_fetch_raster(step: PipelineStep, ctx: PipelineContext) -> Dict[str, An
     source = "STAC_COG_STREAM"
     if scenes and collection == "cop-dem-glo-30":
         try:
-            from pystac_client import Client
-            client = Client.open(EARTH_SEARCH_STAC_URL)
+            from eo_mcp.providers.stac import get_stac_client
+            client = get_stac_client(EARTH_SEARCH_STAC_URL)
             item = client.get_collection("cop-dem-glo-30").get_item(scenes[0].id)
             elev_url = item.assets["data"].href
             arr, _ = stream_cog_window(elev_url, tuple(ctx.bbox), resampling_factor=resampling)
