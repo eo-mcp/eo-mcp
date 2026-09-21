@@ -746,7 +746,7 @@
         <div class="corner-tick bl"></div>
         <div class="corner-tick br"></div>
 
-        <form id="contactForm" action="https://forms.sounny.com/f/sounny@gmail.com" method="POST">
+        <form id="contactForm" action="https://forms.sounny.com/f/eomcp-contact?email=eo-mcp@sounny.com" method="POST">
           <!-- SounnyForms Invisible Anti-Spam Honeypots & Velocity Tracking -->
           <input type="text" name="_honey" style="display:none !important;" tabindex="-1" autocomplete="off">
           <input type="hidden" name="_ts" id="_ts" value="">
@@ -809,7 +809,7 @@
           <tbody>
             <tr>
               <td>Destination</td>
-              <td>sounny@gmail.com</td>
+              <td>eo-mcp@sounny.com</td>
             </tr>
             <tr>
               <td>Routing Protocol</td>
@@ -923,7 +923,7 @@
           statusDiv.className = 'form-status success';
           statusDiv.innerHTML = `
             <strong>Transmission Confirmed!</strong><br>
-            Your message has been delivered directly to maintainer inbox (<code>sounny@gmail.com</code>). We will follow up shortly.
+            Your message has been delivered directly to maintainer inbox (<code>eo-mcp@sounny.com</code>). We will follow up shortly.
           `;
           submitBtn.innerHTML = `<span>Transmitted &check;</span>`;
           setTimeout(() => {
@@ -937,7 +937,7 @@
         statusDiv.className = 'form-status error';
         statusDiv.innerHTML = `
           <strong>Transmission Error:</strong> ${err.message || 'Failed to connect to transmission gateway.'}<br>
-          You can also reach out directly via <a href="mailto:sounny@gmail.com" style="color: inherit; font-weight: bold; text-decoration: underline;">sounny@gmail.com</a>.
+          You can also reach out directly via <a href="mailto:eo-mcp@sounny.com" style="color: inherit; font-weight: bold; text-decoration: underline;">eo-mcp@sounny.com</a>.
         `;
         submitBtn.disabled = false;
         submitBtn.innerHTML = `<span>Retry Transmission &rarr;</span>`;
