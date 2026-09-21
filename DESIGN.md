@@ -20,6 +20,11 @@ Every visual presentation card, documentation graphic, and social asset must be 
 - Text is concise, high-contrast, and contextualized within technical telemetry bars.
 - Zero decorative fluff, zero synthetic HUD target circles over planetary data, and strictly **zero em dashes**.
 
+### Absolute Ban on Generative AI Imagery (The "No Nano Banana" Invariant)
+In `eo-mcp`, all generative AI, diffusion, or text-to-image synthesis models (including **Nano Banana**, Imagen, Midjourney, DALL-E, Stable Diffusion, and prompt-based art generators) are **STRICTLY OFF LIMITS AND PROHIBITED**:
+- **Why**: Earth Observation is empirical physical measurement. Generative AI tools hallucinate fictitious shorelines, fake thermal pixels, unphysical SAR backscatter, and invented topography, which destroys scientific credibility.
+- **Mandate**: 100% of maps, rasters, and visual outputs must be **script-driven and deterministic**, generated directly from real spatial data arrays (NumPy, GeoTIFF, GeoJSON, and Leaflet/MapLibre HTML) via `eo_mcp.utils.visualizer` or programmatic Python GIS engines.
+
 ---
 
 ## 2. Color Palette & Design Tokens

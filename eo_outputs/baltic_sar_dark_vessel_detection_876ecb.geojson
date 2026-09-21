@@ -1,0 +1,87 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          24.45,
+          59.35
+        ]
+      },
+      "properties": {
+        "vessel_id": "AIS-01",
+        "mmsi": 276081000,
+        "status": "AIS Correlated (SAR Match)",
+        "speed_knots": 14.2,
+        "course_deg": 78,
+        "length_m": 125,
+        "color": "#22c55e"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          25.05,
+          59.6
+        ]
+      },
+      "properties": {
+        "vessel_id": "AIS-02",
+        "mmsi": 230985000,
+        "status": "AIS Correlated (SAR Match)",
+        "speed_knots": 11.5,
+        "course_deg": 250,
+        "length_m": 88,
+        "color": "#22c55e"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          24.8105,
+          59.4521
+        ]
+      },
+      "properties": {
+        "vessel_id": "SAR-TRG-002",
+        "status": "DARK VESSEL FLAGGED (ZERO AIS)",
+        "radar_length_m": 142,
+        "estimated_beam_m": 22,
+        "rcs_dbm2": 32.4,
+        "speed_knots": 12.4,
+        "heading_deg": 242,
+        "ais_blind_radius_km": 14.8,
+        "classification": "Uncooperative transiting tanker",
+        "color": "#ef4444"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          25.184,
+          59.6102
+        ]
+      },
+      "properties": {
+        "vessel_id": "SAR-TRG-006",
+        "status": "DARK VESSEL FLAGGED (ZERO AIS)",
+        "radar_length_m": 98,
+        "estimated_beam_m": 16,
+        "rcs_dbm2": 28.1,
+        "speed_knots": 9.8,
+        "heading_deg": 68,
+        "ais_blind_radius_km": 9.2,
+        "classification": "Unflagged auxiliary/trawler",
+        "color": "#ef4444"
+      }
+    }
+  ]
+}

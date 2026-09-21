@@ -1,0 +1,117 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.12,
+          37.11
+        ]
+      },
+      "properties": {
+        "detection_id": "FIRMS-VIIRS-01",
+        "brightness_temp_k": 378.4,
+        "brightness_temp_c": 105.25,
+        "frp_mw": 112.4,
+        "confidence": "high (100%)",
+        "sensor": "VIIRS I4 (3.74 um)",
+        "acquisition_time": "2024-08-14 11:42 UTC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.15,
+          37.08
+        ]
+      },
+      "properties": {
+        "detection_id": "FIRMS-VIIRS-02",
+        "brightness_temp_k": 369.1,
+        "brightness_temp_c": 95.95,
+        "frp_mw": 84.1,
+        "confidence": "high (100%)",
+        "sensor": "VIIRS I4 (3.74 um)",
+        "acquisition_time": "2024-08-14 11:42 UTC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.09,
+          37.14
+        ]
+      },
+      "properties": {
+        "detection_id": "FIRMS-VIIRS-03",
+        "brightness_temp_k": 354.8,
+        "brightness_temp_c": 81.65,
+        "frp_mw": 42.6,
+        "confidence": "nominal (95%)",
+        "sensor": "VIIRS I4 (3.74 um)",
+        "acquisition_time": "2024-08-14 11:42 UTC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.17,
+          37.06
+        ]
+      },
+      "properties": {
+        "detection_id": "FIRMS-VIIRS-04",
+        "brightness_temp_k": 346.2,
+        "brightness_temp_c": 73.05,
+        "frp_mw": 25.5,
+        "confidence": "nominal (90%)",
+        "sensor": "VIIRS I4 (3.74 um)",
+        "acquisition_time": "2024-08-14 11:42 UTC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.07,
+              37.16
+            ],
+            [
+              22.19,
+              37.16
+            ],
+            [
+              22.21,
+              37.04
+            ],
+            [
+              22.07,
+              37.04
+            ],
+            [
+              22.07,
+              37.16
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Consolidated Wildfire Perimeter (84.6 ha)",
+        "stroke": "#ef4444",
+        "fill": "#f97316",
+        "fill-opacity": 0.25
+      }
+    }
+  ]
+}

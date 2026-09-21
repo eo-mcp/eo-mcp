@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corinth Gulf Coastal Inundation (+1.27m Total Surge) | eo-mcp Visualizer</title>
+    <!-- Leaflet Engine (Online CDN + Resilient Offline Fallback) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg-glass: rgba(15, 23, 42, 0.88);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --accent: #38bdf8;
+            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #0b0f19; color: var(--text-main);
+        }
+        #map, #offline-canvas-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+        #offline-canvas {
+            width: 100%; height: 100%; display: block;
+        }
+
+        /* Dark Titanium Glassmorphic HUD Panel */
+        .glass-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            max-height: calc(100vh - 40px);
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        h1 { font-size: 1.15rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+        .badge {
+            background: var(--accent-gradient);
+            color: #0b0f19;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .timestamp { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; }
+        
+        .section-title {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            color: var(--text-muted); letter-spacing: 0.05em; margin: 12px 0 6px 0;
+        }
+
+        .metrics-card, .coords-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+        .metric-row {
+            display: flex; justify-content: space-between; padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.82rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: var(--text-muted); }
+        .metric-value { font-weight: 600; color: #e2e8f0; font-family: monospace; }
+
+        /* Legend Ramp */
+        .legend-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+        .legend-bar {
+            height: 14px;
+            border-radius: 7px;
+            background: linear-gradient(to right, #f7fbff, #c6dbef, #6baed6, #2171b5, #08306b);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 6px 0 4px 0;
+        }
+        .legend-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.72rem; color: var(--text-muted); font-family: monospace;
+        }
+
+        /* Opacity Slider */
+        .slider-container {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;
+        }
+        .slider-container input[type=range] {
+            flex: 1; accent-color: var(--accent); cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+        .btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+        .footer {
+            margin-top: 14px; font-size: 0.7rem; color: #64748b; text-align: center;
+        }
+        .leaflet-container { background: #0b0f19 !important; }
+    </style>
+</head>
+<body>
+    <div class="glass-panel">
+        <div class="header">
+            <h1>Corinth Gulf Coastal Inundation (+1.27m Total Surge)</h1>
+            <span class="badge">EO Visualizer</span>
+        </div>
+        <div class="timestamp">Acquisition / Export: 2026-09-21 08:45:19 UTC</div>
+
+        <div class="section-title">Bounding Box (WGS84)</div>
+        <div class="coords-card">
+            <div class="metric-row"><span class="metric-label">West Lon</span><span class="metric-value">22.85000°</span></div>
+            <div class="metric-row"><span class="metric-label">East Lon</span><span class="metric-value">22.95000°</span></div>
+            <div class="metric-row"><span class="metric-label">South Lat</span><span class="metric-value">38.10000°</span></div>
+            <div class="metric-row"><span class="metric-label">North Lat</span><span class="metric-value">38.20000°</span></div>
+        </div>
+
+        <div class="section-title">Quantitative Analytics</div><div class="metrics-card">
+                <div class="metric-row">
+                    <span class="metric-label">Hwm Total Surge M</span>
+                    <span class="metric-value">1.2700</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Base Slr Ssp585 M</span>
+                    <span class="metric-value">0.7700</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Storm Surge M</span>
+                    <span class="metric-value">0.5000</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Inundated Area Ha</span>
+                    <span class="metric-value">4.5000</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Inundated Pct</span>
+                    <span class="metric-value">2.6400</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Mean Depth M</span>
+                    <span class="metric-value">0.6700</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Max Depth M</span>
+                    <span class="metric-value">1.2500</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Dem Source</span>
+                    <span class="metric-value">Copernicus GLO-30</span>
+                </div>
+            </div>
+
+        <div class="section-title">Colormap Legend (blues)</div>
+        <div class="legend-card">
+            <div class="legend-bar"></div>
+            <div class="legend-labels">
+                <span>0.0m</span>
+                <span>Mid</span>
+                <span>> 2.5m</span>
+            </div>
+            <div class="slider-container">
+                <span>Raster Opacity:</span>
+                <input id="opacity-slider" type="range" min="0" max="100" value="85" oninput="setOpacity(this.value)">
+                <span id="opacity-val">85%</span>
+            </div>
+        </div>
+
+        <button class="btn" onclick="resetMapView()">Reset Bounding View</button>
+
+        <div class="footer">
+            eo-mcp Planetary Model Context Protocol &bull; Zero Backend Single-File Map
+        </div>
+    </div>
+
+    <!-- Map Containers -->
+    <div id="map"></div>
+    <div id="offline-canvas-container" style="display:none;">
+        <canvas id="offline-canvas"></canvas>
+    </div>
+
+    <script>
+        const bbox = [22.85, 38.1, 22.95, 38.2];
+        const rasterDataUri = "data:image/png;base64,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";
+        const geojsonData = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [[22.85, 38.13], [22.87, 38.145], [22.89, 38.15], [22.91, 38.165], [22.93, 38.18], [22.95, 38.195]]}, "properties": {"name": "Mean Sea-Level Baseline (0.0m Datum)", "stroke": "#0284c7", "stroke-width": 2}}, {"type": "Feature", "geometry": {"type": "LineString", "coordinates": [[22.855, 38.134], [22.875, 38.149], [22.895, 38.154], [22.915, 38.169], [22.935, 38.184], [22.955, 38.199]]}, "properties": {"name": "Projected Surge Flood Contour (+1.27m HWM)", "stroke": "#f43f5e", "stroke-width": 2.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [22.895, 38.152]}, "properties": {"name": "Critical Beach Breach Point", "type": "Littoral Breach", "surge_depth_m": 1.25, "color": "#ef4444"}}]};
+
+        let map = null;
+        let rasterLayer = null;
+        let vectorLayer = null;
+
+        function setOpacity(val) {
+            document.getElementById('opacity-val').innerText = val + '%';
+            if (rasterLayer && typeof rasterLayer.setOpacity === 'function') {
+                rasterLayer.setOpacity(val / 100);
+            } else if (window.offlineRenderer) {
+                window.offlineRenderer.opacity = val / 100;
+                window.offlineRenderer.draw();
+            }
+        }
+
+        function resetMapView() {
+            if (map) {
+                map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]], { padding: [60, 60] });
+            } else if (window.offlineRenderer) {
+                window.offlineRenderer.reset();
+            }
+        }
+
+        // Initialize Map
+        if (typeof L !== 'undefined') {
+            try {
+                map = L.map('map', {
+                    center: [38.150000000000006, 22.9],
+                    zoom: 12,
+                    zoomControl: true,
+                    attributionControl: false
+                });
+
+                // Dark matter basemap (loads when internet is available)
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    subdomains: 'abcd'
+                }).addTo(map);
+
+                // Add embedded Base64 raster overlay
+                if (rasterDataUri) {
+                    const bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]];
+                    rasterLayer = L.imageOverlay(rasterDataUri, bounds, {
+                        opacity: 0.85,
+                        interactive: true
+                    }).addTo(map);
+                }
+
+                // Add vector GeoJSON overlay
+                if (geojsonData && geojsonData.features && geojsonData.features.length > 0) {
+                    vectorLayer = L.geoJSON(geojsonData, {
+                        style: function(feature) {
+                            const p = feature.properties || {};
+                            return {
+                                color: p.stroke || p.color || '#38bdf8',
+                                weight: 2,
+                                fillColor: p.fill || p['fill-color'] || '#ef4444',
+                                fillOpacity: 0.5
+                            };
+                        },
+                        pointToLayer: function(feature, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 6,
+                                fillColor: '#f59e0b',
+                                color: '#ffffff',
+                                weight: 1.5,
+                                fillOpacity: 0.9
+                            });
+                        },
+                        onEachFeature: function(feature, layer) {
+                            const p = feature.properties || {};
+                            let popup = '<div style="font-family:sans-serif;font-size:12px;"><strong>Feature Attributes</strong><br/>';
+                            for (const [k, v] of Object.entries(p)) {
+                                popup += `<b>${k}:</b> ${v}<br/>`;
+                            }
+                            popup += '</div>';
+                            layer.bindPopup(popup);
+                        }
+                    }).addTo(map);
+                }
+
+                L.control.scale({ imperial: false, metric: true }).addTo(map);
+                map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]], { padding: [60, 60] });
+            } catch (err) {
+                console.warn("Leaflet initialization failed, falling back to offline canvas:", err);
+                initOfflineCanvas();
+            }
+        } else {
+            initOfflineCanvas();
+        }
+
+        // Offline Canvas Renderer (Air-gapped / No CDN access)
+        function initOfflineCanvas() {
+            document.getElementById('map').style.display = 'none';
+            const container = document.getElementById('offline-canvas-container');
+            container.style.display = 'block';
+            const canvas = document.getElementById('offline-canvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', () => { resize(); renderer.draw(); });
+            resize();
+
+            const renderer = {
+                opacity: 0.85,
+                panX: 0,
+                panY: 0,
+                zoom: 1.0,
+                img: null,
+                reset: function() {
+                    this.panX = 0;
+                    this.panY = 0;
+                    this.zoom = 1.0;
+                    this.draw();
+                },
+                draw: function() {
+                    ctx.fillStyle = "#0b0f19";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Draw grid lines
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+                    ctx.lineWidth = 1;
+                    const step = 60 * this.zoom;
+                    for (let x = (this.panX % step); x < canvas.width; x += step) {
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+                    }
+                    for (let y = (this.panY % step); y < canvas.height; y += step) {
+                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+                    }
+
+                    // Draw raster image centered in view
+                    const pad = 80;
+                    const targetW = (canvas.width - pad * 2) * this.zoom;
+                    const targetH = (canvas.height - pad * 2) * this.zoom;
+                    const posX = (canvas.width - targetW) / 2 + this.panX;
+                    const posY = (canvas.height - targetH) / 2 + this.panY;
+
+                    if (this.img && this.img.complete) {
+                        ctx.globalAlpha = this.opacity;
+                        ctx.drawImage(this.img, posX, posY, targetW, targetH);
+                        ctx.globalAlpha = 1.0;
+
+                        // Bounding Box outline
+                        ctx.strokeStyle = "#38bdf8";
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(posX, posY, targetW, targetH);
+                    }
+
+                    // Notice tag
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                    ctx.font = "12px monospace";
+                    ctx.fillText("Offline Fallback Canvas Mode [Pan: Drag | Zoom: Scroll]", 420, canvas.height - 20);
+                }
+            };
+
+            if (rasterDataUri) {
+                const img = new Image();
+                img.onload = () => { renderer.img = img; renderer.draw(); };
+                img.src = rasterDataUri;
+            } else {
+                renderer.draw();
+            }
+
+            window.offlineRenderer = renderer;
+
+            // Pan and Zoom interaction
+            let isDragging = false, startX, startY;
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - renderer.panX;
+                startY = e.clientY - renderer.panY;
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                renderer.panX = e.clientX - startX;
+                renderer.panY = e.clientY - startY;
+                renderer.draw();
+            });
+            window.addEventListener('mouseup', () => { isDragging = false; });
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const factor = e.deltaY < 0 ? 1.1 : 0.9;
+                renderer.zoom = Math.max(0.2, Math.min(5.0, renderer.zoom * factor));
+                renderer.draw();
+            });
+        }
+    </script>
+</body>
+</html>

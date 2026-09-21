@@ -1,0 +1,58 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.985,
+          36.082
+        ]
+      },
+      "properties": {
+        "osm_id": 872722211,
+        "name": "Municipal Fire Station (High Vulnerability)",
+        "amenity": "fire_station",
+        "hazard_exposure": "Downstream alluvial fan apex",
+        "compound_risk": "MODERATE_WATCH",
+        "color": "#ef4444"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            27.85,
+            36.02
+          ],
+          [
+            27.92,
+            36.05
+          ],
+          [
+            27.985,
+            36.082
+          ],
+          [
+            28.05,
+            36.12
+          ],
+          [
+            28.12,
+            36.18
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Primary Coastal Evacuation Route",
+        "highway": "primary",
+        "network_exposed_km": 530.55,
+        "stroke": "#f59e0b",
+        "stroke-width": 3
+      }
+    }
+  ]
+}

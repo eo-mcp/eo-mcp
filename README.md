@@ -17,7 +17,7 @@ Plugs directly into **Claude Desktop**, **Cursor**, **Codex**, **Antigravity**, 
 [Website & Live Interactive Demo](https://eo-mcp.github.io/) • [LinkedIn Page](https://www.linkedin.com/company/eo-mcp/) • [Quickstart](#quickstart) • [Tools Reference](#tools-reference) • [Architecture](#architecture)
 
 <p align="center">
-  <img src="assets/hero-earth.gif" alt="eo-mcp — Autonomous Planetary Earth Observation Protocol" width="720" style="max-width: 100%; border-radius: 8px;" />
+  <img src="assets/hero-earth.gif" alt="eo-mcp : Autonomous Planetary Earth Observation Protocol" width="720" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
 </div>
@@ -32,6 +32,7 @@ Proprietary platforms (like Planet Labs' agentic dashboard or Google Earth Engin
 - **100% Open Standards**: Speaks standard **Model Context Protocol (JSON-RPC 2.0)**. Works in Claude Desktop, Cursor IDE, VS Code, Open WebUI, and custom agent frameworks (LangChain, AutoGen, CrewAI).
 - **Zero-Config Free Government Data**: Instant out-of-the-box queries to AWS Earth Search, NASA CMR, and Copernicus public STAC endpoints for Sentinel-2, Landsat 8/9, and Copernicus DEM without needing API keys.
 - **Cloud-Native COG Streaming**: Never download a 1GB satellite granule again. `eo-mcp` leverages HTTP range requests (`/vsicurl/`) to stream and compute band math on only the exact bounding box of your city, farm, or river in seconds (saving >98% bandwidth).
+- **Deterministic Scientific Visualization (Zero AI Hallucinations)**: 100% script-driven visual outputs (NumPy arrays, 256-color scientific LUT rasters, GeoJSON vectors, georeferenced GeoTIFFs, and self-contained interactive Leaflet web maps) computed directly from real satellite pixels and coordinates. Generative AI imagery tools (Midjourney, DALL-E, Nano Banana) are strictly prohibited.
 - **Autonomous Agentic Script Runner**: When standard tools aren't enough, agents can generate and run custom `rasterio`, `xarray`, and `geopandas` scripts inside an isolated geospatial sandbox.
 
 ---

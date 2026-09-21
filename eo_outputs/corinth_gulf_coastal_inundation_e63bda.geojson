@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            22.85,
+            38.13
+          ],
+          [
+            22.87,
+            38.145
+          ],
+          [
+            22.89,
+            38.15
+          ],
+          [
+            22.91,
+            38.165
+          ],
+          [
+            22.93,
+            38.18
+          ],
+          [
+            22.95,
+            38.195
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Mean Sea-Level Baseline (0.0m Datum)",
+        "stroke": "#0284c7",
+        "stroke-width": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            22.855,
+            38.134
+          ],
+          [
+            22.875,
+            38.149
+          ],
+          [
+            22.895,
+            38.154
+          ],
+          [
+            22.915,
+            38.169
+          ],
+          [
+            22.935,
+            38.184
+          ],
+          [
+            22.955,
+            38.199
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Projected Surge Flood Contour (+1.27m HWM)",
+        "stroke": "#f43f5e",
+        "stroke-width": 2.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.895,
+          38.152
+        ]
+      },
+      "properties": {
+        "name": "Critical Beach Breach Point",
+        "type": "Littoral Breach",
+        "surge_depth_m": 1.25,
+        "color": "#ef4444"
+      }
+    }
+  ]
+}

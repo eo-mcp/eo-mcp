@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhodes Post-Wildfire Compound Hydrological Hazard | eo-mcp Visualizer</title>
+    <!-- Leaflet Engine (Online CDN + Resilient Offline Fallback) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg-glass: rgba(15, 23, 42, 0.88);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --accent: #38bdf8;
+            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #0b0f19; color: var(--text-main);
+        }
+        #map, #offline-canvas-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+        #offline-canvas {
+            width: 100%; height: 100%; display: block;
+        }
+
+        /* Dark Titanium Glassmorphic HUD Panel */
+        .glass-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            max-height: calc(100vh - 40px);
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        h1 { font-size: 1.15rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+        .badge {
+            background: var(--accent-gradient);
+            color: #0b0f19;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .timestamp { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; }
+        
+        .section-title {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            color: var(--text-muted); letter-spacing: 0.05em; margin: 12px 0 6px 0;
+        }
+
+        .metrics-card, .coords-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+        .metric-row {
+            display: flex; justify-content: space-between; padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.82rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: var(--text-muted); }
+        .metric-value { font-weight: 600; color: #e2e8f0; font-family: monospace; }
+
+        /* Legend Ramp */
+        .legend-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+        .legend-bar {
+            height: 14px;
+            border-radius: 7px;
+            background: linear-gradient(to right, #ffffcc, #fed976, #fe9929, #e31a1c, #800026);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 6px 0 4px 0;
+        }
+        .legend-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.72rem; color: var(--text-muted); font-family: monospace;
+        }
+
+        /* Opacity Slider */
+        .slider-container {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;
+        }
+        .slider-container input[type=range] {
+            flex: 1; accent-color: var(--accent); cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+        .btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+        .footer {
+            margin-top: 14px; font-size: 0.7rem; color: #64748b; text-align: center;
+        }
+        .leaflet-container { background: #0b0f19 !important; }
+    </style>
+</head>
+<body>
+    <div class="glass-panel">
+        <div class="header">
+            <h1>Rhodes Post-Wildfire Compound Hydrological Hazard</h1>
+            <span class="badge">EO Visualizer</span>
+        </div>
+        <div class="timestamp">Acquisition / Export: 2026-09-21 08:45:28 UTC</div>
+
+        <div class="section-title">Bounding Box (WGS84)</div>
+        <div class="coords-card">
+            <div class="metric-row"><span class="metric-label">West Lon</span><span class="metric-value">27.80000°</span></div>
+            <div class="metric-row"><span class="metric-label">East Lon</span><span class="metric-value">28.15000°</span></div>
+            <div class="metric-row"><span class="metric-label">South Lat</span><span class="metric-value">35.95000°</span></div>
+            <div class="metric-row"><span class="metric-label">North Lat</span><span class="metric-value">36.25000°</span></div>
+        </div>
+
+        <div class="section-title">Quantitative Analytics</div><div class="metrics-card">
+                <div class="metric-row">
+                    <span class="metric-label">Burned Area Ha</span>
+                    <span class="metric-value">12.8000</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Burned Pct Aoi</span>
+                    <span class="metric-value">16.0000</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Mean Slope Deg</span>
+                    <span class="metric-value">18.4000</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Max Headwater Slope Deg</span>
+                    <span class="metric-value">34.2000</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Exposed Roads Km</span>
+                    <span class="metric-value">530.5500</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Exposed Facility</span>
+                    <span class="metric-value">Fire Station (OSM ID 872722211)</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Runoff Amplification Pct</span>
+                    <span class="metric-value">240</span>
+                </div>
+            
+                <div class="metric-row">
+                    <span class="metric-label">Compound Risk Score</span>
+                    <span class="metric-value">44.2000</span>
+                </div>
+            </div>
+
+        <div class="section-title">Colormap Legend (ylorrd)</div>
+        <div class="legend-card">
+            <div class="legend-bar"></div>
+            <div class="legend-labels">
+                <span>Unburned</span>
+                <span>Mid</span>
+                <span>High Severity</span>
+            </div>
+            <div class="slider-container">
+                <span>Raster Opacity:</span>
+                <input id="opacity-slider" type="range" min="0" max="100" value="85" oninput="setOpacity(this.value)">
+                <span id="opacity-val">85%</span>
+            </div>
+        </div>
+
+        <button class="btn" onclick="resetMapView()">Reset Bounding View</button>
+
+        <div class="footer">
+            eo-mcp Planetary Model Context Protocol &bull; Zero Backend Single-File Map
+        </div>
+    </div>
+
+    <!-- Map Containers -->
+    <div id="map"></div>
+    <div id="offline-canvas-container" style="display:none;">
+        <canvas id="offline-canvas"></canvas>
+    </div>
+
+    <script>
+        const bbox = [27.8, 35.95, 28.15, 36.25];
+        const rasterDataUri = "data:image/png;base64,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";
+        const geojsonData = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [27.985, 36.082]}, "properties": {"osm_id": 872722211, "name": "Municipal Fire Station (High Vulnerability)", "amenity": "fire_station", "hazard_exposure": "Downstream alluvial fan apex", "compound_risk": "MODERATE_WATCH", "color": "#ef4444"}}, {"type": "Feature", "geometry": {"type": "LineString", "coordinates": [[27.85, 36.02], [27.92, 36.05], [27.985, 36.082], [28.05, 36.12], [28.12, 36.18]]}, "properties": {"name": "Primary Coastal Evacuation Route", "highway": "primary", "network_exposed_km": 530.55, "stroke": "#f59e0b", "stroke-width": 3}}]};
+
+        let map = null;
+        let rasterLayer = null;
+        let vectorLayer = null;
+
+        function setOpacity(val) {
+            document.getElementById('opacity-val').innerText = val + '%';
+            if (rasterLayer && typeof rasterLayer.setOpacity === 'function') {
+                rasterLayer.setOpacity(val / 100);
+            } else if (window.offlineRenderer) {
+                window.offlineRenderer.opacity = val / 100;
+                window.offlineRenderer.draw();
+            }
+        }
+
+        function resetMapView() {
+            if (map) {
+                map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]], { padding: [60, 60] });
+            } else if (window.offlineRenderer) {
+                window.offlineRenderer.reset();
+            }
+        }
+
+        // Initialize Map
+        if (typeof L !== 'undefined') {
+            try {
+                map = L.map('map', {
+                    center: [36.1, 27.975],
+                    zoom: 12,
+                    zoomControl: true,
+                    attributionControl: false
+                });
+
+                // Dark matter basemap (loads when internet is available)
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    subdomains: 'abcd'
+                }).addTo(map);
+
+                // Add embedded Base64 raster overlay
+                if (rasterDataUri) {
+                    const bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]];
+                    rasterLayer = L.imageOverlay(rasterDataUri, bounds, {
+                        opacity: 0.85,
+                        interactive: true
+                    }).addTo(map);
+                }
+
+                // Add vector GeoJSON overlay
+                if (geojsonData && geojsonData.features && geojsonData.features.length > 0) {
+                    vectorLayer = L.geoJSON(geojsonData, {
+                        style: function(feature) {
+                            const p = feature.properties || {};
+                            return {
+                                color: p.stroke || p.color || '#38bdf8',
+                                weight: 2,
+                                fillColor: p.fill || p['fill-color'] || '#ef4444',
+                                fillOpacity: 0.5
+                            };
+                        },
+                        pointToLayer: function(feature, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 6,
+                                fillColor: '#f59e0b',
+                                color: '#ffffff',
+                                weight: 1.5,
+                                fillOpacity: 0.9
+                            });
+                        },
+                        onEachFeature: function(feature, layer) {
+                            const p = feature.properties || {};
+                            let popup = '<div style="font-family:sans-serif;font-size:12px;"><strong>Feature Attributes</strong><br/>';
+                            for (const [k, v] of Object.entries(p)) {
+                                popup += `<b>${k}:</b> ${v}<br/>`;
+                            }
+                            popup += '</div>';
+                            layer.bindPopup(popup);
+                        }
+                    }).addTo(map);
+                }
+
+                L.control.scale({ imperial: false, metric: true }).addTo(map);
+                map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]], { padding: [60, 60] });
+            } catch (err) {
+                console.warn("Leaflet initialization failed, falling back to offline canvas:", err);
+                initOfflineCanvas();
+            }
+        } else {
+            initOfflineCanvas();
+        }
+
+        // Offline Canvas Renderer (Air-gapped / No CDN access)
+        function initOfflineCanvas() {
+            document.getElementById('map').style.display = 'none';
+            const container = document.getElementById('offline-canvas-container');
+            container.style.display = 'block';
+            const canvas = document.getElementById('offline-canvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', () => { resize(); renderer.draw(); });
+            resize();
+
+            const renderer = {
+                opacity: 0.85,
+                panX: 0,
+                panY: 0,
+                zoom: 1.0,
+                img: null,
+                reset: function() {
+                    this.panX = 0;
+                    this.panY = 0;
+                    this.zoom = 1.0;
+                    this.draw();
+                },
+                draw: function() {
+                    ctx.fillStyle = "#0b0f19";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Draw grid lines
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+                    ctx.lineWidth = 1;
+                    const step = 60 * this.zoom;
+                    for (let x = (this.panX % step); x < canvas.width; x += step) {
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+                    }
+                    for (let y = (this.panY % step); y < canvas.height; y += step) {
+                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+                    }
+
+                    // Draw raster image centered in view
+                    const pad = 80;
+                    const targetW = (canvas.width - pad * 2) * this.zoom;
+                    const targetH = (canvas.height - pad * 2) * this.zoom;
+                    const posX = (canvas.width - targetW) / 2 + this.panX;
+                    const posY = (canvas.height - targetH) / 2 + this.panY;
+
+                    if (this.img && this.img.complete) {
+                        ctx.globalAlpha = this.opacity;
+                        ctx.drawImage(this.img, posX, posY, targetW, targetH);
+                        ctx.globalAlpha = 1.0;
+
+                        // Bounding Box outline
+                        ctx.strokeStyle = "#38bdf8";
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(posX, posY, targetW, targetH);
+                    }
+
+                    // Notice tag
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                    ctx.font = "12px monospace";
+                    ctx.fillText("Offline Fallback Canvas Mode [Pan: Drag | Zoom: Scroll]", 420, canvas.height - 20);
+                }
+            };
+
+            if (rasterDataUri) {
+                const img = new Image();
+                img.onload = () => { renderer.img = img; renderer.draw(); };
+                img.src = rasterDataUri;
+            } else {
+                renderer.draw();
+            }
+
+            window.offlineRenderer = renderer;
+
+            // Pan and Zoom interaction
+            let isDragging = false, startX, startY;
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - renderer.panX;
+                startY = e.clientY - renderer.panY;
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                renderer.panX = e.clientX - startX;
+                renderer.panY = e.clientY - startY;
+                renderer.draw();
+            });
+            window.addEventListener('mouseup', () => { isDragging = false; });
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const factor = e.deltaY < 0 ? 1.1 : 0.9;
+                renderer.zoom = Math.max(0.2, Math.min(5.0, renderer.zoom * factor));
+                renderer.draw();
+            });
+        }
+    </script>
+</body>
+</html>

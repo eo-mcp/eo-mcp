@@ -9,18 +9,26 @@ __version__ = "0.1.0"
 __author__ = "M. Anwar Sounny-Slitine, PhD (sounny.com)"
 __license__ = "Apache-2.0"
 
-from eo_mcp.workflows import assess_location_hazard, environmental_site_audit, resolve_aoi
-from eo_mcp.core.pipeline import execute_pipeline, list_pipeline_recipes, describe_pipeline_recipe
-from eo_mcp.registry import discover_tools, get_active_profile, get_allowed_tools
+_LAZY_IMPORTS = {
+    "assess_location_hazard": "eo_mcp.workflows",
+    "environmental_site_audit": "eo_mcp.workflows",
+    "resolve_aoi": "eo_mcp.workflows",
+    "execute_pipeline": "eo_mcp.core.pipeline",
+    "list_pipeline_recipes": "eo_mcp.core.pipeline",
+    "describe_pipeline_recipe": "eo_mcp.core.pipeline",
+    "discover_tools": "eo_mcp.registry",
+    "get_active_profile": "eo_mcp.registry",
+    "get_allowed_tools": "eo_mcp.registry",
+}
 
-__all__ = [
-    "assess_location_hazard",
-    "environmental_site_audit",
-    "resolve_aoi",
-    "execute_pipeline",
-    "list_pipeline_recipes",
-    "describe_pipeline_recipe",
-    "discover_tools",
-    "get_active_profile",
-    "get_allowed_tools",
-]
+def __getattr__(name: str):
+    if name in _LAZY_IMPORTS:
+        import importlib
+        mod = importlib.import_module(_LAZY_IMPORTS[name])
+        val = getattr(mod, name)
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+__all__ = list(_LAZY_IMPORTS.keys())
+
