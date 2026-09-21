@@ -257,11 +257,39 @@
                     attributionControl: false
                 });
 
-                // Dark matter basemap (loads when internet is available)
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                // Keyless Open Basemaps (Zero Account / Zero API Key Required)
+                const darkCanvas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 16,
+                    attribution: 'Tiles &copy; Esri - Esri, DeLorme, NAVTEQ'
+                });
+
+                const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     maxZoom: 19,
-                    subdomains: 'abcd'
-                }).addTo(map);
+                    attribution: 'Tiles &copy; Esri - Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community'
+                });
+
+                const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                });
+
+                const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                });
+
+                // Default to keyless dark canvas (instant offline/air-gapped resilience)
+                darkCanvas.addTo(map);
+
+                const baseLayers = {
+                    "Dark Canvas (Keyless)": darkCanvas,
+                    "Satellite Imagery (Esri)": satellite,
+                    "OpenStreetMap": osm,
+                    "CARTO Dark Matter": cartoDark
+                };
+
+                L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
 
                 // Add embedded Base64 raster overlay
                 if (rasterDataUri) {

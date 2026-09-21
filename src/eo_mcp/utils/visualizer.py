@@ -635,6 +635,25 @@ def generate_standalone_map_html(
             margin-top: 14px; font-size: 0.7rem; color: #64748b; text-align: center;
         }}
         .leaflet-container {{ background: #0b0f19 !important; }}
+        .leaflet-control-layers {{
+            background: rgba(15, 23, 42, 0.88) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 8px !important;
+            color: #f8fafc !important;
+            font-size: 0.78rem !important;
+            padding: 8px 12px !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+        }}
+        .leaflet-control-layers label {{
+            color: #cbd5e1 !important;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 4px 0;
+        }}
     </style>
 </head>
 <body>
@@ -720,11 +739,39 @@ def generate_standalone_map_html(
                     attributionControl: false
                 }});
 
-                // Dark matter basemap (loads when internet is available)
-                L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+                // Keyless Open Basemaps (Zero Account / Zero API Key Required)
+                const darkCanvas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+                    maxZoom: 16,
+                    attribution: 'Tiles &copy; Esri - Esri, DeLorme, NAVTEQ'
+                }});
+
+                const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
                     maxZoom: 19,
-                    subdomains: 'abcd'
-                }}).addTo(map);
+                    attribution: 'Tiles &copy; Esri - Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community'
+                }});
+
+                const osm = L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }});
+
+                const cartoDark = L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+                    maxZoom: 19,
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                }});
+
+                // Default to keyless dark canvas (instant offline/air-gapped resilience)
+                darkCanvas.addTo(map);
+
+                const baseLayers = {{
+                    "Dark Canvas (Keyless)": darkCanvas,
+                    "Satellite Imagery (Esri)": satellite,
+                    "OpenStreetMap": osm,
+                    "CARTO Dark Matter": cartoDark
+                }};
+
+                L.control.layers(baseLayers, null, {{ position: 'topright' }}).addTo(map);
 
                 // Add embedded Base64 raster overlay
                 if (rasterDataUri) {{
