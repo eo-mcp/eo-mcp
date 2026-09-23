@@ -70,3 +70,5 @@ Thumbs.db
 # Antigravity & Agent metadata
 .agents/
 .antigravity/
+ORIGINAL_REQUEST.md
+eo_outputs/

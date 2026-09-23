@@ -1,7 +1,7 @@
 """Pydantic schemas and models for eo-mcp."""
 
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class BoundingBox(BaseModel):
@@ -21,6 +21,37 @@ class BoundingBox(BaseModel):
         return [self.min_lon, self.min_lat, self.max_lon, self.max_lat]
 
 
+class CompactSTACItem(BaseModel):
+    """High-signal, token-optimized STAC Item summary for AI agent context."""
+    id: str = Field(description="Unique scene identifier")
+    platform: str = Field(description="Satellite platform or constellation (e.g. sentinel-2b, landsat-8)")
+    datetime: str = Field(description="Acquisition datetime (ISO 8601 UTC)")
+    cloud_cover: Optional[float] = Field(None, description="Cloud cover percentage (0-100), rounded to 1 decimal place")
+    bbox: List[float] = Field(description="[min_lon, min_lat, max_lon, max_lat] in WGS84, rounded to 4 decimals")
+    bands: List[str] = Field(description="Normalized core science spectral or sensor band identifiers")
+
+    @field_validator("bbox", mode="before")
+    @classmethod
+    def round_bbox(cls, v: Any) -> List[float]:
+        if isinstance(v, (list, tuple)):
+            return [round(float(c), 4) for c in v]
+        return v
+
+    @field_validator("cloud_cover", mode="before")
+    @classmethod
+    def round_cloud_cover(cls, v: Any) -> Optional[float]:
+        if v is not None:
+            return round(float(v), 1)
+        return None
+
+
+class CompactSTACResponse(BaseModel):
+    """Token-budget compliant STAC search response container."""
+    count: int = Field(description="Number of scenes returned")
+    scenes: List[CompactSTACItem] = Field(description="List of compact scene summaries")
+    collection: Optional[str] = Field(None, description="Target STAC collection identifier")
+
+
 class STACSearchResultItem(BaseModel):
     """Normalized STAC Item summary for AI agent context."""
     id: str
@@ -30,6 +61,8 @@ class STACSearchResultItem(BaseModel):
     bbox: List[float]
     assets: List[str]
     thumbnail_url: Optional[str] = None
+    platform: Optional[str] = None
+    bands: Optional[List[str]] = None
 
 
 class SpectralIndexResult(BaseModel):

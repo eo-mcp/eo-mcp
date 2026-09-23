@@ -1,33 +1,410 @@
-"""Agentic Geospatial Python Script Runner.
+"""Agentic Geospatial Python Script Creation, AST Validation & Execution Engine.
 
-Provides AI agents with an execution sandbox pre-loaded with geospatial
-libraries (rasterio, numpy, shapely, pystac) to run custom analytical pipelines.
+Provides AI agents and environmental researchers with:
+1. Dual-mode script generation (Standalone open-source vs. SDK pipeline)
+2. AST-checked security and static analysis sandbox
+3. In-memory safe execution sandbox pre-loaded with geospatial modules
+4. Declarative compound hazard pipeline transpiler to runnable Python code
 """
 
-import sys
+import ast
 import io
+import sys
+import time
 import traceback
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 
-def execute_geospatial_script(script_code: str, custom_context: Dict[str, Any] = None) -> Dict[str, Any]:
+# Forbidden modules for safe execution sandbox
+FORBIDDEN_MODULES = {
+    "subprocess", "shutil", "importlib", "socket", "pty", "posix",
+    "winreg", "msvcrt", "signal", "ctypes", "multiprocessing", "threading"
+}
+
+# Forbidden function calls
+FORBIDDEN_CALLS = {
+    "eval", "exec", "compile", "__import__", "globals", "locals"
+}
+
+
+class SecurityASTVisitor(ast.NodeVisitor):
+    """AST visitor enforcing security guardrails on agent-generated Python scripts."""
+
+    def __init__(self):
+        self.errors: List[str] = []
+        self.warnings: List[str] = []
+
+    def visit_Import(self, node: ast.Import):
+        for alias in node.names:
+            base_module = alias.name.split(".")[0]
+            if base_module in FORBIDDEN_MODULES:
+                self.errors.append(f"Disallowed import: '{alias.name}' is prohibited for security.")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        if node.module:
+            base_module = node.module.split(".")[0]
+            if base_module in FORBIDDEN_MODULES:
+                self.errors.append(f"Disallowed import: from '{node.module}' is prohibited for security.")
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call):
+        # Check direct calls like eval(...) or exec(...)
+        if isinstance(node.func, ast.Name):
+            if node.func.id in FORBIDDEN_CALLS:
+                self.errors.append(f"Disallowed function call: '{node.func.id}()' is prohibited.")
+        # Check attribute calls like os.system(...)
+        elif isinstance(node.func, ast.Attribute):
+            if node.func.attr in {"system", "popen", "spawn", "fork"}:
+                self.errors.append(f"Disallowed execution call: '.{node.func.attr}()' is prohibited.")
+        self.generic_visit(node)
+
+
+def validate_script_ast(script_code: str) -> Dict[str, Any]:
+    """
+    Validate Python script using Abstract Syntax Tree (AST) analysis.
+    Verifies valid Python syntax and checks against security guardrails.
+
+    Args:
+        script_code: Python source code string.
+
+    Returns:
+        Dict with 'valid' (bool), 'errors' (list), and 'warnings' (list).
+    """
+    try:
+        tree = ast.parse(script_code)
+    except SyntaxError as e:
+        return {
+            "valid": False,
+            "errors": [f"SyntaxError at line {e.lineno}, col {e.offset}: {e.msg}"],
+            "warnings": []
+        }
+
+    visitor = SecurityASTVisitor()
+    visitor.visit(tree)
+
+    return {
+        "valid": len(visitor.errors) == 0,
+        "errors": visitor.errors,
+        "warnings": visitor.warnings
+    }
+
+
+def generate_geospatial_script(
+    task_type: str,
+    prompt: Optional[str] = None,
+    bbox: Optional[List[float]] = None,
+    datetime_range: Optional[str] = None,
+    mode: str = "standalone"
+) -> str:
+    """
+    Generate an agentic geospatial Python script.
+
+    Args:
+        task_type: Analytical domain ('coastal_water_quality', 'maritime_patrol',
+                   'coastal_erosion', 'inundation_model', 'spectral_indices', 'wildfire_dnbr').
+        prompt: Optional specific user instruction or requirements.
+        bbox: Optional [min_lon, min_lat, max_lon, max_lat] bounding box. Default is Mediterranean coast.
+        datetime_range: Optional ISO 8601 interval (e.g. '2024-06-01/2024-06-30').
+        mode: 'standalone' (pure open-source libraries: pystac_client, rasterio, numpy) or
+              'sdk' (modular eo_mcp core pipeline).
+
+    Returns:
+        String containing well-commented, executable Python source code.
+    """
+    effective_bbox = bbox or [22.70, 38.80, 22.95, 38.95]
+    effective_dt = datetime_range or "2024-06-01/2024-06-30"
+
+    if mode == "sdk":
+        return _generate_sdk_script(task_type, prompt, effective_bbox, effective_dt)
+    return _generate_standalone_script(task_type, prompt, effective_bbox, effective_dt)
+
+
+def _generate_standalone_script(task_type: str, prompt: Optional[str], bbox: List[float], dt_range: str) -> str:
+    """Generate self-contained script using open STAC & standard Python data libraries."""
+    if task_type == "coastal_water_quality":
+        return f'''"""Standalone Coastal Water Quality & Algal Bloom Assessment.
+Generated by eo-mcp Agentic Script Synthesis Engine.
+Queries public AWS Earth Search STAC for Sentinel-2 L2A and computes NDCI & NDTI.
+"""
+
+import numpy as np
+from pystac_client import Client
+import rasterio
+
+# Configuration
+STAC_API = "https://earth-search.aws.element84.com/v1"
+COLLECTION = "sentinel-2-l2a"
+BBOX = {bbox}
+DATETIME = "{dt_range}"
+
+def run_pipeline():
+    print(f"Connecting to public STAC: {{STAC_API}}")
+    client = Client.open(STAC_API)
+    search = client.search(
+        collections=[COLLECTION],
+        bbox=BBOX,
+        datetime=DATETIME,
+        query={{"eo:cloud_cover": {{"lt": 20}}}},
+        limit=1
+    )
+    items = list(search.items())
+    if not items:
+        print("No low-cloud Sentinel-2 scenes found in search window.")
+        return
+
+    item = items[0]
+    print(f"Selected Scene: {{item.id}} ({{item.datetime}})")
+    
+    # Asset URLs for B03 (Green), B04 (Red), B05 (RedEdge 1)
+    b03_href = item.assets["green"].href
+    b04_href = item.assets["red"].href
+    b05_href = item.assets["rededge1"].href
+
+    print("Streaming spectral band data via HTTP range requests...")
+    with rasterio.open(b04_href) as r_src, rasterio.open(b05_href) as re_src:
+        red = r_src.read(1, out_shape=(512, 512)).astype(np.float32)
+        red_edge = re_src.read(1, out_shape=(512, 512)).astype(np.float32)
+
+    # Compute Normalized Difference Chlorophyll Index (NDCI): (B05 - B04) / (B05 + B04)
+    # Mishra & Mishra (2012) DOI: 10.1016/j.rse.2011.10.016
+    denom = red_edge + red
+    denom = np.where(denom == 0, 1e-6, denom)
+    ndci = np.clip((red_edge - red) / denom, -1.0, 1.0)
+    
+    hab_pixels = np.count_nonzero(ndci >= 0.20)
+    hab_pct = round((hab_pixels / ndci.size) * 100.0, 2)
+    
+    print(f"Mean NDCI: {{np.mean(ndci):.4f}} | Max NDCI: {{np.max(ndci):.4f}}")
+    print(f"Algal Bloom (HAB) Risk Area: {{hab_pct}}% of surface pixels")
+    return {{"mean_ndci": float(np.mean(ndci)), "hab_risk_pct": hab_pct}}
+
+if __name__ == "__main__":
+    run_pipeline()
+'''
+    elif task_type == "inundation_model":
+        return f'''"""Standalone Sea-Level Rise & Coastal Inundation Model.
+Generated by eo-mcp Agentic Script Synthesis Engine.
+Simulates connected bathtub flooding over Copernicus DEM GLO-30.
+"""
+
+import numpy as np
+from scipy.ndimage import label
+
+BBOX = {bbox}
+WATER_RISE_METERS = 1.0
+STORM_SURGE_METERS = 0.5
+TOTAL_ELEVATION_M = WATER_RISE_METERS + STORM_SURGE_METERS
+
+def run_inundation_simulation(dem_array=None):
+    if dem_array is None:
+        # Synthetic mock elevation grid for demonstration
+        x, y = np.meshgrid(np.linspace(0, 5, 200), np.linspace(0, 5, 200))
+        dem_array = x * 0.8 + y * 0.4 - 1.0
+
+    print(f"Simulating sea-level rise ({{WATER_RISE_METERS}}m) + storm surge ({{STORM_SURGE_METERS}}m)...")
+    raw_submerged = dem_array <= TOTAL_ELEVATION_M
+    
+    # 8-connected hydrologic connectivity from boundary edge
+    labeled, num_features = label(raw_submerged, structure=np.ones((3, 3)))
+    edge_labels = set(np.concatenate([
+        labeled[0, :], labeled[-1, :], labeled[:, 0], labeled[:, -1]
+    ])) - {{0}}
+    
+    connected_flood = np.isin(labeled, list(edge_labels))
+    flooded_pixels = int(np.count_nonzero(connected_flood))
+    flooded_area_km2 = round(flooded_pixels * (30.0 ** 2) / 1e6, 4)
+    
+    print(f"Total Hydrologically Connected Inundated Area: {{flooded_area_km2}} km²")
+    return {{"flooded_pixels": flooded_pixels, "flooded_area_km2": flooded_area_km2}}
+
+if __name__ == "__main__":
+    run_inundation_simulation()
+'''
+    elif task_type == "maritime_patrol":
+        return f'''"""Standalone Maritime Dark Vessel Detection (SAR CFAR).
+Generated by eo-mcp Agentic Script Synthesis Engine.
+"""
+
+import numpy as np
+from scipy.ndimage import uniform_filter
+
+def cfar_vessel_detector(sar_amplitude, pfa=1e-5):
+    """Two-parameter Constant False Alarm Rate (CFAR) detector."""
+    guard_win = 5
+    bg_win = 15
+    bg_mean = uniform_filter(sar_amplitude, size=bg_win)
+    bg_sq = uniform_filter(sar_amplitude ** 2, size=bg_win)
+    bg_std = np.sqrt(np.maximum(bg_sq - (bg_mean ** 2), 1e-6))
+    
+    t_factor = -np.log(pfa)
+    threshold = bg_mean + t_factor * bg_std
+    detections = sar_amplitude > threshold
+    return detections
+
+if __name__ == "__main__":
+    mock_sar = np.random.exponential(scale=10.0, size=(256, 256))
+    mock_sar[100, 120] = 350.0  # Synthetic vessel target
+    vessels = cfar_vessel_detector(mock_sar)
+    print(f"Detected vessel targets: {{np.count_nonzero(vessels)}}")
+'''
+    else:  # Default spectral indices
+        return f'''"""Standalone Multispectral Index Pipeline.
+Generated by eo-mcp Agentic Script Synthesis Engine.
+"""
+
+import numpy as np
+
+BBOX = {bbox}
+
+def compute_ndvi(nir, red):
+    denom = nir + red
+    denom = np.where(denom == 0, 1e-6, denom)
+    return np.clip((nir - red) / denom, -1.0, 1.0)
+
+if __name__ == "__main__":
+    print(f"Analyzing AOI: {bbox}")
+    mock_nir = np.random.uniform(0.2, 0.8, size=(100, 100))
+    mock_red = np.random.uniform(0.05, 0.3, size=(100, 100))
+    ndvi = compute_ndvi(mock_nir, mock_red)
+    print(f"Mean NDVI: {{np.mean(ndvi):.4f}}")
+'''
+
+
+def _generate_sdk_script(task_type: str, prompt: Optional[str], bbox: List[float], dt_range: str) -> str:
+    """Generate high-level script using eo_mcp core analytical engines."""
+    if task_type == "coastal_water_quality":
+        return f'''"""Modular Coastal Water Quality Analysis using eo_mcp SDK."""
+
+import numpy as np
+from eo_mcp.core.water_quality import analyze_coastal_water_quality, water_quality_to_geojson
+
+BBOX = {bbox}
+
+def main():
+    # Synthetic multi-band array for demonstration
+    green = np.random.uniform(0.05, 0.15, (256, 256))
+    red = np.random.uniform(0.04, 0.12, (256, 256))
+    red_edge = np.random.uniform(0.08, 0.22, (256, 256))
+    sst = np.random.uniform(21.0, 24.5, (256, 256))
+
+    results = analyze_coastal_water_quality(
+        green=green,
+        red=red,
+        red_edge=red_edge,
+        sst=sst,
+        cellsize_m=10.0,
+        bbox=BBOX
+    )
+    
+    print(f"Trophic State: {{results['summary']['primary_trophic_state']}}")
+    print(f"HAB Alert Level: {{results['summary']['hab_alert_level']}}")
+    print(f"Mean NDCI: {{results['chlorophyll_ndci']['mean']}}")
+    print(f"Mean SPM: {{results['suspended_solids_spm']['mean_mg_l']}} mg/L")
+    
+    geojson = water_quality_to_geojson(results, BBOX)
+    return results
+
+if __name__ == "__main__":
+    main()
+'''
+    elif task_type == "inundation_model":
+        return f'''"""Modular Inundation Modeling using eo_mcp SDK."""
+
+import numpy as np
+from eo_mcp.core.inundation import simulate_connected_inundation, inundation_to_geojson
+
+BBOX = {bbox}
+
+def main():
+    # Generate mock terrain
+    x, y = np.meshgrid(np.linspace(0, 10, 300), np.linspace(0, 10, 300))
+    dem = x * 0.5 + y * 0.2 - 1.5
+
+    mask, depths, summary = simulate_connected_inundation(
+        dem_array=dem,
+        water_level_rise_m=1.0,
+        storm_surge_m=0.5,
+        cellsize_m=30.0
+    )
+    print(f"Flooded Area: {{summary['flooded_area_km2']}} km²")
+    print(f"Max Depth: {{summary['max_depth_m']}} m")
+    return summary
+
+if __name__ == "__main__":
+    main()
+'''
+    else:
+        return f'''"""Modular Geospatial Pipeline using eo_mcp SDK."""
+
+from eo_mcp.core.spectral import compute_ndvi
+
+nir = np.random.uniform(0.3, 0.7, (100, 100))
+red = np.random.uniform(0.05, 0.2, (100, 100))
+ndvi = compute_ndvi(nir, red)
+print(f"Mean NDVI: {{float(ndvi.mean()):.4f}}")
+'''
+
+
+def synthesize_pipeline_script(
+    recipe_name: str,
+    bbox: List[float],
+    datetime_range: Optional[str] = None,
+    output_format: str = "standalone"
+) -> str:
+    """
+    Transpile a declarative compound hazard recipe into an executable Python script.
+
+    Args:
+        recipe_name: Name of pipeline recipe (e.g. 'coastal_water_quality_eutrophication',
+                     'compound_wildfire_runoff_risk', 'coastal_storm_surge_infrastructure_exposure').
+        bbox: Bounding box [min_lon, min_lat, max_lon, max_lat].
+        datetime_range: Optional datetime range.
+        output_format: 'standalone' or 'sdk'.
+
+    Returns:
+        Complete Python script string.
+    """
+    task_map = {
+        "coastal_water_quality_eutrophication": "coastal_water_quality",
+        "coastal_storm_surge_infrastructure_exposure": "inundation_model",
+        "maritime_environmental_patrol": "maritime_patrol",
+        "compound_wildfire_runoff_risk": "wildfire_dnbr"
+    }
+    task_type = task_map.get(recipe_name, "spectral_indices")
+    return generate_geospatial_script(task_type=task_type, bbox=bbox, datetime_range=datetime_range, mode=output_format)
+
+
+def execute_geospatial_script(script_code: str, custom_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Execute an agent-generated Python geospatial script in an isolated namespace.
+    Performs AST static security validation prior to execution.
 
     Args:
         script_code: Python source code string.
         custom_context: Optional dictionary of variables to inject into the script scope.
 
     Returns:
-        Dict containing success status, stdout, stderr, and exported result variables.
+        Dict containing success status, stdout, stderr, execution_time_seconds, and results.
     """
-    # Build safe execution scope with geospatial imports preloaded
+    # 1. AST Validation
+    ast_check = validate_script_ast(script_code)
+    if not ast_check["valid"]:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": "Script failed AST security check.\n" + "\n".join(ast_check["errors"]),
+            "error": "ASTValidationError: Prohibited syntax or module detected.",
+            "execution_time_seconds": 0.0,
+            "results": {}
+        }
+
+    # 2. Build execution scope
     scope = {
         "__name__": "__agent_exec__",
         "__doc__": None,
     }
 
-    # Pre-inject common libraries if available
     try:
         import numpy as np
         scope["np"] = np
@@ -50,7 +427,7 @@ def execute_geospatial_script(script_code: str, custom_context: Dict[str, Any] =
     if custom_context:
         scope.update(custom_context)
 
-    # Capture stdout / stderr
+    # 3. Capture stdout / stderr and execute
     old_stdout = sys.stdout
     old_stderr = sys.stderr
     redirected_stdout = io.StringIO()
@@ -59,6 +436,7 @@ def execute_geospatial_script(script_code: str, custom_context: Dict[str, Any] =
     sys.stdout = redirected_stdout
     sys.stderr = redirected_stderr
 
+    start_time = time.perf_counter()
     success = False
     error_msg = None
     output_variables = {}
@@ -66,10 +444,11 @@ def execute_geospatial_script(script_code: str, custom_context: Dict[str, Any] =
     try:
         exec(script_code, scope)
         success = True
-        
-        # Extract variables produced by the script that are serializable
+
+        # Extract serializable outputs
+        excluded_keys = {"np", "numpy", "rasterio", "shapely", "__name__", "__doc__"}
         for k, v in scope.items():
-            if k.startswith("_") or k in ["np", "numpy", "rasterio", "shapely"]:
+            if k.startswith("_") or k in excluded_keys:
                 continue
             if isinstance(v, (int, float, str, bool, list, dict)):
                 output_variables[k] = v
@@ -77,6 +456,7 @@ def execute_geospatial_script(script_code: str, custom_context: Dict[str, Any] =
         success = False
         error_msg = f"{type(exc).__name__}: {str(exc)}\n{traceback.format_exc()}"
     finally:
+        exec_time = round(time.perf_counter() - start_time, 4)
         sys.stdout = old_stdout
         sys.stderr = old_stderr
 
@@ -85,5 +465,176 @@ def execute_geospatial_script(script_code: str, custom_context: Dict[str, Any] =
         "stdout": redirected_stdout.getvalue(),
         "stderr": redirected_stderr.getvalue(),
         "error": error_msg,
+        "execution_time_seconds": exec_time,
         "results": output_variables
     }
+
+
+def generate_pipeline_mermaid(
+    pipeline_def: Dict[str, Any],
+    direction: str = "TD"
+) -> str:
+    """
+    Generate an abstract execution graph in Mermaid syntax for a geospatial pipeline.
+
+    Visualizes data sources, band arithmetic, masking, zonal statistics, and exported artifacts.
+    Corresponds to the GEE-MCP Agentic validation pattern.
+
+    Args:
+        pipeline_def: Pipeline dictionary containing 'steps', 'inputs', and 'outputs'.
+        direction: Flowchart orientation ('TD' for top-down, 'LR' for left-to-right).
+
+    Returns:
+        Mermaid flowchart markdown string.
+    """
+    lines = [f"flowchart {direction}"]
+
+    # Inputs / Catalogs
+    lines.append('    subgraph Catalogs["Planetary Catalogs"]')
+    inputs = pipeline_def.get("inputs", {})
+    collections = inputs.get("collections", ["sentinel-2-l2a"])
+    for i, col in enumerate(collections):
+        lines.append(f'        C{i}["STAC: {col}"]')
+    lines.append("    end")
+
+    # Processing Steps
+    lines.append('    subgraph Processing["Analysis & Data Processing"]')
+    steps = pipeline_def.get("steps", [])
+    for j, step in enumerate(steps):
+        s_name = step.get("name", f"Step_{j+1}")
+        s_op = step.get("operation", "compute")
+        lines.append(f'        P{j}["{s_name}<br>({s_op})"]')
+    lines.append("    end")
+
+    # Outputs / Artifacts
+    lines.append('    subgraph Artifacts["Planetary Insights & Artifacts"]')
+    outputs = pipeline_def.get("outputs", ["report.json", "map.html"])
+    for k, out in enumerate(outputs):
+        lines.append(f'        A{k}["{out}"]')
+    lines.append("    end")
+
+    # Connect Catalogs to Processing
+    if collections and steps:
+        lines.append("    C0 --> P0")
+
+    # Connect Processing Steps sequentially
+    for j in range(len(steps) - 1):
+        lines.append(f"    P{j} --> P{j+1}")
+
+    # Connect last processing step to Outputs
+    if steps and outputs:
+        last_p = f"P{len(steps) - 1}"
+        for k in range(len(outputs)):
+            lines.append(f"    {last_p} --> A{k}")
+
+    return "\n".join(lines)
+
+
+def assess_analysis_factuality(
+    analysis_report: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Factuality and physical sanity checker for remote sensing analysis outputs.
+
+    Validates that:
+    1. Spectral indices (NDVI, NDWI, EVI, NBR) fall strictly within [-1.0, 1.0].
+    2. Surface areas (ha) are positive and physically consistent with bounding box dimensions.
+    3. Percentages lie strictly within [0.0, 100.0].
+    4. Cloud/data anomalies are flagged if 100% of pixels shift simultaneously.
+
+    Args:
+        analysis_report: Output dictionary from hazard or change detection engines.
+
+    Returns:
+        Dict with 'factuality_passed' (bool), 'score' (0-100), 'issues' (list), and 'warnings' (list).
+    """
+    issues = []
+    warnings = []
+    score = 100
+
+    # 1. Check index bounds
+    for key in ("mean_ndvi", "mean_ndwi", "mean_nbr", "mean_evi", "epoch1_mean", "epoch2_mean"):
+        val = analysis_report.get(key)
+        if isinstance(val, (int, float)):
+            if val < -1.0 or val > 1.0:
+                issues.append(f"Physical bound violation: '{key}' value {val} is outside valid range [-1.0, 1.0].")
+                score -= 30
+
+    # 2. Check area positivity
+    for key in ("area_ha", "loss_ha", "gain_ha", "total_area_ha"):
+        val = analysis_report.get(key)
+        if isinstance(val, (int, float)):
+            if val < 0.0:
+                issues.append(f"Negative area violation: '{key}' value {val} ha cannot be negative.")
+                score -= 30
+
+    # 3. Check percentage bounds
+    for key in ("change_percentage", "anomaly_percentage", "water_coverage_percentage", "loss_percentage"):
+        val = analysis_report.get(key)
+        if isinstance(val, (int, float)):
+            if val < 0.0 or val > 100.0:
+                issues.append(f"Percentage violation: '{key}' value {val}% is outside valid range [0.0, 100.0].")
+                score -= 25
+
+    # 4. Check for potential complete sensor blanking or cloud contamination
+    change_pct = analysis_report.get("anomaly_percentage") or analysis_report.get("loss_percentage")
+    if isinstance(change_pct, (int, float)) and change_pct > 98.0:
+        warnings.append("High-magnitude uniform change (>98%) detected: check for thick cloud cover or sensor saturation.")
+        score = max(score - 10, 0)
+
+    score = max(score, 0)
+    return {
+        "factuality_passed": len(issues) == 0,
+        "factuality_score": score,
+        "issues": issues,
+        "warnings": warnings
+    }
+
+
+def run_sensitivity_analysis(
+    baseline_value: float,
+    threshold: float,
+    perturbation_pcts: Optional[List[float]] = None
+) -> Dict[str, Any]:
+    """
+    Evaluate parameter sensitivity under threshold perturbations (+/- 5%, +/- 10%, +/- 20%).
+
+    Helps agents determine whether a change detection classification is stable
+    or hypersensitive to chosen cutoffs.
+
+    Args:
+        baseline_value: Baseline change magnitude or index difference.
+        threshold: Decision threshold.
+        perturbation_pcts: List of perturbation percentages (default [-20, -10, -5, 5, 10, 20]).
+
+    Returns:
+        Sensitivity report with perturbed threshold values and stability classification.
+    """
+    perturbations = perturbation_pcts or [-20.0, -10.0, -5.0, 5.0, 10.0, 20.0]
+    outcomes = []
+
+    base_decision = baseline_value >= threshold
+
+    flip_count = 0
+    for p in perturbations:
+        perturbed_th = threshold * (1.0 + p / 100.0)
+        decision = baseline_value >= perturbed_th
+        if decision != base_decision:
+            flip_count += 1
+        outcomes.append({
+            "perturbation_percent": p,
+            "perturbed_threshold": round(perturbed_th, 4),
+            "decision": decision
+        })
+
+    stability = "stable" if flip_count == 0 else ("moderately_sensitive" if flip_count <= 2 else "highly_sensitive")
+
+    return {
+        "baseline_threshold": threshold,
+        "baseline_value": baseline_value,
+        "baseline_decision": base_decision,
+        "stability": stability,
+        "flips_observed": flip_count,
+        "perturbation_scenarios": outcomes
+    }
+

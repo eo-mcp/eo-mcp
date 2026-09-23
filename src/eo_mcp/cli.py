@@ -571,6 +571,71 @@ def cli_spatial_sql(args):
     console.print(table)
 
 
+def cli_water_quality(args):
+    """Execute coastal water quality, eutrophication & turbidity analysis."""
+    from eo_mcp.server import analyze_coastal_water_quality
+    console.print(Panel.fit("[bold cyan]Coastal Water Quality & Algal Bloom Assessment[/bold cyan]"))
+    with console.status("[bold blue]Evaluating Sentinel-2 optical & thermal indicators...[/bold blue]"):
+        res = analyze_coastal_water_quality(
+            bbox=args.bbox,
+            datetime_range=args.date,
+            format=args.format
+        )
+    if args.format == "summary":
+        try:
+            data = json.loads(res)
+            console.print(Panel(json.dumps(data, indent=2), title="Water Quality Assessment"))
+        except Exception:
+            console.print(res)
+    else:
+        console.print(res)
+
+
+def cli_script(args):
+    """Manage agentic geospatial Python scripts (generate, validate, run)."""
+    subcmd = getattr(args, "script_command", None)
+    if subcmd == "generate":
+        from eo_mcp.core.script_runner import generate_geospatial_script
+        code = generate_geospatial_script(
+            task_type=args.task,
+            prompt=args.prompt,
+            bbox=args.bbox,
+            datetime_range=args.date,
+            mode=args.mode
+        )
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(code)
+            console.print(f"[green]Saved generated script to {args.output}[/green]")
+        else:
+            console.print(code)
+    elif subcmd == "validate":
+        from eo_mcp.core.script_runner import validate_script_ast
+        with open(args.file, "r", encoding="utf-8") as f:
+            code = f.read()
+        res = validate_script_ast(code)
+        if res["valid"]:
+            console.print("[bold green][PASS] Script passed AST security and syntax checks.[/bold green]")
+        else:
+            console.print("[bold red][FAIL] AST Validation Errors:[/bold red]")
+            for err in res["errors"]:
+                console.print(f"  [red]* {err}[/red]")
+    elif subcmd == "run":
+        from eo_mcp.core.script_runner import execute_geospatial_script
+        with open(args.file, "r", encoding="utf-8") as f:
+            code = f.read()
+        res = execute_geospatial_script(code)
+        if res["success"]:
+            console.print(f"[bold green]Execution completed successfully ({res['execution_time_seconds']}s)[/bold green]")
+            if res["stdout"]:
+                console.print(f"[cyan]Output:[/cyan]\n{res['stdout']}")
+            if res["results"]:
+                console.print(Panel(json.dumps(res["results"], indent=2), title="Exported Variables"))
+        else:
+            console.print(f"[bold red]Execution failed: {res['error']}[/bold red]")
+            if res["stderr"]:
+                console.print(f"[red]{res['stderr']}[/red]")
+
 
 def cli_pipeline(args):
     """CLI handler for user-defined pipeline orchestration and recipes."""
@@ -777,6 +842,28 @@ def app():
     p_spatial_sql.add_argument("--sql", type=str, required=True, help="SQL query string")
     p_spatial_sql.add_argument("--geojson-path", type=str, required=True, help="Path to GeoJSON file")
 
+    p_wq = subparsers.add_parser("water-quality", help="Assess coastal water quality, eutrophication, and HAB risk")
+    p_wq.add_argument("--bbox", nargs=4, type=float, default=[22.70, 38.80, 22.95, 38.95], help="min_lon min_lat max_lon max_lat")
+    p_wq.add_argument("--date", type=str, default="2024-06-01/2024-06-30", help="Observation date range")
+    p_wq.add_argument("--format", choices=["summary", "geojson", "csv"], default="summary", help="Output format")
+
+    p_script = subparsers.add_parser("script", help="Agentic geospatial Python script synthesis and execution")
+    p_script_subs = p_script.add_subparsers(dest="script_command")
+
+    p_script_gen = p_script_subs.add_parser("generate", help="Generate standalone or SDK geospatial scripts")
+    p_script_gen.add_argument("--task", type=str, default="coastal_water_quality", choices=["coastal_water_quality", "maritime_patrol", "coastal_erosion", "inundation_model", "spectral_indices", "wildfire_dnbr"], help="Analytical task")
+    p_script_gen.add_argument("--prompt", type=str, default=None, help="Custom prompt / instructions")
+    p_script_gen.add_argument("--bbox", nargs=4, type=float, default=[22.70, 38.80, 22.95, 38.95], help="min_lon min_lat max_lon max_lat")
+    p_script_gen.add_argument("--date", type=str, default="2024-06-01/2024-06-30", help="Date range")
+    p_script_gen.add_argument("--mode", choices=["standalone", "sdk"], default="standalone", help="Script architecture mode")
+    p_script_gen.add_argument("--output", "-o", type=str, default=None, help="Save script to file")
+
+    p_script_val = p_script_subs.add_parser("validate", help="Validate script using AST static security checks")
+    p_script_val.add_argument("file", type=str, help="Python file path to validate")
+
+    p_script_run = p_script_subs.add_parser("run", help="Run geospatial script safely in sandbox")
+    p_script_run.add_argument("file", type=str, help="Python file path to execute")
+
     args = parser.parse_args()
 
     # Handle profile setting
@@ -823,6 +910,10 @@ def app():
         cli_export_map(args)
     elif args.command == "spatial-sql":
         cli_spatial_sql(args)
+    elif args.command == "water-quality":
+        cli_water_quality(args)
+    elif args.command == "script":
+        cli_script(args)
     else:
         run_server()
 

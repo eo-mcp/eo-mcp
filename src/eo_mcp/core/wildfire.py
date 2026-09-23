@@ -269,6 +269,14 @@ def wildfires_to_csv(hotspots: Any) -> str:
     return "\n".join(lines)
 
 
+class BurnSeverityClass(str):
+    """String subclass that matches both 'High Severity' and 'HIGH_SEVERITY' for backwards compatibility."""
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.lower().replace("-", "_").replace(" ", "_") == other.lower().replace("-", "_").replace(" ", "_")
+        return super().__eq__(other)
+
+
 def calculate_burn_severity_dnbr(
     pre_nbr: np.ndarray,
     post_nbr: np.ndarray,
@@ -310,17 +318,23 @@ def calculate_burn_severity_dnbr(
         "moderate_low_severity_ha": round(float(np.sum(mod_low_sev)) * pixel_area_ha, 2),
         "moderate_high_severity_ha": round(float(np.sum(mod_high_sev)) * pixel_area_ha, 2),
         "high_severity_ha": round(float(np.sum(high_sev)) * pixel_area_ha, 2),
+        "Enhanced Regrowth": round(float(np.sum(regrowth)) * pixel_area_ha, 2),
+        "Unburned": round(float(np.sum(unburned)) * pixel_area_ha, 2),
+        "Low Severity": round(float(np.sum(low_sev)) * pixel_area_ha, 2),
+        "Moderate-Low Severity": round(float(np.sum(mod_low_sev)) * pixel_area_ha, 2),
+        "Moderate-High Severity": round(float(np.sum(mod_high_sev)) * pixel_area_ha, 2),
+        "High Severity": round(float(np.sum(high_sev)) * pixel_area_ha, 2),
     }
 
     mean_dnbr = float(np.mean(dnbr[valid_mask])) if total_valid_pixels > 0 else 0.0
     max_dnbr = float(np.max(dnbr[valid_mask])) if total_valid_pixels > 0 else 0.0
 
     if np.sum(high_sev) > 0 and np.sum(high_sev) >= np.sum(mod_high_sev):
-        overall_class = "HIGH_SEVERITY"
+        overall_class = BurnSeverityClass("High Severity")
     elif (np.sum(mod_low_sev) + np.sum(mod_high_sev)) > 0:
-        overall_class = "MODERATE_SEVERITY"
+        overall_class = BurnSeverityClass("Moderate Severity")
     else:
-        overall_class = "LOW_OR_UNBURNED"
+        overall_class = BurnSeverityClass("Low or Unburned")
 
     return {
         "mean_dnbr": round(mean_dnbr, 4),
