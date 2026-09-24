@@ -567,6 +567,35 @@ def _step_maritime_sar_ais(step: PipelineStep, ctx: PipelineContext) -> Dict[str
     }
 
 
+def _step_coastal_water_quality(step: PipelineStep, ctx: PipelineContext) -> Dict[str, Any]:
+    """Execute coastal water quality, eutrophication & turbidity analysis within pipeline."""
+    from eo_mcp.core.water_quality import analyze_coastal_water_quality
+    
+    np.random.seed(int(abs(ctx.bbox[0] * 1000) % 10000))
+    g = np.random.uniform(0.05, 0.12, (100, 100))
+    r = np.random.uniform(0.04, 0.10, (100, 100))
+    re = np.random.uniform(0.06, 0.18, (100, 100))
+    # Simulated coastal runoff plume
+    r[20:50, 30:70] += 0.08
+    re[20:50, 30:70] += 0.12
+
+    wq_results = analyze_coastal_water_quality(
+        green=g,
+        red=r,
+        red_edge=re,
+        cellsize_m=10.0,
+        bbox=ctx.bbox
+    )
+    ctx.set_var(step.output_var, wq_results)
+    return {
+        "water_area_km2": wq_results["summary"]["water_surface_area_km2"],
+        "primary_trophic_state": wq_results["summary"]["primary_trophic_state"],
+        "hab_alert_level": wq_results["summary"]["hab_alert_level"],
+        "mean_ndci": wq_results["chlorophyll_ndci"]["mean"],
+        "mean_spm_mg_l": wq_results["suspended_solids_spm"]["mean_mg_l"]
+    }
+
+
 def _step_exposure_overlay(step: PipelineStep, ctx: PipelineContext) -> Dict[str, Any]:
     """Overlay hazard footprint with OpenStreetMap public critical infrastructure."""
     hazard_var_name = step.input_vars.get("hazard", step.params.get("hazard_var", "hazard_results"))
@@ -637,6 +666,15 @@ def _step_compound_risk_synthesis(step: PipelineStep, ctx: PipelineContext) -> D
         score += pts
         factors.append(f"Unidentified Dark Radar Targets ({d_cnt} vessels, +{pts:.1f} pts)")
 
+    # Check for coastal water quality / harmful algal bloom (HAB)
+    wq = ctx.variables.get("water_quality_results", ctx.variables.get("water_quality", {}))
+    if wq and isinstance(wq, dict):
+        hab = wq.get("summary", {}).get("hab_alert_level", "LOW")
+        hab_pts = {"CRITICAL": 30.0, "ELEVATED": 20.0, "MODERATE": 10.0, "LOW": 0.0}.get(hab, 0.0)
+        if hab_pts > 0:
+            score += hab_pts
+            factors.append(f"Harmful Algal Bloom / Eutrophication ({hab} alert, +{hab_pts:.1f} pts)")
+
     # Check for infrastructure exposure
     exposure = ctx.variables.get("exposure_results", ctx.variables.get("exposure", {}))
     if exposure and isinstance(exposure, dict):
@@ -664,6 +702,7 @@ def _step_compound_risk_synthesis(step: PipelineStep, ctx: PipelineContext) -> D
             "EU Floods Directive (2007/60/EC Art. 6 & 14)",
             "EU Critical Entities Resilience Directive (CER 2022/2557)",
             "EU Marine Strategy Framework Directive (MSFD 2008/56/EC)",
+            "EU Water Framework Directive (WFD 2000/60/EC)",
             "EU Adaptation to Climate Change Strategy (COM/2021/82)"
         ]
     }
@@ -679,6 +718,7 @@ STEP_HANDLERS = {
     "wildfire_activity": _step_wildfire_activity,
     "burn_severity": _step_burn_severity,
     "maritime_sar_ais": _step_maritime_sar_ais,
+    "coastal_water_quality": _step_coastal_water_quality,
     "exposure_overlay": _step_exposure_overlay,
     "compound_risk_synthesis": _step_compound_risk_synthesis,
 }
@@ -846,6 +886,48 @@ RECIPES: Dict[str, Dict[str, Any]] = {
                 "type": "exposure_overlay",
                 "input_vars": {"hazard": "maritime_results"},
                 "params": {"infrastructure_types": ["ports", "shipping_lanes"]},
+                "output_var": "exposure_results"
+            },
+            {
+                "id": "synthesis",
+                "type": "compound_risk_synthesis",
+                "output_var": "compound_summary"
+            }
+        ]
+    },
+    "coastal_water_quality_eutrophication": {
+        "name": "coastal_water_quality_eutrophication",
+        "description": "Sentinel-2 NDCI Chlorophyll-a, NDTI Turbidity, SPM Sediment Load, and Thermal Plume Anomaly Detection",
+        "category": "marine_pollution_hazard",
+        "default_parameters": {
+            "datetime_range": "2024-06-01/2024-06-30",
+            "collection": "sentinel-2-l2a"
+        },
+        "steps": [
+            {
+                "id": "stac_discovery",
+                "type": "stac_search",
+                "params": {
+                    "collections": ["sentinel-2-l2a"],
+                    "datetime_range": "$parameters.datetime_range",
+                    "max_cloud_cover": 20.0,
+                    "limit": 1
+                },
+                "output_var": "selected_scene"
+            },
+            {
+                "id": "water_quality_eval",
+                "type": "coastal_water_quality",
+                "params": {
+                    "datetime_range": "$parameters.datetime_range"
+                },
+                "output_var": "water_quality_results"
+            },
+            {
+                "id": "exposure_eval",
+                "type": "exposure_overlay",
+                "input_vars": {"hazard": "water_quality_results"},
+                "params": {"infrastructure_types": ["ports", "harbours", "aquaculture"]},
                 "output_var": "exposure_results"
             },
             {

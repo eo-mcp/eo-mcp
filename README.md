@@ -297,6 +297,68 @@ Exports a native `.geolibre` project configuration file. Enables one-click impor
 ### 22. `query_spatial_sql(sql: str, geojson: str, table_name: str = "features") -> str`
 Executes spatial SQL queries against GeoJSON FeatureCollections and geospatial metadata. Modeled after GeoLibre's DuckDB Spatial engine. Supports standard SQL (`SELECT`, `WHERE`, `GROUP BY`, `ORDER BY`) and spatial functions (`ST_Area`, `ST_Centroid`, `ST_Length`, `ST_Intersects`).
 
+### 23. `analyze_coastal_water_quality(bbox: list, datetime_range: str = "2024-06-01/2024-06-30", collection: str = "sentinel-2-l2a", format: str = "summary") -> str`
+Assesses coastal water quality, eutrophication, harmful algal blooms (HABs), sedimentation, and industrial thermal effluent plumes. Computes:
+- **Normalized Difference Chlorophyll Index (NDCI)**: $(B05 - B04) / (B05 + B04)$ for chlorophyll-a estimation and HAB risk alerts (`CRITICAL`, `ELEVATED`, `MODERATE`, `LOW`) using Mishra & Mishra (2012).
+- **Normalized Difference Turbidity Index (NDTI)**: $(B04 - B03) / (B04 + B03)$ for water clarity using Lacaux et al. (2007).
+- **Suspended Particulate Matter (SPM / TSS) Proxy**: Single-band calibrated red reflectance model using Nechad et al. (2010).
+- **Thermal Plume Anomaly Detection**: Sea Surface Temperature (SST) elevation gradients ($\Delta T \ge 1.5^\circ\text{C}$).  
+**Outputs:** JSON summary report, GIS-ready RFC 7946 GeoJSON (`format="geojson"`), or tabular CSV (`format="csv"`).
+
+### 24. `generate_script(task_type: str, prompt: str = None, bbox: list = None, datetime_range: str = None, mode: str = "standalone") -> str`
+Empowers AI agents and researchers to autonomously synthesize complete, runnable Python geospatial scripts:
+- **`mode="standalone"`**: Generates self-contained, zero-dependency Python code that queries public STAC endpoints (`pystac_client`, `rasterio`, `numpy`, `shapely`) without requiring `eo-mcp` installed.
+- **`mode="sdk"`**: Generates modular Python scripts leveraging `eo_mcp` core analytical engines.  
+**Supported Task Types:** `coastal_water_quality`, `maritime_patrol`, `coastal_erosion`, `inundation_model`, `spectral_indices`, `wildfire_dnbr`.
+
+### 25. `validate_script(script_code: str) -> str`
+Performs Abstract Syntax Tree (AST) static security analysis on agent-generated Python code. Validates syntax and strictly blocks prohibited modules (`subprocess`, `os`, `shutil`, `socket`, `pty`, `ctypes`) and dangerous executions (`eval`, `exec`, `compile`, `__import__`).
+
+### 26. `run_script(script_code: str, custom_context: str = None) -> str`
+Safely executes validated geospatial Python scripts inside an in-memory execution sandbox pre-loaded with `numpy`, `rasterio`, and `shapely`. Captures execution runtime, standard output, standard error, and returns structured result variables.
+
+### 27. `synthesize_pipeline_code(recipe_name: str, bbox: list, datetime_range: str = None, output_format: str = "standalone") -> str`
+Transpiles declarative compound hazard recipes into standalone, executable Python scripts ready for Google Colab, Jupyter Notebooks, or headless serverless pipelines.
+
+---
+
+## Planetary Google Earth Engine (GEE) Tools
+
+`eo-mcp` bridges client-side cloud-native COG streaming with server-side planetary Google Earth Engine compute, supporting 50+ years of satellite archives (Landsat 1 MSS in 1972 through Sentinel-2 today):
+
+### 28. `gee_init(project_id: str = None, service_account_key: str = None) -> str`
+Initializes the Earth Engine Python API session. Honors standard GCP credential resolution: direct parameters, service account JSON key, `GEE_PROJECT` or `GOOGLE_APPLICATION_CREDENTIALS` environment variables, or cached credentials from `earthengine authenticate`.
+
+### 29. `gee_catalog_search(query: str, limit: int = 10) -> str`
+Instant multi-term keyword search across 880+ GEE public datasets using a cached index. Searches titles, tags, IDs, and providers without network crawling latency.
+
+### 30. `gee_build_composite(year: int, location: str = None, bbox: list = None, aoi_geojson: str = None, season_start_month: int = 1, season_end_month: int = 12, method: str = "median", min_scenes: int = 3, max_cloud_cover: float = None) -> str`
+Builds a cloud-masked, harmonized multi-sensor composite using an automated fallback ladder across 50 years of archives. Automatically selects sensor priority by era (MSS, TM, ETM+, OLI, S2), unpacks QA bitmasks, harmonizes bands to standard names (`Blue`, `Green`, `Red`, `NIR`, `SWIR1`, `SWIR2`), and caches the result in an in-memory session registry returning a lightweight `composite_id` handle.
+
+### 31. `gee_compute_indices(composite_id: str, indices: list = None, expression: str = None, output_band_name: str = "custom_index") -> str`
+Computes spectral indices (`NDVI`, `SAVI`, `EVI`, `NDMI`, `NBR`, `NDWI`, `NDBI`, `NDRE`, `CIre`, `GreenRed`, `BlueGreenNIR`) or evaluates custom band-math expressions. Automatically validates sensor era band feasibility and reports skipped indices.
+
+### 32. `gee_thumbnail(composite_id: str, bands: list = None, min_val: float = 0.0, max_val: float = 0.3, palette: list = None, dimensions: int = 720) -> str`
+Generates an authentic high-resolution PNG thumbnail URL directly from Google Earth Engine. Follows the Deterministic Scientific Visual Mandate (Zero AI Hallucinations), rendering genuine satellite pixels.
+
+### 33. `gee_zonal_stats(composite_id: str, reducers: list = None, bands: list = None, scale: int = None) -> str`
+Computes multi-reducer summary statistics (`mean`, `median`, `min`, `max`, `stdDev`, `sum`, `count`) over the composite region in a single server-side reduction call.
+
+### 34. `gee_threshold_area(composite_id: str, band_name: str, operator: str, threshold: float, scale: int = None) -> str`
+Quantifies geodesic surface area in square kilometers ($km^2$) and square meters ($m^2$) meeting threshold criteria (e.g. `NDWI > 0.1` for water or `NDVI < 0.2` for barren soil) using `ee.Image.pixelArea()`, reporting coverage percentage of total region.
+
+### 35. `gee_mask_by_raster(composite_id: str, mask_dataset_id: str, mask_band: str, mask_min: float = None, mask_max: float = None) -> str`
+Applies an ancillary raster mask (Copernicus DEM elevation/slope, SRTM, or ESA WorldCover classes) to an active composite.
+
+### 36. `gee_sample_polygons(dataset_id: str = "ESA/WorldCover/v200", band: str = "Map", class_values: list = None, class_labels: list = None, location: str = None, bbox: list = None, points_per_class: int = 6, polygon_size_m: float = 180.0) -> str`
+Auto-generates labeled training polygons from categorical land cover products (e.g. ESA WorldCover) for machine learning classifiers, returning a GeoJSON FeatureCollection.
+
+### 37. `gee_audit_factuality(composite_id: str = None, sensor: str = None, year: int = None, reducer: str = None, indices: list = None) -> str`
+Audits Earth Observation workflows for critical scientific assumptions (TOA vs SR calibration, cross-sensor spectral offsets, temporal smoothing bias) and synthesizes a declarative Mermaid flowchart of the processing pipeline.
+
+### 38. `gee_execute_code(code: str) -> str`
+Execution escape hatch running arbitrary Python code with an initialized `ee` context for custom algorithms, returning stdout and structured result variables.
+
 
 ---
 
@@ -305,6 +367,18 @@ Executes spatial SQL queries against GeoJSON FeatureCollections and geospatial m
 `eo-mcp` is also a full-featured operator CLI with Rich terminal tables, status badges, and GIS piping:
 
 ```bash
+# Coastal water quality, eutrophication & harmful algal bloom (HAB) analysis
+eo-mcp water-quality --bbox 22.70 38.80 22.95 38.95 --format summary
+eo-mcp water-quality --bbox 22.70 38.80 22.95 38.95 --format geojson > water_quality.geojson
+
+# Agentic script synthesis (generate standalone open-source Python code)
+eo-mcp script generate --task coastal_water_quality --mode standalone -o water_script.py
+eo-mcp script generate --task inundation_model --mode standalone -o flood_model.py
+
+# AST security validation & sandboxed execution
+eo-mcp script validate water_script.py
+eo-mcp script run water_script.py
+
 # Maritime surveillance & dark vessel tracking
 eo-mcp dark-vessels --bbox 24.5 59.8 25.2 60.2 --format summary
 eo-mcp dark-vessels --bbox 24.5 59.8 25.2 60.2 --format geojson > dark_vessels.geojson
@@ -319,7 +393,7 @@ eo-mcp sea-level-rise --bbox 22.8 38.6 23.2 38.9 --scenario SSP5-8.5 --surge 0.5
 eo-mcp wildfires --bbox -120.5 38.5 -120.0 39.0 --days 2
 
 # Post-fire burn severity assessment (dNBR & EFFIS classification)
-eo-mcp burn-severity --bbox -120.5 38.5 -120.0 39.0 --pre-date 2024-05-01 --post-date 2024-07-01
+eo-mcp burn-severity --bbox -120.5 38.5 -120.0 38.8 --pre-date 2024-05-01 --post-date 2024-07-01
 
 # Land Surface Temperature & Urban Heat Island analysis (LST in °C)
 eo-mcp urban-heat --bbox 2.2 48.7 2.5 49.0 --date 2024-07-15
@@ -332,6 +406,10 @@ eo-mcp emissions --bbox 2.2 48.7 2.5 49.0 --gas NO2
 
 # Reservoir drought depletion & water loss dynamics
 eo-mcp drought --bbox -4.5 37.5 -4.0 38.0 --hist-year 2019 --recent-year 2024
+
+# Compound hazard pipeline orchestration
+eo-mcp pipeline list
+eo-mcp pipeline run --recipe coastal_water_quality_eutrophication --location "Fthiotida, Greece" --format summary
 
 # Inspect or configure provider credentials
 eo-mcp auth

@@ -17,6 +17,12 @@ TOOL_CATEGORIES = {
         "tools": [
             "assess_location_hazard",
             "environmental_site_audit",
+            "audit_wildfire_burn",
+            "detect_flood_inundation",
+            "detect_vegetation_change",
+            "detect_planetary_change",
+            "assess_disaster_damage",
+            "analyze_zonal_change",
             "run_pipeline",
             "list_pipeline_recipes",
             "describe_pipeline_recipe",
@@ -36,6 +42,8 @@ TOOL_CATEGORIES = {
         "description": "Spectral index computation, SAR radar backscatter, and elevation profile extraction.",
         "tools": [
             "calculate_spectral_index",
+            "query_spectral_indices",
+            "compute_custom_spectral_index",
             "get_elevation_profile",
             "detect_water_sar",
         ]
@@ -47,6 +55,10 @@ TOOL_CATEGORIES = {
             "detect_active_wildfires",
             "calculate_burn_severity",
             "analyze_coastal_erosion",
+            "analyze_coastal_water_quality",
+            "audit_wildfire_burn",
+            "detect_flood_inundation",
+            "assess_disaster_damage",
             "query_nasa_opera",
         ]
     },
@@ -69,6 +81,8 @@ TOOL_CATEGORIES = {
         "description": "Advanced code execution, authenticated data access, and credential management.",
         "tools": [
             "run_geospatial_script",
+            "compute_temporal_composite",
+            "generate_pipeline_mermaid",
             "configure_credentials",
             "get_credential_status",
             "download_copernicus_granule",
@@ -81,6 +95,22 @@ TOOL_CATEGORIES = {
             "export_interactive_map",
             "export_geolibre_project",
             "query_spatial_sql",
+        ]
+    },
+    "earth_engine": {
+        "description": "Planetary Google Earth Engine workflows: 50-year multi-sensor temporal composites, spectral indices, zonal statistics, raster masking, threshold area, training polygon sampling, and scientific factuality auditing.",
+        "tools": [
+            "gee_init",
+            "gee_catalog_search",
+            "gee_build_composite",
+            "gee_compute_indices",
+            "gee_thumbnail",
+            "gee_zonal_stats",
+            "gee_threshold_area",
+            "gee_mask_by_raster",
+            "gee_sample_polygons",
+            "gee_audit_factuality",
+            "gee_execute_code",
         ]
     }
 }
@@ -95,6 +125,8 @@ PROFILES = {
     "minimal": ["workflows", "core"],
     "spectral": ["workflows", "spectral", "core"],
     "geolibre": ["geolibre", "core"],
+    "earth_engine": ["earth_engine", "core"],
+    "gee": ["earth_engine", "core"],
 }
 
 

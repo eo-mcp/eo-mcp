@@ -428,3 +428,148 @@ def generate_interactive_maplibre_html(
 </html>
 """
     return html
+
+
+def generate_bitemporal_swipe_map_html(
+    title: str,
+    bbox: List[float],
+    epoch1_label: str = "Epoch 1 (Baseline)",
+    epoch2_label: str = "Epoch 2 (Comparison)",
+    geojson_overlay: Optional[Dict[str, Any]] = None,
+    summary_caption: Optional[str] = None
+) -> str:
+    """
+    Generate an interactive MapLibre GL JS Bitemporal Swipe / Comparison Map.
+
+    Provides a synchronized dual-layer view with opacity/swipe slider for comparing
+    multi-temporal satellite acquisitions with vectorized change anomaly overlays.
+
+    Args:
+        title: Project title.
+        bbox: [min_lon, min_lat, max_lon, max_lat] in EPSG:4326.
+        epoch1_label: Label for baseline observation.
+        epoch2_label: Label for comparison observation.
+        geojson_overlay: Optional GeoJSON FeatureCollection of change polygons.
+        summary_caption: Optional natural language change summary.
+
+    Returns:
+        Self-contained HTML5 page string.
+    """
+    center_info = bbox_to_center_zoom(bbox)
+    geojson_str = json.dumps(geojson_overlay) if geojson_overlay else "null"
+    caption_escaped = (summary_caption or "").replace('"', '&quot;').replace("'", "&#39;")
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} - Bitemporal Change Map</title>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <style>
+        body, html {{ margin: 0; padding: 0; width: 100%; height: 100%; background: #0b0f17; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #f1f5f9; overflow: hidden; }}
+        #map {{ width: 100%; height: 100%; }}
+        .header-bar {{ position: absolute; top: 16px; left: 16px; z-index: 10; background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 14px 20px; max-width: 480px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }}
+        .title {{ font-size: 16px; font-weight: 700; color: #38bdf8; margin: 0 0 6px 0; }}
+        .caption {{ font-size: 12px; color: #cbd5e1; line-height: 1.5; margin: 0; }}
+        .controls-card {{ position: absolute; bottom: 24px; left: 16px; z-index: 10; background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px 18px; }}
+        .slider-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 6px; }}
+        .slider-row {{ display: flex; align-items: center; gap: 12px; }}
+        input[type="range"] {{ width: 220px; accent-color: #38bdf8; cursor: pointer; }}
+        .badge {{ font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; }}
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h1 class="title">{title}</h1>
+        <p class="caption">{caption_escaped}</p>
+    </div>
+
+    <div class="controls-card">
+        <div class="slider-label">Temporal Blend Ratio</div>
+        <div class="slider-row">
+            <span class="badge">{epoch1_label}</span>
+            <input type="range" id="blend-slider" min="0" max="100" value="50" oninput="updateBlend(this.value)" />
+            <span class="badge">{epoch2_label}</span>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        const initialBbox = {json.dumps(bbox)};
+        const changeGeojson = {geojson_str};
+
+        const map = new maplibregl.Map({{
+            container: 'map',
+            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            center: [{center_info['center'][0]}, {center_info['center'][1]}],
+            zoom: {center_info['zoom']}
+        }});
+
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+        map.on('load', () => {{
+            if (changeGeojson && changeGeojson.features && changeGeojson.features.length > 0) {{
+                map.addSource('change-polygons', {{
+                    type: 'geojson',
+                    data: changeGeojson
+                }});
+
+                map.addLayer({{
+                    id: 'change-fill',
+                    type: 'fill',
+                    source: 'change-polygons',
+                    paint: {{
+                        'fill-color': '#ef4444',
+                        'fill-opacity': 0.45
+                    }}
+                }});
+
+                map.addLayer({{
+                    id: 'change-line',
+                    type: 'line',
+                    source: 'change-polygons',
+                    paint: {{
+                        'line-color': '#f87171',
+                        'line-width': 2
+                    }}
+                }});
+
+                map.on('click', 'change-fill', (e) => {{
+                    const props = e.features[0].properties || {{}};
+                    let content = '<div style="color:#ef4444;font-weight:700">Change Anomaly Patch</div>';
+                    for (const [k, v] of Object.entries(props)) {{
+                        content += `<div><span style="color:#94a3b8">${{k}}:</span> <strong>${{v}}</strong></div>`;
+                    }}
+                    new maplibregl.Popup()
+                        .setLngLat(e.lngLat)
+                        .setHTML(content)
+                        .addTo(map);
+                }});
+
+                map.on('mouseenter', 'change-fill', () => map.getCanvas().style.cursor = 'pointer');
+                map.on('mouseleave', 'change-fill', () => map.getCanvas().style.cursor = '');
+            }}
+
+            if (initialBbox && initialBbox.length === 4) {{
+                map.fitBounds([
+                    [initialBbox[0], initialBbox[1]],
+                    [initialBbox[2], initialBbox[3]]
+                ], {{ padding: 60, maxZoom: 15 }});
+            }}
+        }});
+
+        function updateBlend(val) {{
+            const opacity = val / 100.0;
+            if (map.getLayer('change-fill')) {{
+                map.setPaintProperty('change-fill', 'fill-opacity', opacity * 0.7);
+            }}
+        }}
+    </script>
+</body>
+</html>
+"""
+    return html
+

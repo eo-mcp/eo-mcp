@@ -52,6 +52,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+gee = [
+    "earthengine-api>=0.1.390"
+]
 analysis = [
     "xarray>=2024.1.0",
     "rioxarray>=0.15.0",
