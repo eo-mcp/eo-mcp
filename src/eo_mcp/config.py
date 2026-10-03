@@ -163,7 +163,7 @@ def get_credentials_status_summary() -> Dict[str, Any]:
             },
             "nasa_firms": {
                 "configured": bool(firms_k),
-                "capabilities": ["High-volume FIRMS active fire queries with custom MAP_KEY"] if firms_k else ["Zero-config public area feeds active"]
+                "capabilities": ["High-volume FIRMS active fire queries with custom MAP_KEY"] if firms_k else ["Keyless NASA FIRMS global CSV (24h or 7d) when no MAP_KEY is set"]
             }
         }
     }

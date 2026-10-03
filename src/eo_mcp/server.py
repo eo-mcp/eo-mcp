@@ -1526,7 +1526,8 @@ def detect_active_wildfires(
     - Wooster, M. J. (2003). Remote Sensing of Environment, 86(1), 83-107. DOI: 10.1016/S0034-4257(03)00070-1
     """
     try:
-        hotspots = fetch_firms_hotspots(bbox=bbox, days=days, source=source)
+        feed_status: Dict[str, Any] = {}
+        hotspots = fetch_firms_hotspots(bbox=bbox, days=days, source=source, status=feed_status)
         perimeters = cluster_fire_perimeters(hotspots=hotspots, cluster_dist_km=2.0)
 
         total_frp = round(sum(h.get("fire_radiative_power_mw", 0.0) for h in hotspots), 2)
@@ -1541,6 +1542,10 @@ def detect_active_wildfires(
             "perimeters": perimeters,
             "compliance_standard": "NASA LANCE / EFFIS European Forest Fire Information System"
         }
+        if feed_status.get("data_source"):
+            results["data_source"] = feed_status["data_source"]
+        if feed_status.get("notice"):
+            results["notice"] = feed_status["notice"]
 
         if format.lower() == "geojson":
             return json.dumps(wildfires_to_geojson(results), indent=2)
