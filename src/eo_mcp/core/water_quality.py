@@ -147,7 +147,11 @@ def estimate_spm_nechad(red_reflectance: np.ndarray, a: float = 362.1, c: float 
     - Nechad, B., et al. (2010). Remote Sensing of Environment, 114(4), 854-866.
       DOI: 10.1016/j.rse.2009.11.022
     """
-    rho = np.clip(red_reflectance.astype(np.float32), 0.0, 0.9 * c)
+    rho = red_reflectance.astype(np.float32)
+    # Sentinel-2 L2A COGs are digital numbers scaled by 10,000. Nechad needs reflectance.
+    if np.nanmedian(rho) > 1.0:
+        rho = rho / 10000.0
+    rho = np.clip(rho, 0.0, 0.9 * c)
     spm = (a * rho) / (1.0 - (rho / c))
     return np.maximum(spm, 0.0)
 
@@ -206,6 +210,31 @@ def detect_thermal_plume_anomalies(
     return anomaly_mask, metrics
 
 
+
+def _as_2d(arr: np.ndarray) -> np.ndarray:
+    """Squeeze a raster window to a 2D float array. Masked pixels become NaN."""
+    if np.ma.isMaskedArray(arr):
+        arr = np.ma.filled(arr.astype(np.float32), np.nan)
+    else:
+        arr = np.asarray(arr, dtype=np.float32)
+    arr = np.squeeze(arr)
+    if arr.ndim == 3:
+        arr = arr[0]
+    return arr
+
+
+def _match_shape(arr: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+    """Nearest-neighbor a band onto shape. Sentinel-2 red edge is 20 m and green/red are 10 m."""
+    arr = _as_2d(arr)
+    if arr.shape == shape:
+        return arr
+    if arr.ndim != 2 or arr.shape[0] < 1 or arr.shape[1] < 1:
+        return arr
+    rows = np.linspace(0, arr.shape[0] - 1, shape[0]).astype(np.int64)
+    cols = np.linspace(0, arr.shape[1] - 1, shape[1]).astype(np.int64)
+    return arr[np.ix_(rows, cols)]
+
+
 def analyze_coastal_water_quality(
     green: np.ndarray,
     red: np.ndarray,
@@ -231,6 +260,17 @@ def analyze_coastal_water_quality(
     Returns:
         Structured dictionary containing water quality metrics, trophic states, and hazard flags.
     """
+    green = _as_2d(green)
+    red = _as_2d(red)
+    target = green.shape if green.size >= red.size else red.shape
+    green = _match_shape(green, target)
+    red = _match_shape(red, target)
+    red_edge = _match_shape(red_edge, target)
+    if sst is not None:
+        sst = _match_shape(sst, target)
+    if water_mask is not None:
+        water_mask = _match_shape(water_mask.astype(np.float32), target) > 0.5
+    derived_mask = water_mask is None
     if water_mask is None:
         water_mask = np.isfinite(green) & np.isfinite(red) & np.isfinite(red_edge)
 
@@ -311,6 +351,10 @@ def analyze_coastal_water_quality(
         "thermal_plume": thermal_metrics,
         "bbox": bbox
     }
+    if derived_mask:
+        result["summary"]["mask_note"] = (
+            "No water mask was supplied. Every finite pixel is included, including land."
+        )
     return result
 
 

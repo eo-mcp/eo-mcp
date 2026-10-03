@@ -2316,22 +2316,22 @@ def analyze_coastal_water_quality(
             if r.ndim == 3: r = r[0]
             if re.ndim == 3: re = re[0]
         else:
-            # Calibrated baseline simulation for tests / offline mock
-            np.random.seed(42)
-            g = np.random.uniform(0.05, 0.12, (100, 100))
-            r = np.random.uniform(0.04, 0.10, (100, 100))
-            re = np.random.uniform(0.06, 0.18, (100, 100))
-            # Simulated coastal runoff plume
-            r[20:50, 30:70] += 0.08
-            re[20:50, 30:70] += 0.12
+            return json.dumps({
+                "error": f"No {collection} scene found for {datetime_range}. No water-quality values were computed.",
+                "bbox": bbox,
+            }, indent=2)
 
+        # resampling_factor 0.5 on 10 m bands, so each output pixel is 20 m.
         results = _analyze_coastal_water_quality(
             green=g,
             red=r,
             red_edge=re,
-            cellsize_m=10.0,
+            cellsize_m=20.0,
             bbox=bbox
         )
+        results["scene_id"] = scenes[0].id
+        results["scene_date"] = scenes[0].datetime
+        results["data_source"] = f"{collection} COG window"
 
         if format == "geojson":
             return json.dumps(water_quality_to_geojson(results, bbox), indent=2)
