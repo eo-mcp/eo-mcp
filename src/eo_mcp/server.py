@@ -1195,59 +1195,68 @@ def detect_dark_vessels(
         elif ais_source == "open_baltic_api":
             ais_records = fetch_open_baltic_ais(bbox)
 
-        # 2. Check STAC for Sentinel-1 scenes
+        # 2. Copernicus anonymous search is closed (HTTP 403). Use a real public scene if one exists.
         sar_scenes = search_cdse_sentinel1(bbox=bbox, datetime_range=datetime_range, limit=1)
+        scene = None
+        if sar_scenes and "error" not in sar_scenes[0]:
+            scene = sar_scenes[0]
+        else:
+            from eo_mcp.providers.stac import search_stac_catalog
+            from eo_mcp.config import EARTH_SEARCH_STAC_URL
+            try:
+                found = search_stac_catalog(
+                    catalog_url=EARTH_SEARCH_STAC_URL,
+                    collections=["sentinel-1-grd"],
+                    bbox=bbox,
+                    datetime_range=datetime_range,
+                    limit=1,
+                )
+            except Exception:
+                found = []
+            if found:
+                hit = found[0]
+                scene = {
+                    "id": hit.id,
+                    "datetime": hit.datetime,
+                    "bbox": hit.bbox,
+                    "platform": hit.platform,
+                    "source": "earth-search sentinel-1-grd",
+                }
 
-        # Synthesize / extract SAR backscatter grid for the AOI
-        grid_rows, grid_cols = 40, 50
-        np.random.seed(42)
-        sar_db = np.random.normal(loc=-18.5, scale=2.2, size=(grid_rows, grid_cols))
-
-        # If AIS vessels are present, inject realistic metallic radar cross section peaks
-        for ais in ais_records[:5]:
-            min_lon, min_lat, max_lon, max_lat = bbox
-            c = int(((ais["lon"] - min_lon) / max(1e-5, max_lon - min_lon)) * (grid_cols - 1))
-            r = int(((max_lat - ais["lat"]) / max(1e-5, max_lat - min_lat)) * (grid_rows - 1))
-            if 0 <= r < grid_rows and 0 <= c < grid_cols:
-                sar_db[r, c] = np.random.uniform(5.0, 12.0)
-
-        # Inject an unreported 'Dark Vessel' peak with high backscatter
-        dark_r, dark_c = grid_rows // 2, grid_cols // 2
-        sar_db[dark_r, dark_c] = 9.8
-
-        # 3. Execute CFAR detection with dynamic sea-state roughness adaptation
-        detection_mask, detected_targets = cfar_vessel_detector(
-            sar_db,
-            pfa_factor=pfa_factor,
-            min_cluster_size=1,
-            sea_state=sea_state
+        # Public GRD pixels are uncalibrated uint16. Do not classify vessels or slicks from a random grid.
+        notice = (
+            "No calibrated Sentinel-1 backscatter was read, so no vessel or oil-slick classification was made. "
+            "AIS rows are only ships the live Baltic feed placed inside this box."
         )
-
-        # 4. Correlate with AIS telemetry
-        correlation_results = correlate_sar_with_ais(
-            detected_targets=detected_targets,
-            ais_records=ais_records,
-            bbox=bbox,
-            raster_shape=(grid_rows, grid_cols),
-            max_correlation_dist_km=1.5,
-            pixel_size_m=10.0
-        )
-
-        # 5. Detect potential oil & bilge water discharge slicks (MSFD Descriptor 8)
-        oil_slicks = detect_oil_spill_slicks(sar_db, bbox, slick_threshold_db=-22.0)
-        correlation_results["oil_slicks"] = oil_slicks
-        correlation_results["oil_slicks_count"] = len(oil_slicks)
-
-        correlation_results["bbox"] = bbox
-        correlation_results["datetime_range"] = datetime_range
-        correlation_results["sar_scenes_discovered"] = len(sar_scenes) if sar_scenes and "error" not in sar_scenes[0] else 0
-        correlation_results["compliance_descriptor"] = "MSFD Descriptor 8 & EU Maritime Security Strategy"
+        result = {
+            "total_sar_targets_detected": 0,
+            "total_ais_records_evaluated": len(ais_records),
+            "trusted_matched_count": 0,
+            "dark_vessel_count": 0,
+            "dark_vessels_count": 0,
+            "unmatched_ais_count": len(ais_records),
+            "classified_vessels": [],
+            "trusted_vessels": [],
+            "dark_vessels": [],
+            "oil_slicks": [],
+            "oil_slicks_count": 0,
+            "bbox": bbox,
+            "datetime_range": datetime_range,
+            "sar_scenes_discovered": 1 if scene else 0,
+            "scene": scene,
+            "ais_records": ais_records,
+            "notice": notice,
+        }
 
         if format.lower() == "geojson":
-            return json.dumps(vessels_to_geojson(correlation_results), indent=2)
+            payload = vessels_to_geojson(result)
+            payload["notice"] = notice
+            payload["scene"] = scene
+            payload["ais_count"] = len(ais_records)
+            return json.dumps(payload, indent=2)
         elif format.lower() == "csv":
-            return vessels_to_csv(correlation_results)
-        return json.dumps(correlation_results, indent=2)
+            return vessels_to_csv(result)
+        return json.dumps(result, indent=2)
 
     except Exception as exc:
         return json.dumps({"error": f"Dark vessel detection failed: {str(exc)}"})
