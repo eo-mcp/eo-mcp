@@ -241,6 +241,10 @@ def cli_sea_level_rise(args):
         f"Max Depth: {data.get('max_inundation_depth_m')} m\n"
         f"Directive: [cyan]{data.get('directive_alignment')}[/cyan]"
     ))
+    if data.get("notice"):
+        console.print(data["notice"])
+    if data.get("scene_id"):
+        console.print(f"Scene: {data['scene_id']} {data.get('scene_datetime') or ''}")
 
     if "ascii_flood_depth_map" in data:
         console.print(Panel(data["ascii_flood_depth_map"], title="ASCII Flood Depth Distribution Map"))
@@ -301,7 +305,10 @@ def cli_emissions(args):
 
     data = json.loads(res_str)
     status = data.get("plume_status", "UNKNOWN")
-    color = "red" if "EXCEEDANCE" in status else ("yellow" if "ELEVATION" in status else "green")
+    if data.get("mean_column_density") is None or status == "NOT_READ":
+        color = "yellow"
+    else:
+        color = "red" if "EXCEEDANCE" in status else ("yellow" if "ELEVATION" in status else "green")
 
     console.print(Panel.fit(
         f"[bold blue]Sentinel-5P TROPOMI Atmospheric Gas Emissions[/bold blue]\n"

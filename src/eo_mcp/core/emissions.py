@@ -16,12 +16,12 @@ References:
 """
 
 from typing import List, Dict, Any, Optional, Tuple
+import os
 import httpx
-import numpy as np
 
 
 # OpenAQ Public API endpoint (Free & zero API key required)
-OPENAQ_LOCATIONS_URL = "https://api.openaq.org/v2/locations"
+OPENAQ_LOCATIONS_URL = "https://api.openaq.org/v3/locations"
 
 
 # Standard atmospheric thresholds for Sentinel-5P column density (in umol/m2)
@@ -81,64 +81,71 @@ def query_sentinel5p_emissions(
     """
     gas_key = gas.upper()
     meta = AIR_QUALITY_THRESHOLDS.get(gas_key, AIR_QUALITY_THRESHOLDS["NO2"])
+    product = {"NO2": "no2", "CH4": "ch4", "SO2": "so2", "CO": "co"}.get(gas_key, "no2")
 
-    min_lon, min_lat, max_lon, max_lat = bbox
-    # Simulate a 20x25 spatial grid representing S5P pixel footprints (~5.5km x 3.5km)
-    np.random.seed(int(abs(min_lon * 77) + abs(min_lat * 77)) % 1000)
+    if "/" in datetime_range and "T" not in datetime_range:
+        start, end = datetime_range.split("/", 1)
+        stac_datetime = f"{start}T00:00:00Z/{end}T23:59:59Z"
+    else:
+        stac_datetime = datetime_range
 
-    bg_val = meta["clean_background"]
-    grid = np.random.normal(loc=bg_val, scale=bg_val * 0.15, size=(20, 25))
-
-    # Inject an industrial / point-source emissions plume
-    plume_r, plume_c = 10, 12
-    grid[plume_r - 1:plume_r + 2, plume_c - 1:plume_c + 2] += meta["critical_plume"] * 0.85
-    grid[plume_r, plume_c] = meta["critical_plume"] * 1.3
-
-    mean_density = float(np.mean(grid))
-    max_density = float(np.max(grid))
-
-    # Detect plume pixels
-    plume_mask = grid >= meta["elevated"]
-    plume_pixel_count = int(np.sum(plume_mask))
-
-    hotspots = []
-    if plume_pixel_count > 0:
-        rows, cols = np.where(plume_mask)
-        for r, c in zip(rows[:8], cols[:8]):
-            lat = max_lat - (r / 19.0) * (max_lat - min_lat)
-            lon = min_lon + (c / 24.0) * (max_lon - min_lon)
-            val = float(grid[r, c])
-            hotspots.append({
-                "hotspot_id": f"PLUME-{len(hotspots)+1:02d}",
-                "lat": round(lat, 5),
-                "lon": round(lon, 5),
-                "column_density": round(val, 2),
-                "unit": meta["unit"],
-                "exceedance_level": "CRITICAL" if val >= meta["critical_plume"] else "ELEVATED"
-            })
-
-    status = "EXCEEDANCE_ALERT" if max_density >= meta["critical_plume"] else (
-        "MODERATE_ELEVATION" if max_density >= meta["elevated"] else "COMPLIANT_CLEAN"
-    )
-
-    return {
+    base = {
         "gas": gas_key,
         "unit": meta["unit"],
         "bbox": bbox,
         "datetime_range": datetime_range,
-        "mean_tropospheric_density": round(mean_density, 2),
-        "mean_column_density": round(mean_density, 2),
-        "max_tropospheric_density": round(max_density, 2),
-        "max_column_density": round(max_density, 2),
+        "mean_tropospheric_density": None,
+        "mean_column_density": None,
+        "max_tropospheric_density": None,
+        "max_column_density": None,
         "thresholds": meta,
-        "plume_status": status,
-        "plume_detected": status != "COMPLIANT_CLEAN",
-        "plume_hotspots_count": len(hotspots),
-        "hotspots": hotspots,
+        "plume_status": "NOT_READ",
+        "plume_detected": False,
+        "plume_hotspots_count": 0,
+        "hotspots": [],
         "satellite": "Sentinel-5P TROPOMI",
         "directive_alignment": meta["directive"],
-        "compliance_directive": meta["directive"]
+        "compliance_directive": meta["directive"],
+        "data_source": "planetarycomputer sentinel-5p-l2-netcdf",
     }
+
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.post(
+                "https://planetarycomputer.microsoft.com/api/stac/v1/search",
+                json={
+                    "collections": ["sentinel-5p-l2-netcdf"],
+                    "bbox": bbox,
+                    "datetime": stac_datetime,
+                    "limit": 1,
+                    "query": {"s5p:product_name": {"eq": product}},
+                    "sortby": [{"field": "datetime", "direction": "desc"}],
+                },
+            )
+            resp.raise_for_status()
+            features = resp.json().get("features") or []
+    except Exception as exc:
+        base["notice"] = (
+            f"Sentinel-5P search failed ({exc.__class__.__name__}). "
+            "No column density was computed."
+        )
+        return base
+
+    if not features:
+        base["notice"] = (
+            f"No Sentinel-5P {product} scene in this box and window. "
+            "No column density was computed."
+        )
+        return base
+
+    feature = features[0]
+    base["scene_id"] = feature.get("id")
+    base["scene_datetime"] = (feature.get("properties") or {}).get("datetime")
+    base["notice"] = (
+        "A Sentinel-5P scene was found. The L2 granule was not read, "
+        "so no column density, plume, or compliance result is reported."
+    )
+    return base
 
 
 def fetch_openaq_ground_truth(
@@ -166,8 +173,15 @@ def fetch_openaq_ground_truth(
             "parameter": parameter.lower(),
             "limit": 10
         }
+        api_key = os.getenv("OPENAQ_API_KEY", "").strip()
+        if not api_key:
+            return []
         with httpx.Client(timeout=timeout) as client:
-            resp = client.get(OPENAQ_LOCATIONS_URL, params=params)
+            resp = client.get(
+                OPENAQ_LOCATIONS_URL,
+                params=params,
+                headers={"X-API-Key": api_key},
+            )
             if resp.status_code == 200:
                 data = resp.json()
                 for res in data.get("results", []):
@@ -187,33 +201,6 @@ def fetch_openaq_ground_truth(
                         })
     except Exception:
         pass
-
-    # Calibrated fallback if external network is slow or offline
-    if not stations:
-        center_lon = (min_lon + max_lon) / 2.0
-        center_lat = (min_lat + max_lat) / 2.0
-        stations = [
-            {
-                "station_id": "STATION-URBAN-01",
-                "station_name": "Station Urban 01",
-                "lat": round(center_lat + 0.01, 5),
-                "lon": round(center_lon - 0.01, 5),
-                "city": "Urban Center",
-                "reported_value_ug_m3": 38.4,
-                "latest_measurements": [{"parameter": "no2", "value": 38.4, "unit": "µg/m³"}],
-                "source": "OpenAQ_Reference"
-            },
-            {
-                "station_id": "STATION-RURAL-02",
-                "station_name": "Station Rural 02",
-                "lat": round(center_lat - 0.02, 5),
-                "lon": round(center_lon + 0.02, 5),
-                "city": "Background Rural",
-                "reported_value_ug_m3": 12.1,
-                "latest_measurements": [{"parameter": "no2", "value": 12.1, "unit": "µg/m³"}],
-                "source": "OpenAQ_Reference"
-            }
-        ]
 
     return stations
 
