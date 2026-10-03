@@ -50,6 +50,31 @@ def get_stac_client(catalog_url: str = EARTH_SEARCH_STAC_URL, headers: Optional[
         return Client.open(catalog_url, headers=headers)
 
 
+def resolve_stac_asset_href(item: Any, *candidate_keys: str) -> str:
+    """Return the first matching COG/asset href from a pystac Item.
+
+    Earth Search names bands semantically (``nir``, ``red``, ``swir22``) while some
+    catalogs still use ESA-style keys (``B08``, ``B04``). Prefer STAC hrefs over
+    inventing S3 object keys from ``item.id``.
+    """
+    if not candidate_keys:
+        raise ValueError("At least one candidate asset key is required.")
+
+    assets = getattr(item, "assets", None) or {}
+    for key in candidate_keys:
+        asset = assets.get(key)
+        if asset is None:
+            continue
+        href = getattr(asset, "href", None)
+        if href:
+            return str(href)
+
+    available = sorted(assets.keys()) if hasattr(assets, "keys") else []
+    raise KeyError(
+        f"None of {list(candidate_keys)} found in STAC item assets. Available: {available}"
+    )
+
+
 # Standard Science Band Mapping Dictionaries
 S2_BAND_MAP: Dict[str, str] = {
     "coastal": "B01", "b01": "B01",

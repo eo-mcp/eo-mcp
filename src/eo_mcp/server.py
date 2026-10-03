@@ -16,7 +16,12 @@ from eo_mcp.config import (
     update_credential,
     get_credentials_status_summary
 )
-from eo_mcp.providers.stac import search_stac_catalog, get_stac_client, format_compact_stac_items
+from eo_mcp.providers.stac import (
+    search_stac_catalog,
+    get_stac_client,
+    format_compact_stac_items,
+    resolve_stac_asset_href,
+)
 from eo_mcp.providers.cdse import (
     search_cdse_sentinel1,
     generate_cdse_download_info,
@@ -112,6 +117,7 @@ from eo_mcp.workflows import (
     detect_planetary_change as _detect_planetary_change,
     assess_disaster_damage as _assess_disaster_damage,
     analyze_zonal_change as _analyze_zonal_change,
+    resolve_aoi,
 )
 from eo_mcp.core.pipeline import (
     execute_pipeline as _execute_pipeline,
@@ -974,33 +980,41 @@ def calculate_spectral_index(
             return json.dumps({"error": f"Unsupported index '{index}'. Use NDVI, NDWI, or NBR."})
 
         scene = scenes[0]
-        base_url = f"https://sentinel-cogs.s3.us-west-2.amazonaws.com/{scene.id}"
+        # Compact STAC summaries only keep asset *keys*. Re-fetch the full item so we
+        # can stream real COG hrefs (Element84 MGRS paths). Never invent
+        # https://sentinel-cogs.s3.../{scene.id}/B08.tif — that key does not exist.
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
+        item = client.get_collection(collection).get_item(scene.id)
+        if item is None:
+            return json.dumps({
+                "error": f"STAC item '{scene.id}' not found in collection '{collection}'."
+            })
 
         if index_upper == "NDVI":
-            nir_url = f"{base_url}/B08.tif"
-            red_url = f"{base_url}/B04.tif"
+            nir_url = resolve_stac_asset_href(item, "nir", "nir08", "B08")
+            red_url = resolve_stac_asset_href(item, "red", "B04")
             nir_arr, _ = stream_cog_window(nir_url, tuple(bbox), resampling_factor=0.5)
             red_arr, _ = stream_cog_window(red_url, tuple(bbox), resampling_factor=0.5)
             result_arr = compute_ndvi(nir_arr, red_arr)
 
         elif index_upper == "NDWI":
-            green_url = f"{base_url}/B03.tif"
-            nir_url = f"{base_url}/B08.tif"
+            green_url = resolve_stac_asset_href(item, "green", "B03")
+            nir_url = resolve_stac_asset_href(item, "nir", "nir08", "B08")
             green_arr, _ = stream_cog_window(green_url, tuple(bbox), resampling_factor=0.5)
             nir_arr, _ = stream_cog_window(nir_url, tuple(bbox), resampling_factor=0.5)
             result_arr = compute_ndwi(green_arr, nir_arr)
 
         elif index_upper == "NBR":
-            nir_url = f"{base_url}/B08.tif"
-            swir_url = f"{base_url}/B12.tif"
+            nir_url = resolve_stac_asset_href(item, "nir", "nir08", "B08")
+            swir_url = resolve_stac_asset_href(item, "swir22", "B12")
             nir_arr, _ = stream_cog_window(nir_url, tuple(bbox), resampling_factor=0.5)
             swir_arr, _ = stream_cog_window(swir_url, tuple(bbox), resampling_factor=0.5)
             result_arr = compute_nbr(nir_arr, swir_arr)
 
         elif index_upper == "EVI":
-            nir_url = f"{base_url}/B08.tif"
-            red_url = f"{base_url}/B04.tif"
-            blue_url = f"{base_url}/B02.tif"
+            nir_url = resolve_stac_asset_href(item, "nir", "nir08", "B08")
+            red_url = resolve_stac_asset_href(item, "red", "B04")
+            blue_url = resolve_stac_asset_href(item, "blue", "B02")
             nir_arr, _ = stream_cog_window(nir_url, tuple(bbox), resampling_factor=0.5)
             red_arr, _ = stream_cog_window(red_url, tuple(bbox), resampling_factor=0.5)
             blue_arr, _ = stream_cog_window(blue_url, tuple(bbox), resampling_factor=0.5)
