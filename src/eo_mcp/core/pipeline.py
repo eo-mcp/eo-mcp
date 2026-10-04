@@ -393,36 +393,110 @@ def _step_terrain_analysis(step: PipelineStep, ctx: PipelineContext) -> Dict[str
     }
 
 
+_INDEX_BANDS = {
+    "ndvi": ("nir", "red"),
+    "ndwi": ("green", "nir"),
+    "mndwi": ("green", "swir16"),
+    "nbr": ("nir", "swir16"),
+}
+
+
+def _nearest_resample(src: np.ndarray, shape: tuple) -> np.ndarray:
+    """Resize a band onto another grid without interpolating new values."""
+    if src.shape == shape:
+        return src
+    rows = np.linspace(0, src.shape[0] - 1, shape[0]).astype(int)
+    cols = np.linspace(0, src.shape[1] - 1, shape[1]).astype(int)
+    return src[np.ix_(rows, cols)]
+
+
+def _read_sentinel2_bands(bbox, datetime_range, keys, resampling):
+    """Read Earth Search Sentinel-2 bands. Returns (arrays, scene_id) or (None, None)."""
+    from eo_mcp.providers.stac import get_stac_client
+
+    scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["sentinel-2-l2a"],
+        bbox=list(bbox),
+        datetime_range=datetime_range,
+        limit=8,
+    )
+    if not scenes:
+        return None, None
+    scene = min(scenes, key=lambda item: item.cloud_cover if item.cloud_cover is not None else 100.0)
+    client = get_stac_client(EARTH_SEARCH_STAC_URL)
+    item = client.get_collection("sentinel-2-l2a").get_item(scene.id)
+    arrays = []
+    for key in keys:
+        asset = item.assets.get(key)
+        if asset is None:
+            return None, None
+        arr, profile = stream_cog_window(asset.href, tuple(bbox), resampling_factor=resampling)
+        if profile.get("fallback"):
+            return None, None
+        if getattr(arr, "ndim", 0) == 3:
+            arr = arr.squeeze()
+        if np.ma.isMaskedArray(arr):
+            arr = np.ma.filled(arr.astype(np.float32), np.nan)
+        else:
+            arr = np.asarray(arr, dtype=np.float32)
+        arr = np.where(arr == 0, np.nan, arr)
+        arrays.append(arr)
+    target = arrays[0].shape
+    arrays = [_nearest_resample(arr, target) for arr in arrays]
+    sample = arrays[0]
+    if np.isfinite(sample).any() and float(np.nanmedian(sample)) > 1.0:
+        arrays = [arr / 10000.0 for arr in arrays]
+    return arrays, item.id
+
+
 def _step_spectral_index(step: PipelineStep, ctx: PipelineContext) -> Dict[str, Any]:
     """Vectorized calculation of spectral indices (NDVI, NDWI, MNDWI, NBR)."""
     idx_type = step.params.get("index_type", "ndvi").lower()
-    np.random.seed(int(abs(ctx.bbox[0] * 1000) % 10000))
-    
-    # Generate or retrieve spectral bands
-    b4 = np.random.uniform(0.04, 0.14, (40, 50))  # Red
-    b8 = np.random.uniform(0.20, 0.55, (40, 50))  # NIR
-    b3 = np.random.uniform(0.05, 0.15, (40, 50))  # Green
-    b12 = np.random.uniform(0.08, 0.28, (40, 50)) # SWIR
+    keys = _INDEX_BANDS.get(idx_type)
+    if keys is None:
+        return {"error": f"Index {idx_type} is not read here.", "index": idx_type.upper(), "source": "NOT_READ"}
 
+    dt_range = str(step.params.get("datetime_range", "2024-01-01/2024-12-31"))
+    resampling = float(step.params.get("resampling_factor", 0.5))
+    try:
+        bands, scene_id = _read_sentinel2_bands(ctx.bbox, dt_range, keys, resampling)
+    except Exception:
+        bands, scene_id = None, None
+    if not bands:
+        return {
+            "error": "No Sentinel-2 window was read. No synthetic bands were substituted.",
+            "index": idx_type.upper(),
+            "source": "NOT_READ",
+        }
+
+    first, second = bands
     if idx_type == "ndvi":
-        val_arr = compute_ndvi(b8, b4)
+        val_arr = compute_ndvi(first, second)
     elif idx_type == "ndwi":
-        val_arr = compute_ndwi(b3, b8)
+        val_arr = compute_ndwi(first, second)
     elif idx_type == "mndwi":
-        val_arr = compute_mndwi(b3, b12)
-    elif idx_type == "nbr":
-        val_arr = compute_nbr(b8, b12)
+        val_arr = compute_mndwi(first, second)
     else:
-        val_arr = compute_ndvi(b8, b4)
+        val_arr = compute_nbr(first, second)
 
     stats = calculate_array_stats(val_arr)
     res = {
         "index_type": idx_type.upper(),
+        "scene_id": scene_id,
+        "data_source": scene_id,
         "stats": stats,
-        "array": val_arr
+        "array": val_arr,
+        "notice": "No cloud mask. This is a spectral index, not a land-cover class.",
     }
     ctx.set_var(step.output_var, res)
-    return {"index": idx_type.upper(), "mean": stats["mean"], "min": stats["min"], "max": stats["max"]}
+    return {
+        "index": idx_type.upper(),
+        "scene_id": scene_id,
+        "mean": stats["mean"],
+        "min": stats["min"],
+        "max": stats["max"],
+    }
 
 
 def _step_inundation_model(step: PipelineStep, ctx: PipelineContext) -> Dict[str, Any]:
