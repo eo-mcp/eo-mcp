@@ -486,21 +486,101 @@ def _step_wildfire_activity(step: PipelineStep, ctx: PipelineContext) -> Dict[st
     return {"hotspots": len(hotspots), "perimeters": len(perimeters), "total_frp_mw": total_frp}
 
 
+def _pipeline_nbr(bbox, datetime_range, resampling):
+    """NBR from one Sentinel-2 scene. Returns (array, scene_id) or (None, None)."""
+    from eo_mcp.providers.stac import get_stac_client
+
+    scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["sentinel-2-l2a"],
+        bbox=list(bbox),
+        datetime_range=datetime_range,
+        limit=8,
+    )
+    if not scenes:
+        return None, None
+    scene = min(scenes, key=lambda item: item.cloud_cover if item.cloud_cover is not None else 100.0)
+    client = get_stac_client(EARTH_SEARCH_STAC_URL)
+    item = client.get_collection("sentinel-2-l2a").get_item(scene.id)
+    bands = []
+    for key in ("nir", "swir16"):
+        asset = item.assets.get(key) or item.assets.get("swir22" if key == "swir16" else key)
+        if asset is None:
+            return None, None
+        arr, profile = stream_cog_window(asset.href, tuple(bbox), resampling_factor=resampling)
+        if profile.get("fallback"):
+            return None, None
+        if getattr(arr, "ndim", 0) == 3:
+            arr = arr.squeeze()
+        if np.ma.isMaskedArray(arr):
+            arr = np.ma.filled(arr.astype(np.float32), np.nan)
+        else:
+            arr = np.asarray(arr, dtype=np.float32)
+        arr = np.where(arr == 0, np.nan, arr)
+        bands.append(arr)
+    target = bands[0].shape
+    swir = bands[1]
+    if swir.shape != target:
+        rows = np.linspace(0, swir.shape[0] - 1, target[0]).astype(int)
+        cols = np.linspace(0, swir.shape[1] - 1, target[1]).astype(int)
+        swir = swir[np.ix_(rows, cols)]
+    nir = bands[0]
+    if np.isfinite(nir).any() and float(np.nanmedian(nir)) > 1.0:
+        nir = nir / 10000.0
+        swir = swir / 10000.0
+    return compute_nbr(nir, swir), item.id
+
+
+def _burn_windows(step, ctx):
+    """Resolve pre and post date windows. A fire_date builds a window on each side."""
+    from datetime import datetime, timedelta
+
+    pre = ctx.get_var(step.params.get("pre_datetime"), None)
+    post = ctx.get_var(step.params.get("post_datetime"), None)
+    fire = ctx.get_var(step.params.get("fire_date"), None)
+    if fire and (not pre or not post):
+        day = datetime.strptime(str(fire)[:10], "%Y-%m-%d")
+        pre = pre or f"{(day - timedelta(days=45)).date().isoformat()}/{day.date().isoformat()}"
+        post = post or f"{day.date().isoformat()}/{(day + timedelta(days=45)).date().isoformat()}"
+    return pre, post
+
+
 def _step_burn_severity(step: PipelineStep, ctx: PipelineContext) -> Dict[str, Any]:
     """Calculate multi-temporal post-fire burn severity (dNBR)."""
-    np.random.seed(int(abs(ctx.bbox[0] * 1000) % 10000))
-    pre_nbr = np.random.uniform(0.35, 0.65, (40, 50))
-    post_nbr = pre_nbr.copy()
-    # Simulate burn scar in center
-    post_nbr[12:28, 15:35] -= np.random.uniform(0.40, 0.70, (16, 20))
-
-    burn_res = calculate_burn_severity_dnbr(pre_nbr, post_nbr, pixel_size_m=20.0)
+    pre_range, post_range = _burn_windows(step, ctx)
+    if not pre_range or not post_range:
+        return {
+            "error": "Burn severity needs pre_datetime and post_datetime, or a fire_date. No synthetic scar was substituted.",
+            "source": "NOT_READ",
+        }
+    resampling = float(step.params.get("resampling_factor", 0.5))
+    try:
+        pre_nbr, pre_id = _pipeline_nbr(ctx.bbox, str(pre_range), resampling)
+        post_nbr, post_id = _pipeline_nbr(ctx.bbox, str(post_range), resampling)
+    except Exception:
+        pre_nbr, post_nbr, pre_id, post_id = None, None, None, None
+    if pre_nbr is None or post_nbr is None:
+        return {
+            "error": "No pre/post Sentinel-2 window was read. No synthetic burn scar was substituted.",
+            "source": "NOT_READ",
+        }
+    if post_nbr.shape != pre_nbr.shape:
+        rows = np.linspace(0, post_nbr.shape[0] - 1, pre_nbr.shape[0]).astype(int)
+        cols = np.linspace(0, post_nbr.shape[1] - 1, pre_nbr.shape[1]).astype(int)
+        post_nbr = post_nbr[np.ix_(rows, cols)]
+    pixel_m = 10.0 / resampling
+    burn_res = calculate_burn_severity_dnbr(pre_nbr, post_nbr, pixel_size_m=pixel_m)
+    burn_res["pre_scene_id"] = pre_id
+    burn_res["post_scene_id"] = post_id
+    burn_res["notice"] = "Spectral difference only. No cloud mask and no confirmed fire perimeter."
     ctx.set_var(step.output_var, burn_res)
     return {
         "mean_dnbr": burn_res["mean_dnbr"],
         "burned_area_ha": burn_res["total_burned_area_ha"],
         "burned_pct": burn_res["burned_percentage"],
-        "burn_class": burn_res["overall_burn_severity_class"]
+        "burn_class": burn_res["overall_burn_severity_class"],
+        "pre_scene_id": pre_id,
+        "post_scene_id": post_id,
     }
 
 
