@@ -394,50 +394,110 @@ def environmental_site_audit(
     except Exception:
         pass
 
+    import math
+    center_lat = (bbox[1] + bbox[3]) / 2.0
+    ground_m = max(
+        abs(bbox[2] - bbox[0]) * 111320.0 * math.cos(math.radians(center_lat)),
+        abs(bbox[3] - bbox[1]) * 111320.0,
+    )
+
+    def _factor(native_m: float, target_px: int = 400) -> float:
+        native_px = ground_m / native_m if native_m else target_px
+        if native_px <= target_px:
+            return 1.0
+        return target_px / native_px
+
+    dem_data = None
+    dem_id = None
+    dem_factor = _factor(30.0)
     if dem_scenes:
         try:
             from eo_mcp.providers.stac import get_stac_client
             client = get_stac_client(EARTH_SEARCH_STAC_URL)
             item = client.get_collection("cop-dem-glo-30").get_item(dem_scenes[0].id)
             elev_url = item.assets["data"].href
-            dem_data, _ = stream_cog_window(elev_url, tuple(bbox), resampling_factor=0.5)
+            dem_data, dem_profile = stream_cog_window(elev_url, tuple(bbox), resampling_factor=dem_factor)
+            if dem_profile.get("fallback"):
+                dem_data = None
+            else:
+                dem_id = dem_scenes[0].id
+                if getattr(dem_data, "ndim", 0) == 3:
+                    dem_data = dem_data[0]
         except Exception:
-            dem_data = np.random.uniform(5.0, 150.0, (40, 50))
+            dem_data = None
+
+    if dem_data is not None:
+        topo_metrics = summarize_terrain(dem_data, cellsize_m=30.0 / dem_factor)
     else:
-        dem_data = np.random.uniform(5.0, 150.0, (40, 50))
+        topo_metrics = None
 
-    topo_metrics = summarize_terrain(dem_data, cellsize_m=30.0)
-
-    # 2. Vegetation & Water Indices (Simulated/Streamed Sentinel-2 bands)
-    np.random.seed(int(abs(bbox[0] * 1000) % 10000))
-    b4 = np.random.uniform(0.04, 0.12, (40, 50))
-    b8 = np.random.uniform(0.20, 0.55, (40, 50))
-    b3 = np.random.uniform(0.05, 0.15, (40, 50))
-
-    ndvi = compute_ndvi(b8, b4)
-    ndwi = compute_ndwi(b3, b8)
-    ndvi_stats = calculate_array_stats(ndvi)
-    ndwi_stats = calculate_array_stats(ndwi)
+    # 2. Vegetation and water indices from a real Sentinel-2 window. No random bands.
+    ndvi_stats = None
+    ndwi_stats = None
+    scene_id = None
+    s2_factor = _factor(10.0)
+    try:
+        from eo_mcp.providers.stac import get_stac_client
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
+        scenes = search_stac_catalog(
+            catalog_url=EARTH_SEARCH_STAC_URL,
+            collections=["sentinel-2-l2a"],
+            bbox=bbox,
+            datetime_range=datetime_range,
+            max_cloud_cover=20.0,
+            limit=1,
+        )
+        if scenes:
+            item = client.get_collection("sentinel-2-l2a").get_item(scenes[0].id)
+            bands = {}
+            failed = False
+            for key in ("red", "nir", "green"):
+                arr, profile = stream_cog_window(item.assets[key].href, tuple(bbox), resampling_factor=s2_factor)
+                if profile.get("fallback"):
+                    failed = True
+                    break
+                if getattr(arr, "ndim", 0) == 3:
+                    arr = arr[0]
+                bands[key] = arr
+            if not failed:
+                ndvi = compute_ndvi(bands["nir"], bands["red"])
+                ndwi = compute_ndwi(bands["green"], bands["nir"])
+                ndvi_stats = calculate_array_stats(ndvi)
+                ndwi_stats = calculate_array_stats(ndwi)
+                scene_id = scenes[0].id
+    except Exception:
+        ndvi_stats = None
+        ndwi_stats = None
+        scene_id = None
 
     # 3. Synthesize Climate & Environmental Risk Indicators
-    mean_elev = topo_metrics.get("mean_elevation_m", 50.0)
-    mean_slope = topo_metrics.get("mean_slope_degrees", 3.0)
-    mean_ndvi = ndvi_stats.get("mean", 0.45)
-    mean_ndwi = ndwi_stats.get("mean", -0.2)
+    if topo_metrics is None:
+        mean_elev = None
+        mean_slope = None
+    else:
+        mean_elev = topo_metrics.get("mean_elevation_m")
+        mean_slope = topo_metrics.get("mean_slope_degrees")
+    mean_ndvi = None if ndvi_stats is None else ndvi_stats.get("mean")
+    mean_ndwi = None if ndwi_stats is None else ndwi_stats.get("mean")
 
     # Flood vulnerability score
-    flood_vuln = "LOW"
-    if mean_elev < 5.0:
-        flood_vuln = "VERY_HIGH" if mean_slope < 1.0 else "HIGH"
-    elif mean_elev < 15.0 and mean_slope < 2.0:
-        flood_vuln = "MODERATE"
+    if mean_elev is None or mean_slope is None:
+        flood_vuln = "NOT_READ"
+    else:
+        flood_vuln = "LOW"
+        if mean_elev < 5.0:
+            flood_vuln = "VERY_HIGH" if mean_slope < 1.0 else "HIGH"
+        elif mean_elev < 15.0 and mean_slope < 2.0:
+            flood_vuln = "MODERATE"
 
-    # Vegetative stress score
-    veg_status = "HEALTHY_CANOPY"
-    if mean_ndvi < 0.2:
+    if mean_ndvi is None:
+        veg_status = "NOT_READ"
+    elif mean_ndvi < 0.2:
         veg_status = "SPARSE_OR_BARREN"
     elif mean_ndvi < 0.35:
         veg_status = "MODERATE_VIGOR"
+    else:
+        veg_status = "HEALTHY_CANOPY"
 
     scorecard = {
         "workflow": "environmental_site_audit",
@@ -448,23 +508,35 @@ def environmental_site_audit(
             "observation_window": datetime_range
         },
         "scorecard": {
-            "overall_environmental_health": "FAVORABLE" if mean_ndvi >= 0.35 and flood_vuln in ("LOW", "MODERATE") else "ATTENTION_REQUIRED",
+            "overall_environmental_health": (
+                "NOT_READ" if mean_ndvi is None or flood_vuln == "NOT_READ"
+                else ("FAVORABLE" if mean_ndvi >= 0.35 and flood_vuln in ("LOW", "MODERATE") else "ATTENTION_REQUIRED")
+            ),
             "flood_susceptibility": flood_vuln,
             "vegetation_health_status": veg_status,
-            "canopy_vigor_index_ndvi": round(float(mean_ndvi), 3),
-            "water_wetness_index_ndwi": round(float(mean_ndwi), 3),
-            "topography": {
-                "mean_elevation_m": round(float(mean_elev), 1),
+            "canopy_vigor_index_ndvi": None if mean_ndvi is None else round(float(mean_ndvi), 3),
+            "water_wetness_index_ndwi": None if mean_ndwi is None else round(float(mean_ndwi), 3),
+            "topography": None if topo_metrics is None else {
+                "mean_elevation_m": None if mean_elev is None else round(float(mean_elev), 1),
                 "min_elevation_m": round(float(topo_metrics.get("min_elevation_m", 0.0)), 1),
                 "max_elevation_m": round(float(topo_metrics.get("max_elevation_m", 0.0)), 1),
-                "mean_slope_deg": round(float(mean_slope), 2),
-                "terrain_classification": "FLAT_COASTAL_OR_VALLEY" if mean_slope < 2.0 else ("ROLLING" if mean_slope < 8.0 else "RUGGED")
+                "mean_slope_deg": None if mean_slope is None else round(float(mean_slope), 2),
+                "terrain_classification": (
+                    "NOT_READ" if mean_slope is None
+                    else ("FLAT_COASTAL_OR_VALLEY" if mean_slope < 2.0 else ("ROLLING" if mean_slope < 8.0 else "RUGGED"))
+                ),
+                "dem_tile": dem_id,
             }
         },
         "spectral_layers": {
             "ndvi": ndvi_stats,
-            "ndwi": ndwi_stats
+            "ndwi": ndwi_stats,
+            "sentinel2_scene": scene_id,
         },
+        "notice": (
+            None if scene_id and dem_id
+            else "Elevation or Sentinel-2 could not be read. Missing layers were left empty instead of filled with random values."
+        ),
         "eu_regulatory_alignment": {
             "biodiversity": "EU Biodiversity Strategy 2030 (Canopy health indicator)",
             "water": "EU Water Framework Directive (2000/60/EC)",
