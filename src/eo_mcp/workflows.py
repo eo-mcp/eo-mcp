@@ -13,7 +13,7 @@ from scipy.ndimage import label
 
 from eo_mcp.utils.geo import geocode_place_name
 from eo_mcp.config import EARTH_SEARCH_STAC_URL
-from eo_mcp.providers.stac import search_stac_catalog
+from eo_mcp.providers.stac import get_stac_client, search_stac_catalog
 from eo_mcp.core.dem import summarize_terrain, compute_slope_and_aspect
 from eo_mcp.core.spectral import (
     compute_ndvi,
@@ -836,36 +836,79 @@ def detect_flood_inundation(
     except Exception as exc:
         return json.dumps({"error": f"Failed to resolve location: {str(exc)}"})
 
-    green_arr, swir1_arr, dem_arr = None, None, None
+    if sensor.lower() == "sar":
+        return json.dumps({
+            "error": "Sentinel-1 backscatter was not read. No flood map was computed.",
+            "location": display_name,
+            "flood_date": flood_date,
+        })
+
     try:
-        url_green = f"https://sentinel-cogs.s3.amazonaws.com/{flood_date}/post_green_B03.tif"
-        url_swir1 = f"https://sentinel-cogs.s3.amazonaws.com/{flood_date}/post_swir1_B11.tif"
-        url_dem = f"https://copernicus-dem-30m.s3.amazonaws.com/dem_copernicus.tif"
-
-        green_arr, _ = stream_cog_window(url_green, tuple(bbox), resampling_factor=0.5)
-        swir1_arr, _ = stream_cog_window(url_swir1, tuple(bbox), resampling_factor=0.5)
-        dem_arr, _ = stream_cog_window(url_dem, tuple(bbox), resampling_factor=0.5)
-
-        if green_arr.ndim == 3: green_arr = green_arr[0]
-        if swir1_arr.ndim == 3: swir1_arr = swir1_arr[0]
-        if dem_arr.ndim == 3: dem_arr = dem_arr[0]
+        dt = datetime.fromisoformat(flood_date.replace("Z", "").split("T")[0])
     except Exception:
-        pass
+        return json.dumps({"error": f"Could not read flood date '{flood_date}'."})
+    window = f"{(dt - timedelta(days=15)).strftime('%Y-%m-%d')}/{(dt + timedelta(days=15)).strftime('%Y-%m-%d')}"
+    scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["sentinel-2-l2a"],
+        bbox=bbox,
+        datetime_range=window,
+        max_cloud_cover=30.0,
+        limit=1,
+    )
+    dem_scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["cop-dem-glo-30"],
+        bbox=bbox,
+        datetime_range="2020-01-01/2024-01-01",
+        limit=1,
+    )
+    if not scenes or not dem_scenes:
+        return json.dumps({
+            "error": "No Sentinel-2 scene or Copernicus DEM tile for this box. No flood map was computed.",
+            "location": display_name,
+            "datetime_range": window,
+        })
 
-    if green_arr is None or swir1_arr is None or dem_arr is None:
-        rows, cols = 40, 50
-        green_arr = np.full((rows, cols), 0.10, dtype=np.float32)
-        swir1_arr = np.full((rows, cols), 0.25, dtype=np.float32)
-        green_arr[:, 20:24] = 0.40
-        swir1_arr[:, 20:24] = 0.05
-        green_arr[15:35, 10:40] = 0.45
-        swir1_arr[15:35, 10:40] = 0.08
-        green_arr[2:8, 2:8] = 0.45
-        swir1_arr[2:8, 2:8] = 0.08
+    try:
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
+        item = client.get_collection("sentinel-2-l2a").get_item(scenes[0].id)
+        dem_item = client.get_collection("cop-dem-glo-30").get_item(dem_scenes[0].id)
 
-        dem_arr = np.full((rows, cols), 2.0, dtype=np.float32)
-        for r in range(10):
-            dem_arr[r, :] = 150.0 - (r * 14.0)
+        def _href(source, keys):
+            for key in keys:
+                asset = source.assets.get(key)
+                if asset is not None and getattr(asset, "href", None):
+                    return asset.href
+            raise KeyError(",".join(keys))
+
+        def _band(source, keys):
+            arr, profile = stream_cog_window(_href(source, keys), tuple(bbox), resampling_factor=0.5)
+            if profile.get("fallback"):
+                raise RuntimeError("synthetic raster")
+            if arr.ndim == 3:
+                arr = arr[0]
+            return np.ma.filled(arr.astype(np.float32), np.nan) if np.ma.isMaskedArray(arr) else arr.astype(np.float32)
+
+        def _on(source, shape):
+            if source.shape == shape:
+                return source
+            rows = np.linspace(0, source.shape[0] - 1, shape[0]).astype(int)
+            cols = np.linspace(0, source.shape[1] - 1, shape[1]).astype(int)
+            return source[rows][:, cols]
+
+        green_arr = _band(item, ("green",))
+        green_arr = np.where(green_arr == 0, np.nan, green_arr)
+        swir1_arr = _on(_band(item, ("swir16", "swir22")), green_arr.shape)
+        swir1_arr = np.where(swir1_arr == 0, np.nan, swir1_arr)
+        dem_arr = _on(_band(dem_item, ("data",)), green_arr.shape)
+        scene_id = item.id
+        dem_scene_id = dem_item.id
+    except Exception as exc:
+        return json.dumps({
+            "error": f"Flood bands could not be read: {exc}. No flood map was computed.",
+            "location": display_name,
+        })
 
     # 1. Optical MNDWI water extraction: (Green - SWIR1) / (Green + SWIR1)
     denom = green_arr + swir1_arr
@@ -874,7 +917,8 @@ def detect_flood_inundation(
     raw_water_mask = mndwi > 0.0
 
     # 2. Copernicus DEM Horn slope calculation & terrain filtering
-    cellsize_m = 30.0
+    # Green was read at half of 10 m, and the DEM was resampled onto that grid.
+    cellsize_m = 20.0
     slope_deg, _ = compute_slope_and_aspect(dem_arr, cellsize_m=cellsize_m)
     steep_slopes = slope_deg > slope_threshold_deg
 
@@ -943,6 +987,9 @@ def detect_flood_inundation(
         },
         "flood_date": flood_date,
         "sensor": sensor,
+        "scene_id": scene_id,
+        "dem_scene_id": dem_scene_id,
+        "notice": "Water is MNDWI above 0 on the Sentinel-2 window, with steep DEM slopes removed. No cloud mask was applied, and this is not a confirmed flood extent.",
         "slope_threshold_deg": slope_threshold_deg,
         "inundated_land_area_ha": inundated_land_area_ha,
         "inundated_land_area_km2": inundated_land_area_km2,
