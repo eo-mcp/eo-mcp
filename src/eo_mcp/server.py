@@ -1731,6 +1731,7 @@ def calculate_burn_severity(
     """
     try:
         pre_nbr, post_nbr = None, None
+        pre_scene_id, post_scene_id = None, None
         try:
             pre_scenes = search_stac_catalog(
                 catalog_url=EARTH_SEARCH_STAC_URL,
@@ -1750,17 +1751,34 @@ def calculate_burn_severity(
             )
 
             if pre_scenes and post_scenes:
-                pre_id = pre_scenes[0].id
-                post_id = post_scenes[0].id
-                nir_pre_url = f"https://sentinel-cogs.s3.us-west-2.amazonaws.com/{pre_id}/pre_B08.tif"
-                swir_pre_url = f"https://sentinel-cogs.s3.us-west-2.amazonaws.com/{pre_id}/pre_B12.tif"
-                nir_post_url = f"https://sentinel-cogs.s3.us-west-2.amazonaws.com/{post_id}/post_B08.tif"
-                swir_post_url = f"https://sentinel-cogs.s3.us-west-2.amazonaws.com/{post_id}/post_B12.tif"
+                client = get_stac_client(EARTH_SEARCH_STAC_URL)
+                pre_item = client.get_collection(collection).get_item(pre_scenes[0].id)
+                post_item = client.get_collection(collection).get_item(post_scenes[0].id)
 
-                np_pre, _ = stream_cog_window(nir_pre_url, tuple(bbox), resampling_factor=0.5)
-                sp_pre, _ = stream_cog_window(swir_pre_url, tuple(bbox), resampling_factor=0.5)
-                np_post, _ = stream_cog_window(nir_post_url, tuple(bbox), resampling_factor=0.5)
-                sp_post, _ = stream_cog_window(swir_post_url, tuple(bbox), resampling_factor=0.5)
+                def _asset_href(item, keys):
+                    for key in keys:
+                        asset = item.assets.get(key)
+                        if asset is not None and getattr(asset, "href", None):
+                            return asset.href
+                    return None
+
+                def _read_band(item, keys):
+                    href = _asset_href(item, keys)
+                    if not href:
+                        raise KeyError("missing " + ",".join(keys))
+                    arr, profile = stream_cog_window(href, tuple(bbox), resampling_factor=0.5)
+                    if profile.get("fallback"):
+                        raise RuntimeError("raster read fell back to a synthetic array")
+                    if arr.ndim == 3:
+                        arr = arr[0]
+                    return arr
+
+                np_pre = _read_band(pre_item, ("nir", "nir08"))
+                sp_pre = _read_band(pre_item, ("swir22", "swir16"))
+                np_post = _read_band(post_item, ("nir", "nir08"))
+                sp_post = _read_band(post_item, ("swir22", "swir16"))
+                pre_scene_id = pre_scenes[0].id
+                post_scene_id = post_scenes[0].id
 
                 if np_pre.ndim == 3: np_pre = np_pre[0]
                 if sp_pre.ndim == 3: sp_pre = sp_pre[0]
@@ -1789,16 +1807,22 @@ def calculate_burn_severity(
             pass
 
         if pre_nbr is None or post_nbr is None:
-            # Calibrated mock for testing / offline
-            rows, cols = 40, 50
-            pre_nbr = np.full((rows, cols), 0.55, dtype=np.float32)
-            post_nbr = np.full((rows, cols), 0.55, dtype=np.float32)
-            post_nbr[10:30, 15:35] = -0.15  # Severe burn scar
+            return json.dumps({
+                "error": "No pre-fire and post-fire scenes could be read. No burn severity was computed.",
+                "bbox": bbox,
+                "pre_fire_date_range": pre_fire_date_range,
+                "post_fire_date_range": post_fire_date_range,
+            }, indent=2)
 
-        results = calculate_burn_severity_dnbr(pre_nbr, post_nbr, pixel_size_m=10.0)
+        # resampling_factor 0.5 on 10 m NIR, so each output pixel is 20 m.
+        results = calculate_burn_severity_dnbr(pre_nbr, post_nbr, pixel_size_m=20.0)
         results["bbox"] = bbox
         results["pre_fire_date_range"] = pre_fire_date_range
         results["post_fire_date_range"] = post_fire_date_range
+        results["pre_scene_id"] = pre_scene_id
+        results["post_scene_id"] = post_scene_id
+        results["data_source"] = f"{collection} COG window"
+        results["notice"] = "dNBR is the raw NIR/SWIR difference on every finite pixel. No cloud or burn mask was applied, so the hectares are not a confirmed fire perimeter."
 
         dnbr_grid = results["dnbr_grid"]
         vis = export_visual_artifacts(
