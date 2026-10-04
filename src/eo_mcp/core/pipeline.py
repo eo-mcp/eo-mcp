@@ -517,53 +517,21 @@ def _step_maritime_sar_ais(step: PipelineStep, ctx: PipelineContext) -> Dict[str
         except Exception:
             ais_records = []
 
-    # 2. Synthesize / extract SAR backscatter grid for the AOI
-    grid_rows, grid_cols = 40, 50
-    np.random.seed(int(abs(ctx.bbox[0] * 1000) % 10000))
-    sar_db = np.random.normal(loc=-18.5, scale=2.2, size=(grid_rows, grid_cols))
-
-    # Inject realistic metallic radar peaks for AIS vessels
-    min_lon, min_lat, max_lon, max_lat = ctx.bbox
-    for ais in ais_records[:5]:
-        c = int(((ais["lon"] - min_lon) / max(1e-5, max_lon - min_lon)) * (grid_cols - 1))
-        r = int(((max_lat - ais["lat"]) / max(1e-5, max_lat - min_lat)) * (grid_rows - 1))
-        if 0 <= r < grid_rows and 0 <= c < grid_cols:
-            sar_db[r, c] = np.random.uniform(6.0, 14.0)
-
-    # Inject an unverified Dark Vessel radar peak
-    dark_r, dark_c = grid_rows // 2, grid_cols // 2
-    sar_db[dark_r, dark_c] = 11.2
-
-    # 3. Execute CFAR detection
-    _, detected_targets = cfar_vessel_detector(
-        sar_db,
-        pfa_factor=float(step.params.get("pfa_factor", 3.2)),
-        min_cluster_size=1
-    )
-
-    # 4. Correlate with AIS telemetry
-    vessel_results = correlate_sar_with_ais(
-        detected_targets=detected_targets,
-        ais_records=ais_records,
-        bbox=ctx.bbox,
-        raster_shape=(grid_rows, grid_cols),
-        max_correlation_dist_km=1.5,
-        pixel_size_m=10.0
-    )
-
-    # 5. Detect oil and bilge discharge slicks
-    oil_slicks = detect_oil_spill_slicks(sar_db, ctx.bbox, slick_threshold_db=-22.0)
-    vessel_results["oil_slicks"] = oil_slicks
-    vessel_results["oil_slicks_count"] = len(oil_slicks)
-    vessel_results["bbox"] = ctx.bbox
-    vessel_results["datetime_range"] = dt_range
-
-    ctx.set_var(step.output_var, vessel_results)
+    stored = {
+        "radar_source": "NOT_READ",
+        "ais_records": ais_records,
+        "ais_count": len(ais_records),
+        "bbox": ctx.bbox,
+        "datetime_range": dt_range,
+        "notice": "Sentinel-1 backscatter was not read. No synthetic radar targets, dark vessel, or oil slick was added.",
+    }
+    ctx.set_var(step.output_var, stored)
     return {
-        "radar_targets": vessel_results.get("detected_vessels_count", len(detected_targets)),
-        "dark_vessels": vessel_results.get("dark_vessels_count", 0),
-        "ais_transponders": vessel_results.get("correlated_ais_count", len(ais_records)),
-        "oil_slicks_count": len(oil_slicks)
+        "radar_targets": None,
+        "dark_vessels": None,
+        "ais_transponders": len(ais_records),
+        "oil_slicks_count": None,
+        "radar_source": "NOT_READ",
     }
 
 
