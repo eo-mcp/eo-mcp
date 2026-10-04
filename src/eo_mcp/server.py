@@ -1316,51 +1316,57 @@ def analyze_coastal_erosion(
         except Exception:
             time_delta_years = 5.0
 
-        if hist_scenes and recent_scenes:
-            # Stream actual COG bands over HTTP range requests
-            hist_item = client.get_collection(collection).get_item(hist_scenes[0].id)
-            recent_item = client.get_collection(collection).get_item(recent_scenes[0].id)
+        if not hist_scenes or not recent_scenes:
+            return json.dumps({
+                "error": "No cloud-limited scene in one of the date windows. No shoreline change was computed.",
+                "bbox": bbox,
+                "historical_date_range": historical_date_range,
+                "recent_date_range": recent_date_range,
+            }, indent=2)
 
-            # Green (B03) and NIR (B08) are both native 10m resolution in Sentinel-2
-            green_h_url = hist_item.assets["green"].href
-            nir_h_url = hist_item.assets.get("nir", hist_item.assets.get("nir08")).href
-            green_r_url = recent_item.assets["green"].href
-            nir_r_url = recent_item.assets.get("nir", recent_item.assets.get("nir08")).href
+        hist_item = client.get_collection(collection).get_item(hist_scenes[0].id)
+        recent_item = client.get_collection(collection).get_item(recent_scenes[0].id)
 
-            gh, _ = stream_cog_window(green_h_url, tuple(bbox), resampling_factor=0.5)
-            nh, _ = stream_cog_window(nir_h_url, tuple(bbox), resampling_factor=0.5)
-            gr, _ = stream_cog_window(green_r_url, tuple(bbox), resampling_factor=0.5)
-            nr, _ = stream_cog_window(nir_r_url, tuple(bbox), resampling_factor=0.5)
+        def _href(item, keys):
+            for key in keys:
+                asset = item.assets.get(key)
+                if asset is not None and getattr(asset, "href", None):
+                    return asset.href
+            raise KeyError("missing " + ",".join(keys))
 
-            # Squeeze 3D to 2D if needed
-            if gh.ndim == 3: gh = gh[0]
-            if nh.ndim == 3: nh = nh[0]
-            if gr.ndim == 3: gr = gr[0]
-            if nr.ndim == 3: nr = nr[0]
+        def _band(item, keys):
+            arr, profile = stream_cog_window(_href(item, keys), tuple(bbox), resampling_factor=0.5)
+            if profile.get("fallback"):
+                raise RuntimeError("raster read fell back to a synthetic array")
+            if arr.ndim == 3:
+                arr = arr[0]
+            data = np.ma.filled(arr.astype(np.float32), np.nan) if np.ma.isMaskedArray(arr) else arr.astype(np.float32)
+            data = np.where(data == 0, np.nan, data)
+            return data
 
-            ndwi_hist = compute_mndwi(gh, nh)
-            ndwi_recent = compute_mndwi(gr, nr)
+        def _on_grid(source, shape):
+            if source.shape == shape:
+                return source
+            rows = np.linspace(0, source.shape[0] - 1, shape[0]).astype(int)
+            cols = np.linspace(0, source.shape[1] - 1, shape[1]).astype(int)
+            return source[rows][:, cols]
 
-            hist_water_mask, _ = extract_water_mask_otsu(ndwi_hist)
-            recent_water_mask, _ = extract_water_mask_otsu(ndwi_recent)
+        # MNDWI is green and SWIR (Xu 2006), not green and NIR. SWIR is 20 m, so it is resampled onto the green grid.
+        gh = _band(hist_item, ("green",))
+        sh = _on_grid(_band(hist_item, ("swir16", "swir22")), gh.shape)
+        gr = _band(recent_item, ("green",))
+        sr = _on_grid(_band(recent_item, ("swir16", "swir22")), gr.shape)
 
-            # Crop both masks to common dimensions to handle slight grid boundary offsets
-            min_r = min(hist_water_mask.shape[0], recent_water_mask.shape[0])
-            min_c = min(hist_water_mask.shape[1], recent_water_mask.shape[1])
-            hist_water_mask = hist_water_mask[:min_r, :min_c]
-            recent_water_mask = recent_water_mask[:min_r, :min_c]
+        hist_water_mask, _ = extract_water_mask_otsu(compute_mndwi(gh, sh))
+        recent_water_mask, _ = extract_water_mask_otsu(compute_mndwi(gr, sr))
 
-            pixel_size = 10.0 if collection == "sentinel-2-l2a" else 30.0
-        else:
-            # Calibrated baseline simulation for tests / offline mock
-            rows, cols = 40, 50
-            hist_water_mask = np.zeros((rows, cols), dtype=bool)
-            hist_water_mask[:, :20] = True  # Water on left side
+        min_r = min(hist_water_mask.shape[0], recent_water_mask.shape[0])
+        min_c = min(hist_water_mask.shape[1], recent_water_mask.shape[1])
+        hist_water_mask = hist_water_mask[:min_r, :min_c]
+        recent_water_mask = recent_water_mask[:min_r, :min_c]
 
-            recent_water_mask = np.zeros((rows, cols), dtype=bool)
-            # Water advanced inland by 2 pixels (erosion)
-            recent_water_mask[:, :22] = True
-            pixel_size = 10.0
+        native_m = 10.0 if collection == "sentinel-2-l2a" else 30.0
+        pixel_size = native_m / 0.5
 
         erosion_results = compute_transect_erosion_rates(
             hist_water_mask=hist_water_mask,
@@ -1373,6 +1379,10 @@ def analyze_coastal_erosion(
         erosion_results["bbox"] = bbox
         erosion_results["historical_date_range"] = historical_date_range
         erosion_results["recent_date_range"] = recent_date_range
+        erosion_results["historical_scene_id"] = hist_scenes[0].id
+        erosion_results["recent_scene_id"] = recent_scenes[0].id
+        erosion_results["data_source"] = f"{collection} green and swir16"
+        erosion_results["notice"] = "Water is an Otsu split of MNDWI on every finite pixel. No cloud mask was applied, and the rate is the mask edge, not a surveyed shoreline."
         erosion_results["policy_alignment"] = "EU Climate Adaptation Strategy & Nature Restoration Law"
 
         if format.lower() == "geojson":
