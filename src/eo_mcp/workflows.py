@@ -13,7 +13,7 @@ from scipy.ndimage import label
 
 from eo_mcp.utils.geo import geocode_place_name
 from eo_mcp.config import EARTH_SEARCH_STAC_URL
-from eo_mcp.providers.stac import search_stac_catalog
+from eo_mcp.providers.stac import get_stac_client, search_stac_catalog
 from eo_mcp.core.dem import summarize_terrain, compute_slope_and_aspect
 from eo_mcp.core.spectral import (
     compute_ndvi,
@@ -628,43 +628,58 @@ def audit_wildfire_burn(
             max_cloud_cover=20.0,
             limit=1
         )
-        if pre_scenes:
-            pre_scene_id = pre_scenes[0].id
-        if post_scenes:
-            post_scene_id = post_scenes[0].id
+        if not pre_scenes or not post_scenes:
+            return json.dumps({
+                "error": "No cloud-limited scene in the pre-fire or post-fire window. No burn audit was computed.",
+                "location": display_name,
+                "pre_fire_range": pre_fire_range,
+                "post_fire_range": post_fire_range,
+            })
 
-        url_pre_nir = f"https://sentinel-cogs.s3.amazonaws.com/{pre_scene_id}/pre_B08.tif"
-        url_pre_swir2 = f"https://sentinel-cogs.s3.amazonaws.com/{pre_scene_id}/pre_B12.tif"
-        url_post_nir = f"https://sentinel-cogs.s3.amazonaws.com/{post_scene_id}/post_B08.tif"
-        url_post_swir2 = f"https://sentinel-cogs.s3.amazonaws.com/{post_scene_id}/post_B12.tif"
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
+        pre_item = client.get_collection(collection).get_item(pre_scenes[0].id)
+        post_item = client.get_collection(collection).get_item(post_scenes[0].id)
+        pre_scene_id = pre_item.id
+        post_scene_id = post_item.id
 
-        np_pre, _ = stream_cog_window(url_pre_nir, tuple(bbox), resampling_factor=0.5)
-        sp_pre, _ = stream_cog_window(url_pre_swir2, tuple(bbox), resampling_factor=0.5)
-        np_post, _ = stream_cog_window(url_post_nir, tuple(bbox), resampling_factor=0.5)
-        sp_post, _ = stream_cog_window(url_post_swir2, tuple(bbox), resampling_factor=0.5)
+        def _href(item, keys):
+            for key in keys:
+                asset = item.assets.get(key)
+                if asset is not None and getattr(asset, "href", None):
+                    return asset.href
+            raise KeyError(",".join(keys))
 
-        if np_pre.ndim == 3: np_pre = np_pre[0]
-        if sp_pre.ndim == 3: sp_pre = sp_pre[0]
-        if np_post.ndim == 3: np_post = np_post[0]
-        if sp_post.ndim == 3: sp_post = sp_post[0]
+        def _band(item, keys):
+            arr, profile = stream_cog_window(_href(item, keys), tuple(bbox), resampling_factor=0.5)
+            if profile.get("fallback"):
+                raise RuntimeError("synthetic raster")
+            if arr.ndim == 3:
+                arr = arr[0]
+            data = np.ma.filled(arr.astype(np.float32), np.nan) if np.ma.isMaskedArray(arr) else arr.astype(np.float32)
+            return data
 
-        min_r = min(np_pre.shape[0], np_post.shape[0], sp_pre.shape[0], sp_post.shape[0])
-        min_c = min(np_pre.shape[1], np_post.shape[1], sp_pre.shape[1], sp_post.shape[1])
-        np_pre = np_pre[:min_r, :min_c]
-        sp_pre = sp_pre[:min_r, :min_c]
-        np_post = np_post[:min_r, :min_c]
-        sp_post = sp_post[:min_r, :min_c]
+        def _on(source, shape):
+            if source.shape == shape:
+                return source
+            rows = np.linspace(0, source.shape[0] - 1, shape[0]).astype(int)
+            cols = np.linspace(0, source.shape[1] - 1, shape[1]).astype(int)
+            return source[rows][:, cols]
 
-        pre_nbr = compute_nbr(np_pre, sp_pre)
-        post_nbr = compute_nbr(np_post, sp_post)
-    except Exception:
-        pass
-
-    if pre_nbr is None or post_nbr is None:
-        rows, cols = 40, 50
-        pre_nbr = np.full((rows, cols), 0.60, dtype=np.float32)
-        post_nbr = np.full((rows, cols), 0.60, dtype=np.float32)
-        post_nbr[10:30, 15:35] = -0.613
+        np_pre = _band(pre_item, ("nir", "nir08"))
+        sp_pre = _on(_band(pre_item, ("swir22", "swir16")), np_pre.shape)
+        np_post = _band(post_item, ("nir", "nir08"))
+        sp_post = _on(_band(post_item, ("swir22", "swir16")), np_post.shape)
+        min_r = min(np_pre.shape[0], np_post.shape[0])
+        min_c = min(np_pre.shape[1], np_post.shape[1])
+        pre_nbr = compute_nbr(np_pre[:min_r, :min_c], sp_pre[:min_r, :min_c])
+        post_nbr = compute_nbr(np_post[:min_r, :min_c], sp_post[:min_r, :min_c])
+        # Half of the 10 m NIR grid.
+        pixel_size_m = 20.0
+    except Exception as exc:
+        return json.dumps({
+            "error": f"Pre-fire and post-fire bands could not be read: {exc}. No burn audit was computed.",
+            "location": display_name,
+        })
 
     dnbr_grid = pre_nbr - post_nbr
     pixel_area_ha = (pixel_size_m * pixel_size_m) / 10000.0
@@ -774,7 +789,10 @@ def audit_wildfire_burn(
         },
         "fire_date": fire_date,
         "collection": collection,
+        "pre_scene_id": pre_scene_id,
+        "post_scene_id": post_scene_id,
         "pixel_size_m": pixel_size_m,
+        "notice": "dNBR is the NIR and SWIR difference on every finite pixel. No cloud or burn mask was applied, so the hectares are not a confirmed fire perimeter.",
         "total_burned_area_ha": total_burned_area_ha,
         "total_burned_area_acres": total_burned_area_acres,
         "overall_burn_severity_class": overall_severity,
