@@ -567,32 +567,95 @@ def _step_maritime_sar_ais(step: PipelineStep, ctx: PipelineContext) -> Dict[str
     }
 
 
+def _read_named_bands(bbox, datetime_range, keys, resampling):
+    """Least-cloudy Sentinel-2 bands, scaled and aligned to the first band."""
+    from eo_mcp.providers.stac import get_stac_client
+
+    scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["sentinel-2-l2a"],
+        bbox=list(bbox),
+        datetime_range=datetime_range,
+        limit=8,
+    )
+    if not scenes:
+        return None, None
+    scene = min(scenes, key=lambda item: item.cloud_cover if item.cloud_cover is not None else 100.0)
+    client = get_stac_client(EARTH_SEARCH_STAC_URL)
+    item = client.get_collection("sentinel-2-l2a").get_item(scene.id)
+    arrays = []
+    for key in keys:
+        asset = item.assets.get(key)
+        if asset is None:
+            return None, None
+        arr, profile = stream_cog_window(asset.href, tuple(bbox), resampling_factor=resampling)
+        if profile.get("fallback"):
+            return None, None
+        if getattr(arr, "ndim", 0) == 3:
+            arr = arr.squeeze()
+        if np.ma.isMaskedArray(arr):
+            arr = np.ma.filled(arr.astype(np.float32), np.nan)
+        else:
+            arr = np.asarray(arr, dtype=np.float32)
+        arr = np.where(arr == 0, np.nan, arr)
+        arrays.append(arr)
+    target = arrays[0].shape
+    aligned = []
+    for arr in arrays:
+        if arr.shape != target:
+            rows = np.linspace(0, arr.shape[0] - 1, target[0]).astype(int)
+            cols = np.linspace(0, arr.shape[1] - 1, target[1]).astype(int)
+            arr = arr[np.ix_(rows, cols)]
+        aligned.append(arr)
+    sample = aligned[0]
+    if np.isfinite(sample).any() and float(np.nanmedian(sample)) > 1.0:
+        aligned = [arr / 10000.0 for arr in aligned]
+    return aligned, item.id
+
+
 def _step_coastal_water_quality(step: PipelineStep, ctx: PipelineContext) -> Dict[str, Any]:
     """Execute coastal water quality, eutrophication & turbidity analysis within pipeline."""
     from eo_mcp.core.water_quality import analyze_coastal_water_quality
-    
-    np.random.seed(int(abs(ctx.bbox[0] * 1000) % 10000))
-    g = np.random.uniform(0.05, 0.12, (100, 100))
-    r = np.random.uniform(0.04, 0.10, (100, 100))
-    re = np.random.uniform(0.06, 0.18, (100, 100))
-    # Simulated coastal runoff plume
-    r[20:50, 30:70] += 0.08
-    re[20:50, 30:70] += 0.12
 
+    dt_range = str(ctx.get_var(step.params.get("datetime_range", "2024-06-01/2024-06-30"), "2024-06-01/2024-06-30"))
+    resampling = float(step.params.get("resampling_factor", 0.5))
+    try:
+        bands, scene_id = _read_named_bands(
+            ctx.bbox, dt_range, ("green", "red", "rededge1", "swir16"), resampling
+        )
+    except Exception:
+        bands, scene_id = None, None
+    if not bands:
+        return {
+            "error": "No Sentinel-2 window was read. No synthetic water-quality bands were substituted.",
+            "source": "NOT_READ",
+        }
+    green, red, red_edge, swir = bands
+    water = compute_mndwi(green, swir) > 0
+    if int(np.count_nonzero(water)) == 0:
+        return {
+            "error": "The window has no MNDWI water pixels. Land was not scored as water.",
+            "scene_id": scene_id,
+            "source": "NOT_READ",
+        }
     wq_results = analyze_coastal_water_quality(
-        green=g,
-        red=r,
-        red_edge=re,
-        cellsize_m=10.0,
-        bbox=ctx.bbox
+        green=green,
+        red=red,
+        red_edge=red_edge,
+        water_mask=water,
+        cellsize_m=10.0 / resampling,
+        bbox=ctx.bbox,
     )
+    wq_results["scene_id"] = scene_id
+    wq_results["notice"] = "Water is MNDWI greater than 0. No cloud mask. Not a lab water sample."
     ctx.set_var(step.output_var, wq_results)
     return {
+        "scene_id": scene_id,
         "water_area_km2": wq_results["summary"]["water_surface_area_km2"],
         "primary_trophic_state": wq_results["summary"]["primary_trophic_state"],
         "hab_alert_level": wq_results["summary"]["hab_alert_level"],
         "mean_ndci": wq_results["chlorophyll_ndci"]["mean"],
-        "mean_spm_mg_l": wq_results["suspended_solids_spm"]["mean_mg_l"]
+        "mean_spm_mg_l": wq_results["suspended_solids_spm"]["mean_mg_l"],
     }
 
 
