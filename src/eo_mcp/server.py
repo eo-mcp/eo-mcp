@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from eo_mcp.config import (
     EARTH_SEARCH_STAC_URL,
+    PLANETARY_COMPUTER_STAC_URL,
     COLLECTIONS_META,
     CDSE_STAC_URL,
     update_credential,
@@ -1864,63 +1865,96 @@ def analyze_urban_heat_island(
     - Jiménez-Muñoz, J. C., et al. (2009). IEEE TGRS, 47(1), 339-349. DOI: 10.1109/TGRS.2008.2007125
     """
     try:
-        client = get_stac_client(EARTH_SEARCH_STAC_URL)
+        import urllib.parse
+        import urllib.request
 
-        red_arr, nir_arr, th_arr = None, None, None
-        try:
-            scenes = search_stac_catalog(
-                catalog_url=EARTH_SEARCH_STAC_URL,
-                collections=["landsat-c2-l2"],
-                bbox=bbox,
-                datetime_range=datetime_range,
-                max_cloud_cover=15.0,
-                limit=1
-            )
-
-            if scenes:
-                item = client.get_collection("landsat-c2-l2").get_item(scenes[0].id)
-                red_url = item.assets.get("red").href
-                nir_url = item.assets.get("nir08").href
-                th_key = "lwir11" if "lwir11" in item.assets else ("thermal" if "thermal" in item.assets else None)
-
-                r_raw, _ = stream_cog_window(red_url, tuple(bbox), resampling_factor=0.5)
-                n_raw, _ = stream_cog_window(nir_url, tuple(bbox), resampling_factor=0.5)
-                if r_raw.ndim == 3: r_raw = r_raw[0]
-                if n_raw.ndim == 3: n_raw = n_raw[0]
-
-                if th_key:
-                    th_url = item.assets[th_key].href
-                    t_raw, _ = stream_cog_window(th_url, tuple(bbox), resampling_factor=0.5)
-                    if t_raw.ndim == 3: t_raw = t_raw[0]
-                    th_arr = t_raw
-                else:
-                    ndvi = compute_ndvi(n_raw, r_raw)
-                    th_arr = 12.0 - (4.5 * np.nan_to_num(ndvi, nan=0.2))
-
-                red_arr = r_raw
-                nir_arr = n_raw
-        except Exception:
-            # Fallback to calibrated simulation if remote S3 requester-pays or timeout
-            pass
-
-        if red_arr is None or nir_arr is None or th_arr is None:
-            rows, cols = 40, 50
-            red_arr = np.full((rows, cols), 1500, dtype=np.float32)
-            nir_arr = np.full((rows, cols), 2800, dtype=np.float32)
-            # Create urban core with low vegetation and high thermal radiance
-            red_arr[15:28, 20:35] = 3200
-            nir_arr[15:28, 20:35] = 2100
-            th_arr = np.full((rows, cols), 9.2, dtype=np.float32)
-            th_arr[15:28, 20:35] = 12.8  # Urban core hotspot
-
-        results = calculate_land_surface_temperature(
-            thermal_radiance=th_arr,
-            red_band=red_arr,
-            nir_band=nir_arr,
-            cellsize_m=30.0
+        scenes = search_stac_catalog(
+            catalog_url=PLANETARY_COMPUTER_STAC_URL,
+            collections=["landsat-c2-l2"],
+            bbox=bbox,
+            datetime_range=datetime_range,
+            max_cloud_cover=15.0,
+            limit=1
         )
-        results["bbox"] = bbox
-        results["datetime_range"] = datetime_range
+        if not scenes:
+            return json.dumps({
+                "error": "No cloud-limited Landsat Collection 2 scene in that window. No temperature was computed.",
+                "bbox": bbox,
+                "datetime_range": datetime_range,
+            }, indent=2)
+
+        client = get_stac_client(PLANETARY_COMPUTER_STAC_URL)
+        item = client.get_collection("landsat-c2-l2").get_item(scenes[0].id)
+        asset = item.assets.get("lwir11")
+        if asset is None or not getattr(asset, "href", None):
+            return json.dumps({
+                "error": "Scene has no lwir11 surface-temperature asset. No temperature was computed.",
+                "scene_id": scenes[0].id,
+                "bbox": bbox,
+            }, indent=2)
+
+        bands = (asset.extra_fields or {}).get("raster:bands") or [{}]
+        band = bands[0] if bands else {}
+        scale = float(band.get("scale", 0.00341802))
+        offset = float(band.get("offset", 149.0))
+        nodata = band.get("nodata", 0)
+
+        sign_url = "https://planetarycomputer.microsoft.com/api/sas/v1/sign?" + urllib.parse.urlencode({"href": asset.href})
+        with urllib.request.urlopen(sign_url, timeout=30) as response:
+            signed_href = json.load(response)["href"]
+
+        raw, profile = stream_cog_window(signed_href, tuple(bbox), resampling_factor=1.0)
+        if profile.get("fallback"):
+            return json.dumps({
+                "error": "Thermal window fell back to a synthetic array. No temperature was computed.",
+                "scene_id": item.id,
+            }, indent=2)
+        if raw.ndim == 3:
+            raw = raw[0]
+        data = np.ma.filled(raw.astype(np.float32), np.nan) if np.ma.isMaskedArray(raw) else raw.astype(np.float32)
+        if nodata is not None:
+            data = np.where(data == nodata, np.nan, data)
+        kelvin = data * scale + offset
+        lst_c = kelvin - 273.15
+        valid = np.isfinite(lst_c) & (kelvin > 200.0) & (kelvin < 400.0)
+        if not np.any(valid):
+            return json.dumps({
+                "error": "Surface-temperature window had no valid pixels. No temperature was computed.",
+                "scene_id": item.id,
+                "bbox": bbox,
+            }, indent=2)
+
+        mean_c = float(np.mean(lst_c[valid]))
+        min_c = float(np.min(lst_c[valid]))
+        max_c = float(np.max(lst_c[valid]))
+        std_c = float(np.std(lst_c[valid]))
+        hotspot = (lst_c >= (mean_c + std_c)) & valid
+        cool = (lst_c <= (mean_c - std_c)) & valid
+        pixel_ha = (30.0 * 30.0) / 10000.0
+        cool_baseline = float(np.mean(lst_c[cool])) if np.any(cool) else min_c
+        uhi_intensity = max(0.0, max_c - cool_baseline)
+        results = {
+            "mean_lst_celsius": round(mean_c, 2),
+            "min_lst_celsius": round(min_c, 2),
+            "max_lst_celsius": round(max_c, 2),
+            "std_lst_celsius": round(std_c, 2),
+            "uhi_intensity_celsius": round(uhi_intensity, 2),
+            "total_aoi_area_ha": round(float(np.sum(valid)) * pixel_ha, 2),
+            "thermal_hotspot_area_ha": round(float(np.sum(hotspot)) * pixel_ha, 2),
+            "cool_island_area_ha": round(float(np.sum(cool)) * pixel_ha, 2),
+            "hotspot_percentage": round((np.sum(hotspot) / max(1, np.sum(valid))) * 100.0, 2),
+            "thermal_risk_level": "EXTREME_HEAT_RISK" if uhi_intensity > 8.0 else ("MODERATE_HEAT_ISLAND" if uhi_intensity > 4.0 else "NOMINAL"),
+            "methodology": "Landsat Collection 2 Level-2 surface temperature (ST band lwir11), scaled to kelvin",
+            "lst_grid_celsius": lst_c,
+            "bbox": bbox,
+            "datetime_range": datetime_range,
+            "scene_id": item.id,
+            "scene_datetime": (item.properties or {}).get("datetime"),
+            "data_source": "landsat-c2-l2 lwir11",
+            "scale": scale,
+            "offset": offset,
+            "notice": "Values are the Level-2 surface-temperature band, not a single-channel radiance retrieval. No cloud mask was applied, and hotspot area is pixels at least one standard deviation above the window mean.",
+        }
 
         ascii_map = generate_ascii_preview(results["lst_grid_celsius"], width=42, height=18)
         results["ascii_temperature_distribution_map"] = ascii_map
