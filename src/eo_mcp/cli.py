@@ -410,7 +410,12 @@ def cli_drought(args):
 
     data = json.loads(res_str)
     d_class = data.get("drought_severity_class", "UNKNOWN")
-    color = "red" if "CRITICAL" in d_class else ("yellow" if "MODERATE" in d_class else "green")
+    if d_class == "NOT_COMPARED":
+        color = "yellow"
+    else:
+        color = "red" if "CRITICAL" in d_class else ("yellow" if "MODERATE" in d_class else "green")
+    if data.get("notice"):
+        console.print(data["notice"])
 
     console.print(Panel.fit(
         f"[bold blue]Reservoir Surface Water & Drought Depletion Analyzer[/bold blue]\n"
@@ -421,6 +426,12 @@ def cli_drought(args):
         f"([bold {color}]{data.get('water_area_change_percentage')}%[/bold {color}])\n"
         f"Severity: [bold {color}]{d_class}[/bold {color}]"
     ))
+    if data.get("water_present_area_ha") is not None:
+        console.print(
+            f"2020 seasonality: water present {data.get('water_present_area_ha')} ha, "
+            f"all 12 months {data.get('permanent_water_area_ha')} ha, "
+            f"1–11 months {data.get('seasonal_water_area_ha')} ha"
+        )
 
     tb = data.get("transition_breakdown_ha", {})
     table = Table(title="Surface Water Transitions (EC JRC GSW Method)")
