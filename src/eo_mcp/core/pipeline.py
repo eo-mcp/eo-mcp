@@ -310,29 +310,33 @@ def _step_fetch_raster(step: PipelineStep, ctx: PipelineContext) -> Dict[str, An
             client = get_stac_client(EARTH_SEARCH_STAC_URL)
             item = client.get_collection("cop-dem-glo-30").get_item(scenes[0].id)
             elev_url = item.assets["data"].href
-            arr, _ = stream_cog_window(elev_url, tuple(ctx.bbox), resampling_factor=resampling)
+            arr, profile = stream_cog_window(elev_url, tuple(ctx.bbox), resampling_factor=resampling)
+            if profile.get("fallback"):
+                arr = None
+            else:
+                source = item.id
         except Exception:
             arr = None
 
     if arr is None:
-        # Realistic fallback array seeded by coordinates
-        source = "SYNTHETIC_ELEVATION_FALLBACK"
-        np.random.seed(int(abs(ctx.bbox[0] * 1000) % 10000))
-        col_grad = np.linspace(-1.0, 15.0, 50)
-        row_grad = np.linspace(0.0, 8.0, 40).reshape(-1, 1)
-        noise = np.random.normal(0, 0.4, (40, 50))
-        arr = col_grad + row_grad + noise
+        return {
+            "error": "No elevation window was read. No synthetic DEM was substituted.",
+            "collection": collection,
+            "source": "NOT_READ",
+        }
 
     if arr.ndim == 3:
         arr = arr.squeeze()
+    if np.ma.isMaskedArray(arr):
+        arr = np.ma.filled(arr.astype(np.float32), np.nan)
 
     meta = {
         "collection": collection,
         "data_source": source,
         "shape": list(arr.shape),
-        "min": round(float(np.min(arr)), 2),
-        "mean": round(float(np.mean(arr)), 2),
-        "max": round(float(np.max(arr)), 2),
+        "min": round(float(np.nanmin(arr)), 2),
+        "mean": round(float(np.nanmean(arr)), 2),
+        "max": round(float(np.nanmax(arr)), 2),
         "array": arr
     }
     ctx.set_var(step.output_var, meta)
