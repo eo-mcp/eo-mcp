@@ -322,6 +322,10 @@ def cli_wildfires(args):
         f"Clustered Perimeters: [bold yellow]{data.get('fire_perimeters_count')}[/bold yellow] | "
         f"Total FRP: [bold red]{data.get('total_fire_radiative_power_mw')} MW[/bold red]"
     ))
+    if data.get("notice"):
+        console.print(data["notice"])
+    if data.get("data_source"):
+        console.print(data["data_source"])
 
     table = Table(title="Active Thermal Hotspots (VIIRS / MODIS)")
     table.add_column("Hotspot ID", style="cyan")

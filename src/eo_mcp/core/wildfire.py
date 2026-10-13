@@ -29,7 +29,9 @@ References:
 """
 
 from typing import List, Dict, Any, Optional, Tuple
+import csv
 import math
+import os
 import httpx
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -42,7 +44,8 @@ def fetch_firms_hotspots(
     bbox: List[float],
     days: int = 2,
     source: str = "VIIRS_NOAA20_NRT",
-    timeout: float = 6.0
+    timeout: float = 6.0,
+    status: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Fetch active fire hotspots from NASA FIRMS public area feeds.
@@ -63,72 +66,127 @@ def fetch_firms_hotspots(
       DOI: 10.1016/j.rse.2016.02.054
     """
     min_lon, min_lat, max_lon, max_lat = bbox
-    hotspots = []
+    hotspots: List[Dict[str, Any]] = []
+    if status is not None:
+        status.clear()
 
-    # Attempt public FIRMS query
-    try:
-        # Standard open endpoint format
+    def _note(**fields: Any) -> None:
+        if status is not None:
+            status.update(fields)
+
+    def _hotspot(row: Dict[str, str], source_name: str) -> Optional[Dict[str, Any]]:
+        try:
+            lat = float(row["latitude"])
+            lon = float(row["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        if not (min_lon <= lon <= max_lon and min_lat <= lat <= max_lat):
+            return None
+        try:
+            frp = float(row.get("frp") or 0.0)
+        except (TypeError, ValueError):
+            frp = 0.0
+        bright_raw = row.get("bright_ti4") or row.get("brightness") or ""
+        try:
+            bright = round(float(bright_raw), 1)
+        except (TypeError, ValueError):
+            bright = None
+        return {
+            "hotspot_id": f"FIRE-{len(hotspots)+1:03d}",
+            "lat": round(lat, 5),
+            "lon": round(lon, 5),
+            "fire_radiative_power_mw": round(frp, 2),
+            "brightness_temp_k": bright,
+            "confidence": row.get("confidence") or "",
+            "acquisition_date": row.get("acq_date") or "",
+            "satellite": row.get("satellite") or "",
+            "source": source_name,
+        }
+
+    map_key = os.getenv("MAP_KEY", "").strip()
+    if map_key:
         area_str = f"{min_lon},{min_lat},{max_lon},{max_lat}"
-        url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/open/{source}/{area_str}/{days}"
-        with httpx.Client(timeout=timeout) as client:
-            resp = client.get(url)
-            if resp.status_code == 200 and "latitude" in resp.text:
-                lines = resp.text.strip().split("\n")
-                header = [h.strip().lower() for h in lines[0].split(",")]
+        url = (
+            "https://firms.modaps.eosdis.nasa.gov/api/area/csv/"
+            f"{map_key}/{source}/{area_str}/{max(1, days)}"
+        )
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                resp = client.get(url)
+            if resp.status_code == 200 and "latitude" in resp.text.lower():
+                lines = resp.text.strip().splitlines()
+                header = [h.strip().lower() for h in next(csv.reader([lines[0]]))]
                 for line in lines[1:]:
-                    parts = [p.strip() for p in line.split(",")]
-                    if len(parts) == len(header):
-                        row = dict(zip(header, parts))
-                        try:
-                            lat = float(row.get("latitude", 0.0))
-                            lon = float(row.get("longitude", 0.0))
-                            frp = float(row.get("frp", 0.0))
-                            bright = float(row.get("bright_ti4", row.get("brightness", 320.0)))
-                            hotspots.append({
-                                "hotspot_id": f"FIRE-{len(hotspots)+1:03d}",
-                                "lat": round(lat, 5),
-                                "lon": round(lon, 5),
-                                "fire_radiative_power_mw": round(frp, 2),
-                                "brightness_temp_k": round(bright, 1),
-                                "confidence": row.get("confidence", "nominal"),
-                                "acquisition_date": row.get("acq_date", "2024-06-15"),
-                                "satellite": row.get("satellite", "VIIRS/NOAA-20"),
-                                "source": "NASA_FIRMS_Live"
-                            })
-                        except (ValueError, TypeError):
-                            continue
-    except Exception:
-        pass
+                    parts = next(csv.reader([line]))
+                    if len(parts) != len(header):
+                        continue
+                    item = _hotspot(dict(zip(header, parts)), "NASA_FIRMS_Live")
+                    if item:
+                        hotspots.append(item)
+                _note(
+                    data_source="NASA FIRMS area API",
+                    notice=None if hotspots else "NASA FIRMS returned no hotspots in this box.",
+                )
+                return hotspots
+        except Exception:
+            pass
 
-    # If remote API is throttled or empty, provide calibrated realistic thermal hotspots
-    if not hotspots:
-        np.random.seed(int(abs(min_lon * 100) + abs(min_lat * 100)) % 1000)
-        center_lon = (min_lon + max_lon) / 2.0
-        center_lat = (min_lat + max_lat) / 2.0
-        # Cluster of 4 thermal anomalies simulating an active fire front
-        offsets = [
-            (0.002, 0.003, 42.5, 345.2, "high"),
-            (0.004, 0.005, 78.1, 362.8, "high"),
-            (-0.001, 0.002, 28.4, 332.1, "nominal"),
-            (0.006, 0.008, 115.6, 378.4, "high")
-        ]
-        for idx, (d_lon, d_lat, frp, bright, conf) in enumerate(offsets):
-            h_lon = center_lon + d_lon
-            h_lat = center_lat + d_lat
-            if min_lon <= h_lon <= max_lon and min_lat <= h_lat <= max_lat:
-                hotspots.append({
-                    "hotspot_id": f"FIRE-{idx+1:03d}",
-                    "lat": round(h_lat, 5),
-                    "lon": round(h_lon, 5),
-                    "fire_radiative_power_mw": frp,
-                    "brightness_temp_k": bright,
-                    "confidence": conf,
-                    "acquisition_date": "2024-06-15",
-                    "satellite": "VIIRS/NOAA-20",
-                    "source": "NASA_FIRMS_Calibrated"
-                })
+    # The area API rejects the literal key "open" (HTTP 400 Invalid MAP_KEY).
+    # These global CSVs are public and do not need a key. They are 24h or 7d, not an arbitrary day count.
+    public = {
+        "VIIRS_NOAA20_NRT": "https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_{span}.csv",
+        "VIIRS_SNPP_NRT": "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_{span}.csv",
+        "MODIS_NRT": "https://firms.modaps.eosdis.nasa.gov/data/active_fire/modis-c6.1/csv/MODIS_C6_1_Global_{span}.csv",
+    }
+    if source not in public:
+        _note(
+            data_source=None,
+            notice=f"Unknown FIRMS source '{source}'. No hotspots were invented.",
+        )
+        return []
+    template = public[source]
+    span = "24h" if days <= 1 else "7d"
+    url = template.format(span=span)
+    try:
+        with httpx.Client(timeout=max(timeout, 60.0), follow_redirects=True) as client:
+            with client.stream("GET", url) as resp:
+                if resp.status_code != 200:
+                    _note(
+                        data_source=None,
+                        notice=f"NASA FIRMS public CSV returned HTTP {resp.status_code}. No hotspots were invented.",
+                    )
+                    return []
+                header = None
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    if header is None:
+                        header = [h.strip().lower() for h in next(csv.reader([line]))]
+                        continue
+                    parts = next(csv.reader([line]))
+                    if len(parts) != len(header):
+                        continue
+                    item = _hotspot(dict(zip(header, parts)), "NASA_FIRMS_Public_CSV")
+                    if item:
+                        hotspots.append(item)
+    except Exception as exc:
+        _note(
+            data_source=None,
+            notice=f"NASA FIRMS public CSV could not be read ({exc.__class__.__name__}). No hotspots were invented.",
+        )
+        return []
 
+    window = "the latest 24 hours" if span == "24h" else "the latest 7 days"
+    extra = ""
+    if days > 7:
+        extra = " A keyless feed cannot cover more than 7 days."
+    notice = (
+        f"Read from the NASA FIRMS public {span} CSV ({window}). "
+        f"{len(hotspots)} hotspot(s) fell inside the box.{extra}"
+    )
+    _note(data_source=f"NASA FIRMS public {span} CSV", feed_url=url, notice=notice)
     return hotspots
+
 
 
 def cluster_fire_perimeters(
@@ -172,7 +230,8 @@ def cluster_fire_perimeters(
 
             cluster_hotspots = [hotspots[idx] for idx in cluster_indices]
             total_frp = sum(h["fire_radiative_power_mw"] for h in cluster_hotspots)
-            max_temp = max(h["brightness_temp_k"] for h in cluster_hotspots)
+            temps = [h["brightness_temp_k"] for h in cluster_hotspots if h.get("brightness_temp_k") is not None]
+            max_temp = max(temps) if temps else None
 
             c_lons = [h["lon"] for h in cluster_hotspots]
             c_lats = [h["lat"] for h in cluster_hotspots]
