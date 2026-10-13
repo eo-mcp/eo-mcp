@@ -1495,22 +1495,39 @@ def simulate_sea_level_rise(
             limit=1
         )
 
-        dem_data = None
-        if scenes:
-            try:
-                elev_url = f"https://copernicus-dem-30m.s3.amazonaws.com/{scenes[0].id}/dem.tif"
-                dem_data, _ = stream_cog_window(elev_url, tuple(bbox), resampling_factor=0.5)
-                if dem_data.ndim == 3:
-                    dem_data = dem_data[0]
-            except Exception:
-                dem_data = None
+        if not scenes:
+            return json.dumps({
+                "error": "No Copernicus DEM tile intersects this box. No inundation was computed.",
+                "bbox": bbox,
+            }, indent=2)
 
-        if dem_data is None:
-            # Calibrated coastal elevation ramp for testing/offline mock
-            rows, cols = 40, 50
-            # Elevation slopes from -2.0m (ocean) to +10.0m (inland)
-            col_grad = np.linspace(-2.0, 10.0, cols)
-            dem_data = np.tile(col_grad, (rows, 1))
+        client = get_stac_client(EARTH_SEARCH_STAC_URL)
+        item = client.get_collection("cop-dem-glo-30").get_item(scenes[0].id)
+        asset = item.assets.get("data")
+        if asset is None or not getattr(asset, "href", None):
+            return json.dumps({
+                "error": "Copernicus DEM tile has no data asset. No inundation was computed.",
+                "scene_id": scenes[0].id,
+            }, indent=2)
+
+        dem_data, profile = stream_cog_window(asset.href, tuple(bbox), resampling_factor=1.0)
+        if profile.get("fallback"):
+            return json.dumps({
+                "error": "DEM window fell back to a synthetic array. No inundation was computed.",
+                "scene_id": item.id,
+            }, indent=2)
+        if dem_data.ndim == 3:
+            dem_data = dem_data[0]
+        if np.ma.isMaskedArray(dem_data):
+            dem_data = np.ma.filled(dem_data.astype(np.float32), np.nan)
+        else:
+            dem_data = dem_data.astype(np.float32)
+        if not np.any(np.isfinite(dem_data)):
+            return json.dumps({
+                "error": "DEM window had no elevation pixels. No inundation was computed.",
+                "scene_id": item.id,
+                "bbox": bbox,
+            }, indent=2)
 
         flooded_mask, depth_grid, metrics = simulate_connected_inundation(
             dem_array=dem_data,
@@ -1518,6 +1535,9 @@ def simulate_sea_level_rise(
             storm_surge_m=storm_surge_m,
             cellsize_m=30.0
         )
+        metrics["scene_id"] = item.id
+        metrics["data_source"] = "cop-dem-glo-30"
+        metrics["notice"] = "Elevations are the Copernicus DEM window. Ocean is a border cell at or below 0 m. A box that crosses a tile edge is only the tile that the search returned."
 
         ascii_map = generate_ascii_preview(depth_grid, width=42, height=18)
 
