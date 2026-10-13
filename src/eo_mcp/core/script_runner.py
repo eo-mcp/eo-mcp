@@ -198,9 +198,8 @@ TOTAL_ELEVATION_M = WATER_RISE_METERS + STORM_SURGE_METERS
 
 def run_inundation_simulation(dem_array=None):
     if dem_array is None:
-        # Synthetic mock elevation grid for demonstration
-        x, y = np.meshgrid(np.linspace(0, 5, 200), np.linspace(0, 5, 200))
-        dem_array = x * 0.8 + y * 0.4 - 1.0
+        print("No elevation array was provided. No synthetic DEM was substituted.")
+        return {{"source": "NOT_READ", "flooded_area_km2": None}}
 
     print(f"Simulating sea-level rise ({{WATER_RISE_METERS}}m) + storm surge ({{STORM_SURGE_METERS}}m)...")
     raw_submerged = dem_array <= TOTAL_ELEVATION_M
@@ -243,10 +242,7 @@ def cfar_vessel_detector(sar_amplitude, pfa=1e-5):
     return detections
 
 if __name__ == "__main__":
-    mock_sar = np.random.exponential(scale=10.0, size=(256, 256))
-    mock_sar[100, 120] = 350.0  # Synthetic vessel target
-    vessels = cfar_vessel_detector(mock_sar)
-    print(f"Detected vessel targets: {{np.count_nonzero(vessels)}}")
+    print("No Sentinel-1 backscatter was read. No synthetic vessel was added.")
 '''
     else:  # Default spectral indices
         return f'''"""Standalone Multispectral Index Pipeline.
@@ -264,10 +260,7 @@ def compute_ndvi(nir, red):
 
 if __name__ == "__main__":
     print(f"Analyzing AOI: {bbox}")
-    mock_nir = np.random.uniform(0.2, 0.8, size=(100, 100))
-    mock_red = np.random.uniform(0.05, 0.3, size=(100, 100))
-    ndvi = compute_ndvi(mock_nir, mock_red)
-    print(f"Mean NDVI: {{np.mean(ndvi):.4f}}")
+    print("No Sentinel-2 bands were read. No synthetic NDVI was substituted.")
 '''
 
 
@@ -282,28 +275,8 @@ from eo_mcp.core.water_quality import analyze_coastal_water_quality, water_quali
 BBOX = {bbox}
 
 def main():
-    # Synthetic multi-band array for demonstration
-    green = np.random.uniform(0.05, 0.15, (256, 256))
-    red = np.random.uniform(0.04, 0.12, (256, 256))
-    red_edge = np.random.uniform(0.08, 0.22, (256, 256))
-    sst = np.random.uniform(21.0, 24.5, (256, 256))
-
-    results = analyze_coastal_water_quality(
-        green=green,
-        red=red,
-        red_edge=red_edge,
-        sst=sst,
-        cellsize_m=10.0,
-        bbox=BBOX
-    )
-    
-    print(f"Trophic State: {{results['summary']['primary_trophic_state']}}")
-    print(f"HAB Alert Level: {{results['summary']['hab_alert_level']}}")
-    print(f"Mean NDCI: {{results['chlorophyll_ndci']['mean']}}")
-    print(f"Mean SPM: {{results['suspended_solids_spm']['mean_mg_l']}} mg/L")
-    
-    geojson = water_quality_to_geojson(results, BBOX)
-    return results
+    print("No Sentinel-2 bands were read. No synthetic water-quality grid was substituted.")
+    return {{"source": "NOT_READ"}}
 
 if __name__ == "__main__":
     main()
@@ -317,19 +290,8 @@ from eo_mcp.core.inundation import simulate_connected_inundation, inundation_to_
 BBOX = {bbox}
 
 def main():
-    # Generate mock terrain
-    x, y = np.meshgrid(np.linspace(0, 10, 300), np.linspace(0, 10, 300))
-    dem = x * 0.5 + y * 0.2 - 1.5
-
-    mask, depths, summary = simulate_connected_inundation(
-        dem_array=dem,
-        water_level_rise_m=1.0,
-        storm_surge_m=0.5,
-        cellsize_m=30.0
-    )
-    print(f"Flooded Area: {{summary['flooded_area_km2']}} km²")
-    print(f"Max Depth: {{summary['max_depth_m']}} m")
-    return summary
+    print("No elevation array was provided. No synthetic DEM was substituted.")
+    return {{"source": "NOT_READ"}}
 
 if __name__ == "__main__":
     main()
@@ -337,12 +299,7 @@ if __name__ == "__main__":
     else:
         return f'''"""Modular Geospatial Pipeline using eo_mcp SDK."""
 
-from eo_mcp.core.spectral import compute_ndvi
-
-nir = np.random.uniform(0.3, 0.7, (100, 100))
-red = np.random.uniform(0.05, 0.2, (100, 100))
-ndvi = compute_ndvi(nir, red)
-print(f"Mean NDVI: {{float(ndvi.mean()):.4f}}")
+print("No Sentinel-2 bands were read. No synthetic NDVI was substituted.")
 '''
 
 
