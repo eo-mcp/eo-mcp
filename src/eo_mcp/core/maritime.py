@@ -76,30 +76,7 @@ def fetch_open_baltic_ais(bbox: List[float], timeout: float = 8.0) -> List[Dict[
         # Graceful fallback if network or endpoint is temporarily unreachable
         pass
 
-    # If open API is unreachable or no vessels in current sub-box, supply calibrated Baltic reference telemetry
-    if not vessels:
-        vessels = [
-            {
-                "mmsi": 261002340,
-                "lat": min_lat + (max_lat - min_lat) * 0.35,
-                "lon": min_lon + (max_lon - min_lon) * 0.40,
-                "speed_knots": 14.2,
-                "course_deg": 340.0,
-                "heading_deg": 338,
-                "timestamp": 1718000000,
-                "source": "Baltic_Open_AIS_Reference"
-            },
-            {
-                "mmsi": 261884310,
-                "lat": min_lat + (max_lat - min_lat) * 0.65,
-                "lon": min_lon + (max_lon - min_lon) * 0.70,
-                "speed_knots": 3.4,
-                "course_deg": 115.0,
-                "heading_deg": 110,
-                "timestamp": 1718000000,
-                "source": "Baltic_Open_AIS_Reference"
-            }
-        ]
+    # An empty box is an empty box. Do not invent reference ships inside the caller's coordinates.
     return vessels
 
 
