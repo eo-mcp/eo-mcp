@@ -19,15 +19,17 @@ def run_server():
     mcp.run(transport="stdio")
 
 
-def test_connectivity():
-    """Verify live connectivity to zero-config free government STAC endpoints."""
+def test_connectivity() -> bool:
+    """Verify live STAC search and one real COG window read. Returns True only if both succeed."""
     console.print(Panel.fit("[bold green]eo-mcp Diagnostics & STAC Verification[/bold green]"))
 
-    from eo_mcp.providers.stac import search_stac_catalog
+    from eo_mcp.providers.stac import search_stac_catalog, get_stac_client
     from eo_mcp.config import EARTH_SEARCH_STAC_URL
 
     # Test AOI: Valencia, Spain [lon_min, lat_min, lon_max, lat_max]
     valencia_bbox = [-0.42, 39.42, -0.32, 39.50]
+    ok = True
+    dem_scenes = []
 
     with console.status("[bold blue]Testing AWS Earth Search STAC (Sentinel-2 L2A)...[/bold blue]"):
         try:
@@ -39,10 +41,15 @@ def test_connectivity():
                 max_cloud_cover=20.0,
                 limit=3
             )
-            console.print(f"[green][OK] Successfully queried Sentinel-2! Found {len(scenes)} cloud-free scenes.[/green]")
-            for s in scenes:
-                console.print(f"  * Scene ID: [cyan]{s.id}[/cyan] ({s.datetime}) Cloud: {s.cloud_cover}%")
+            if not scenes:
+                ok = False
+                console.print("[red][ERROR] Sentinel-2 STAC returned no scenes.[/red]")
+            else:
+                console.print(f"[green][OK] Successfully queried Sentinel-2! Found {len(scenes)} cloud-free scenes.[/green]")
+                for s in scenes:
+                    console.print(f"  * Scene ID: [cyan]{s.id}[/cyan] ({s.datetime}) Cloud: {s.cloud_cover}%")
         except Exception as e:
+            ok = False
             console.print(f"[red][ERROR] Sentinel-2 STAC check failed: {e}[/red]")
 
     with console.status("[bold blue]Testing Copernicus DEM GLO-30 STAC...[/bold blue]"):
@@ -54,11 +61,56 @@ def test_connectivity():
                 datetime_range="2020-01-01/2024-01-01",
                 limit=1
             )
-            console.print(f"[green][OK] Successfully queried Copernicus DEM! Tile: {dem_scenes[0].id}[/green]")
+            if not dem_scenes:
+                ok = False
+                console.print("[red][ERROR] Copernicus DEM STAC returned no tiles.[/red]")
+            else:
+                console.print(f"[green][OK] Successfully queried Copernicus DEM! Tile: {dem_scenes[0].id}[/green]")
         except Exception as e:
+            ok = False
             console.print(f"[red][ERROR] Copernicus DEM STAC check failed: {e}[/red]")
 
-    console.print("\n[bold]All zero-config government endpoints operational![/bold]")
+    # The command advertises raster streaming. A catalog hit is not a pixel read.
+    # Keep the window about 1 km so this stays a connectivity check, not a download.
+    tiny_bbox = (-0.380, 39.450, -0.370, 39.460)
+    with console.status("[bold blue]Streaming a small Copernicus DEM window...[/bold blue]"):
+        try:
+            if not dem_scenes:
+                raise RuntimeError("no DEM tile to stream")
+            import numpy as np
+            from eo_mcp.core.raster import stream_cog_window
+            client = get_stac_client(EARTH_SEARCH_STAC_URL)
+            item = client.get_collection("cop-dem-glo-30").get_item(dem_scenes[0].id)
+            elev_url = item.assets["data"].href
+            data, profile = stream_cog_window(elev_url, tiny_bbox, resampling_factor=1.0)
+            if profile.get("fallback"):
+                ok = False
+                console.print(f"[red][ERROR] DEM read used a synthetic fallback, not the COG: {profile.get('reason')}[/red]")
+            else:
+                arr = np.ma.asarray(data, dtype="float64")
+                finite = arr.compressed() if np.ma.isMaskedArray(arr) else arr[np.isfinite(arr)]
+                if finite.size == 0:
+                    ok = False
+                    console.print("[red][ERROR] DEM window streamed, but it contained no finite pixels.[/red]")
+                else:
+                    console.print(
+                        f"[green][OK] Streamed DEM window {arr.shape[-2]}x{arr.shape[-1]} "
+                        f"from {elev_url}[/green]"
+                    )
+                    console.print(
+                        f"  elevation min {float(finite.min()):.2f} m, "
+                        f"max {float(finite.max()):.2f} m, "
+                        f"mean {float(finite.mean()):.2f} m"
+                    )
+        except Exception as e:
+            ok = False
+            console.print(f"[red][ERROR] DEM raster stream failed: {e}[/red]")
+
+    if ok:
+        console.print("\n[bold]STAC search and one COG window read both succeeded.[/bold]")
+    else:
+        console.print("\n[bold red]One or more live checks failed. Not all endpoints are operational.[/bold red]")
+    return ok
 
 
 def print_claude_config():
@@ -96,7 +148,10 @@ def run_doctor():
             console.print(f"  [yellow][BLOCKED/MISSING][/yellow] Library [bold]{lib}[/bold]: {err}")
 
     console.print("\n[bold blue]Testing public zero-config satellite feeds...[/bold blue]")
-    test_connectivity()
+    feeds_ok = test_connectivity()
+    if not feeds_ok:
+        console.print("[bold red]Doctor stopped: a live STAC or COG check failed.[/bold red]")
+        return
 
     console.print(Panel(
         "[bold green]Zero-Config Status: Active & Operational[/bold green]\n\n"
@@ -871,7 +926,7 @@ def app():
         os.environ["EO_MCP_PROFILE"] = args.profile
 
     if args.command == "test":
-        test_connectivity()
+        sys.exit(0 if test_connectivity() else 1)
     elif args.command == "doctor":
         run_doctor()
     elif args.command in ["claude", "setup"]:
