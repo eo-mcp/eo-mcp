@@ -178,28 +178,12 @@ out tags center;
         # Empirical road network length based on OSM elements
         total_road_km = round(max(0.5, road_elements_count * 0.45), 2)
     else:
-        # Calibrated spatial heuristic based on global geographic density
-        data_source = "osm_calibrated_spatial_model"
-        # Standard urban/rural fringe road density: ~1.8 km / sq km
-        total_road_km = round(aoi_sq_km * 1.85, 2)
-        
-        # Synthesize baseline municipal assets
-        facilities.append({
-            "name": "Regional Health / Emergency Medical Post",
-            "type": "HOSPITAL",
-            "coordinates": [round((min_lon * 0.4 + max_lon * 0.6), 5), round((min_lat * 0.4 + max_lat * 0.6), 5)],
-            "osm_id": 9901
-        })
-        facilities.append({
-            "name": "Civil Protection & Fire Station Base",
-            "type": "FIRE_STATION",
-            "coordinates": [round((min_lon * 0.7 + max_lon * 0.3), 5), round((min_lat * 0.7 + max_lat * 0.3), 5)],
-            "osm_id": 9902
-        })
+        data_source = "osm_overpass_unavailable"
+        total_road_km = None
 
     # Calculate hazard intersection proportion
     hazard_ratio = min(1.0, max(0.02, hazard_footprint_ha / max(1.0, aoi_ha)))
-    affected_road_km = round(total_road_km * hazard_ratio, 2)
+    affected_road_km = None if total_road_km is None else round(total_road_km * hazard_ratio, 2)
 
     # Determine facilities inside hazard footprint
     exposed_facilities = []
@@ -213,11 +197,13 @@ out tags center;
                 exposed_facilities.append(fac)
 
     # Exposure Risk Tier
-    if len(exposed_facilities) > 0 or affected_road_km > 10.0:
+    if affected_road_km is None and not facilities:
+        exposure_tier = "NOT_READ"
+    elif len(exposed_facilities) > 0 or (affected_road_km or 0) > 10.0:
         exposure_tier = "CRITICAL"
-    elif affected_road_km > 3.0:
+    elif (affected_road_km or 0) > 3.0:
         exposure_tier = "HIGH"
-    elif affected_road_km > 0.5:
+    elif (affected_road_km or 0) > 0.5:
         exposure_tier = "MODERATE"
     else:
         exposure_tier = "LOW"
@@ -234,7 +220,12 @@ out tags center;
         "exposed_critical_facilities_count": len(exposed_facilities),
         "exposed_critical_facilities": exposed_facilities,
         "exposure_risk_tier": exposure_tier,
-        "regulatory_relevance": "EU Critical Entities Resilience Directive (CER Directive 2022/2557)"
+        "regulatory_relevance": "EU Critical Entities Resilience Directive (CER Directive 2022/2557)",
+        "notice": (
+            "Overpass returned no elements, so no roads or facilities were inferred."
+            if data_source != "osm_overpass_live"
+            else "Road length is 0.45 km times the highway way count, not measured geometry. A facility is marked exposed by a hash of its name, not by a hazard polygon."
+        )
     }
 
 
