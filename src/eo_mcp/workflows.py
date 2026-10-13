@@ -1105,6 +1105,53 @@ def detect_flood_inundation(
     return json.dumps(result, indent=2)
 
 
+
+def _align_band(src, shape):
+    if src.shape == shape:
+        return src
+    rows = np.linspace(0, src.shape[0] - 1, shape[0]).astype(int)
+    cols = np.linspace(0, src.shape[1] - 1, shape[1]).astype(int)
+    return src[np.ix_(rows, cols)]
+
+
+def _read_change_bands(bbox, datetime_range, keys, resampling=0.5):
+    """Least-cloudy Sentinel-2 bands for one epoch. Returns (arrays, scene_id) or (None, None)."""
+    from eo_mcp.providers.stac import get_stac_client
+
+    scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["sentinel-2-l2a"],
+        bbox=list(bbox),
+        datetime_range=datetime_range,
+        limit=8,
+    )
+    if not scenes:
+        return None, None
+    scene = min(scenes, key=lambda item: item.cloud_cover if item.cloud_cover is not None else 100.0)
+    item = get_stac_client(EARTH_SEARCH_STAC_URL).get_collection("sentinel-2-l2a").get_item(scene.id)
+    arrays = []
+    for key in keys:
+        asset = item.assets.get(key)
+        if asset is None:
+            return None, None
+        arr, profile = stream_cog_window(asset.href, tuple(bbox), resampling_factor=resampling)
+        if profile.get("fallback"):
+            return None, None
+        if getattr(arr, "ndim", 0) == 3:
+            arr = arr.squeeze()
+        if np.ma.isMaskedArray(arr):
+            arr = np.ma.filled(arr.astype(np.float32), np.nan)
+        else:
+            arr = np.asarray(arr, dtype=np.float32)
+        arr = np.where(arr == 0, np.nan, arr)
+        arrays.append(arr)
+    target = arrays[0].shape
+    arrays = [_align_band(arr, target) for arr in arrays]
+    if np.isfinite(arrays[0]).any() and float(np.nanmedian(arrays[0])) > 1.0:
+        arrays = [arr / 10000.0 for arr in arrays]
+    return arrays, item.id
+
+
 def detect_vegetation_change(
     location: Union[str, List[float]],
     epoch1_date: str,
@@ -1143,83 +1190,26 @@ def detect_vegetation_change(
         return json.dumps({"error": f"Failed to resolve location: {str(exc)}"})
 
     idx_upper = index.upper()
-    pixel_size_m = 10.0
+    # 10 m Sentinel-2 bands read at resampling 0.5, so each cell is 20 m.
+    pixel_size_m = 20.0
 
-    # Format datetime ranges for STAC query
     dt1 = epoch1_date if "/" in epoch1_date else f"{epoch1_date}/{epoch1_date}"
     dt2 = epoch2_date if "/" in epoch2_date else f"{epoch2_date}/{epoch2_date}"
-
-    # Search STAC catalog for Sentinel-2 L2A across both epochs
-    scenes_ep1 = search_stac_catalog(
-        catalog_url=EARTH_SEARCH_STAC_URL,
-        collections=["sentinel-2-l2a"],
-        bbox=bbox,
-        datetime_range=dt1,
-        max_items=1
-    )
-    scenes_ep2 = search_stac_catalog(
-        catalog_url=EARTH_SEARCH_STAC_URL,
-        collections=["sentinel-2-l2a"],
-        bbox=bbox,
-        datetime_range=dt2,
-        max_items=1
-    )
-
-    ep1_nir, ep1_red = None, None
-    ep2_nir, ep2_red = None, None
-
-    if scenes_ep1 and "assets" in scenes_ep1[0]:
-        assets1 = scenes_ep1[0]["assets"]
-        nir_url1 = (assets1.get("nir") or assets1.get("B08", {})).get("href")
-        red_url1 = (assets1.get("red") or assets1.get("B04", {})).get("href")
-        if nir_url1 and red_url1:
-            try:
-                ep1_nir, _ = stream_cog_window(nir_url1, tuple(bbox), resampling_factor=0.5)
-                ep1_red, _ = stream_cog_window(red_url1, tuple(bbox), resampling_factor=0.5)
-                if ep1_nir.ndim == 3: ep1_nir = ep1_nir[0]
-                if ep1_red.ndim == 3: ep1_red = ep1_red[0]
-            except Exception:
-                pass
-
-    if scenes_ep2 and "assets" in scenes_ep2[0]:
-        assets2 = scenes_ep2[0]["assets"]
-        nir_url2 = (assets2.get("nir") or assets2.get("B08", {})).get("href")
-        red_url2 = (assets2.get("red") or assets2.get("B04", {})).get("href")
-        if nir_url2 and red_url2:
-            try:
-                ep2_nir, _ = stream_cog_window(nir_url2, tuple(bbox), resampling_factor=0.5)
-                ep2_red, _ = stream_cog_window(red_url2, tuple(bbox), resampling_factor=0.5)
-                if ep2_nir.ndim == 3: ep2_nir = ep2_nir[0]
-                if ep2_red.ndim == 3: ep2_red = ep2_red[0]
-            except Exception:
-                pass
-
-    # Deterministic fallback stream from Copernicus DEM if optical STAC lacks scenes for exact date
-    if ep1_nir is None or ep1_red is None or ep2_nir is None or ep2_red is None:
-        dem_scenes = search_stac_catalog(
-            catalog_url=EARTH_SEARCH_STAC_URL,
-            collections=["cop-dem-glo-30"],
-            bbox=bbox,
-            max_items=1
-        )
-        if dem_scenes and "assets" in dem_scenes[0]:
-            dem_url = dem_scenes[0]["assets"].get("data", {}).get("href")
-            dem_arr, _ = stream_cog_window(dem_url, tuple(bbox), resampling_factor=0.5)
-            if dem_arr.ndim == 3: dem_arr = dem_arr[0]
-            # Normalize elevation terrain into base reflectance
-            norm = (dem_arr - np.nanmin(dem_arr)) / max(1e-4, np.nanmax(dem_arr) - np.nanmin(dem_arr))
-            ep1_nir = (0.45 + norm * 0.25).astype(np.float32)
-            ep1_red = (0.08 + norm * 0.05).astype(np.float32)
-            ep2_nir = ep1_nir.copy()
-            ep2_red = ep1_red.copy()
-            # Disturbance simulation on quadrant
-            r_half, c_half = ep2_nir.shape[0] // 2, ep2_nir.shape[1] // 2
-            ep2_nir[:r_half, :c_half] = 0.15
-            ep2_red[:r_half, :c_half] = 0.22
-        else:
-            return json.dumps({
-                "error": f"No satellite coverage found for location '{location}' across epochs {epoch1_date} and {epoch2_date}."
-            })
+    band_keys = ("nir", "red", "blue") if idx_upper == "EVI" else ("nir", "red")
+    try:
+        epoch1, ep1_id = _read_change_bands(bbox, dt1, band_keys)
+        epoch2, ep2_id = _read_change_bands(bbox, dt2, band_keys)
+    except Exception:
+        epoch1, epoch2, ep1_id, ep2_id = None, None, None, None
+    if not epoch1 or not epoch2:
+        return json.dumps({
+            "error": f"No Sentinel-2 window was read for '{location}' across {epoch1_date} and {epoch2_date}. No elevation surface was substituted.",
+            "source": "NOT_READ",
+        })
+    ep1_nir, ep1_red = epoch1[0], epoch1[1]
+    ep2_nir, ep2_red = epoch2[0], epoch2[1]
+    ep1_blue = epoch1[2] if idx_upper == "EVI" else None
+    ep2_blue = epoch2[2] if idx_upper == "EVI" else None
 
     min_r = min(ep1_nir.shape[0], ep1_red.shape[0], ep2_nir.shape[0], ep2_red.shape[0])
     min_c = min(ep1_nir.shape[1], ep1_red.shape[1], ep2_nir.shape[1], ep2_red.shape[1])
@@ -1229,8 +1219,8 @@ def detect_vegetation_change(
     ep2_red = ep2_red[:min_r, :min_c]
 
     if idx_upper == "EVI":
-        vi1 = compute_evi(ep1_nir, ep1_red, np.full_like(ep1_red, 0.03))
-        vi2 = compute_evi(ep2_nir, ep2_red, np.full_like(ep2_red, 0.03))
+        vi1 = compute_evi(ep1_nir, ep1_red, ep1_blue)
+        vi2 = compute_evi(ep2_nir, ep2_red, ep2_blue)
     else:
         vi1 = compute_ndvi(ep1_nir, ep1_red)
         vi2 = compute_ndvi(ep2_nir, ep2_red)
@@ -1291,6 +1281,9 @@ def detect_vegetation_change(
         "epoch1_date": epoch1_date,
         "epoch2_date": epoch2_date,
         "index": idx_upper,
+        "epoch1_scene_id": ep1_id,
+        "epoch2_scene_id": ep2_id,
+        "notice": "Spectral difference only. No cloud mask and no confirmed clearing.",
         "loss_threshold": loss_threshold,
         "gain_threshold": gain_threshold,
         "clearing_loss_ha": clearing_loss_ha,
