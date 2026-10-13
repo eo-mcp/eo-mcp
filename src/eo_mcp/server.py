@@ -2141,6 +2141,42 @@ def analyze_urban_heat_island(
         return json.dumps({"error": f"Urban heat island analysis failed: {str(exc)}"})
 
 
+
+def _scene_mean_ndvi(bbox, scene_id, resampling=0.5):
+    """Mean NDVI for one Sentinel-2 scene window, or None when the bands were not read."""
+    item = get_stac_client(EARTH_SEARCH_STAC_URL).get_collection("sentinel-2-l2a").get_item(scene_id)
+    arrays = []
+    for key in ("nir", "red"):
+        asset = item.assets.get(key)
+        if asset is None:
+            return None
+        arr, profile = stream_cog_window(asset.href, tuple(bbox), resampling_factor=resampling)
+        if profile.get("fallback"):
+            return None
+        if getattr(arr, "ndim", 0) == 3:
+            arr = arr.squeeze()
+        if np.ma.isMaskedArray(arr):
+            arr = np.ma.filled(arr.astype(np.float32), np.nan)
+        else:
+            arr = np.asarray(arr, dtype=np.float32)
+        arr = np.where(arr == 0, np.nan, arr)
+        arrays.append(arr)
+    target = arrays[0].shape
+    red = arrays[1]
+    if red.shape != target:
+        rows = np.linspace(0, red.shape[0] - 1, target[0]).astype(int)
+        cols = np.linspace(0, red.shape[1] - 1, target[1]).astype(int)
+        red = red[np.ix_(rows, cols)]
+    nir = arrays[0]
+    if np.isfinite(nir).any() and float(np.nanmedian(nir)) > 1.0:
+        nir = nir / 10000.0
+        red = red / 10000.0
+    ndvi = compute_ndvi(nir, red)
+    if not np.isfinite(ndvi).any():
+        return None
+    return round(float(np.nanmean(ndvi)), 4)
+
+
 @eo_tool()
 def monitor_crop_phenology(
     bbox: List[float],
@@ -2184,32 +2220,39 @@ def monitor_crop_phenology(
         except Exception:
             all_scenes = []
 
-        # Index scenes by month
         scene_by_month = {}
         for s in all_scenes:
-            if hasattr(s, "datetime") and s.datetime:
+            if hasattr(s, "datetime") and s.datetime and len(s.datetime) >= 7:
                 s_month = s.datetime[5:7]
-                if s_month not in scene_by_month:
+                current = scene_by_month.get(s_month)
+                cloud = s.cloud_cover if s.cloud_cover is not None else 100.0
+                current_cloud = current.cloud_cover if current is not None and current.cloud_cover is not None else 100.0
+                if current is None or cloud < current_cloud:
                     scene_by_month[s_month] = s
 
         months = ["03", "04", "05", "06", "07", "08", "09", "10"]
         temporal_observations = []
         for m in months:
             sc = scene_by_month.get(m)
-            if sc:
-                est_ndvi = 0.25 + (0.45 * np.sin((int(m) - 2) * np.pi / 7.0))
-                temporal_observations.append({
-                    "date": sc.datetime[:10],
-                    "ndvi": round(float(est_ndvi), 3),
-                    "scene_id": sc.id
-                })
-            else:
-                est_ndvi = 0.22 + (0.48 * np.sin((int(m) - 2) * np.pi / 7.0))
-                temporal_observations.append({
-                    "date": f"{year}-{m}-15",
-                    "ndvi": round(float(max(0.15, est_ndvi)), 3),
-                    "scene_id": "SYNTHETIC_INTERPOLATION"
-                })
+            if sc is None:
+                continue
+            try:
+                mean_ndvi = _scene_mean_ndvi(bbox, sc.id)
+            except Exception:
+                mean_ndvi = None
+            if mean_ndvi is None:
+                continue
+            temporal_observations.append({
+                "date": sc.datetime[:10],
+                "ndvi": mean_ndvi,
+                "scene_id": sc.id,
+            })
+        if not temporal_observations:
+            return json.dumps({
+                "error": "No Sentinel-2 NDVI was read for this season. No sine-wave value was substituted.",
+                "source": "NOT_READ",
+                "year": year,
+            })
 
         ref_peak = 0.70 if not crop_type else (0.80 if crop_type.lower() in ["maize", "corn"] else 0.65)
         results = analyze_crop_phenology_trajectory(
@@ -2220,6 +2263,10 @@ def monitor_crop_phenology(
         results["bbox"] = bbox
         if crop_type:
             results["crop_type"] = crop_type
+        results["notice"] = (
+            "Each NDVI is the mean of one Sentinel-2 window. Months without a readable scene are omitted. "
+            "The health status compares the peak with a fixed reference, not a field survey. No cloud mask."
+        )
 
         if format.lower() == "geojson":
             return json.dumps(phenology_to_geojson(results), indent=2)
