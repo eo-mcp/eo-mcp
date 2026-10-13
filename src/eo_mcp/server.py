@@ -1124,13 +1124,49 @@ def detect_water_sar(bbox: List[float], datetime_range: str, threshold_db: float
     """
     try:
         items = search_cdse_sentinel1(bbox=bbox, datetime_range=datetime_range, limit=1)
-        if not items or "error" in items[0]:
+        cdse_failed = (not items) or ("error" in items[0])
+        if cdse_failed:
+            # The open Copernicus catalog rejects anonymous search. Earth Search
+            # hosts Sentinel-1 GRD with no account.
+            from eo_mcp.providers.stac import search_stac_catalog
+            from eo_mcp.config import EARTH_SEARCH_STAC_URL
+            earth_error = None
+            try:
+                found = search_stac_catalog(
+                    catalog_url=EARTH_SEARCH_STAC_URL,
+                    collections=["sentinel-1-grd"],
+                    bbox=bbox,
+                    datetime_range=datetime_range,
+                    limit=1,
+                )
+            except Exception as earth_exc:
+                found = []
+                earth_error = str(earth_exc)
+            if found:
+                scene = found[0]
+                return json.dumps({
+                    "status": "scenes_located",
+                    "source": "earth-search sentinel-1-grd",
+                    "scenes": [{
+                        "id": scene.id,
+                        "datetime": scene.datetime,
+                        "bbox": scene.bbox,
+                        "assets": list(scene.assets),
+                        "platform": scene.platform,
+                    }],
+                    "notice": (
+                        "Copernicus Data Space did not return an open scene. "
+                        "This hit is the public Earth Search Sentinel-1 GRD catalog. "
+                        "The VV asset is uncalibrated uint16, so no water mask was applied."
+                    ),
+                    "threshold_db": threshold_db,
+                }, indent=2)
+            cdse_note = items[0]["error"] if items else "Copernicus Data Space returned no scenes."
             return json.dumps({
-                "status": "radar_pipeline_active",
-                "notice": "Zero-config public mode active. Radar backscatter pipeline executed without credentials.",
+                "error": "No Sentinel-1 scene was found.",
+                "cdse": cdse_note,
+                "earth_search": earth_error or "no scenes",
                 "threshold_db": threshold_db,
-                "typical_water_db_range": "[-22 dB, -16 dB]",
-                "typical_land_db_range": "[-14 dB, -6 dB]"
             }, indent=2)
 
         return json.dumps({"status": "scenes_located", "scenes": items}, indent=2)
