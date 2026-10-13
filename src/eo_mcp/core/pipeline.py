@@ -352,8 +352,10 @@ def _step_terrain_analysis(step: PipelineStep, ctx: PipelineContext) -> Dict[str
     elif isinstance(dem_meta, np.ndarray):
         dem_arr = dem_meta
     else:
-        # Default fallback
-        dem_arr = np.random.uniform(0.0, 50.0, (40, 50))
+        return {
+            "error": "No elevation array was available. No synthetic terrain was substituted.",
+            "source": "NOT_READ",
+        }
 
     if dem_arr.ndim == 3:
         dem_arr = dem_arr.squeeze()
@@ -503,8 +505,10 @@ def _step_inundation_model(step: PipelineStep, ctx: PipelineContext) -> Dict[str
     elif isinstance(dem_meta, np.ndarray):
         dem_arr = dem_meta
     else:
-        dem_arr = np.linspace(-1.0, 10.0, 50)
-        dem_arr = np.tile(dem_arr, (40, 1))
+        return {
+            "error": "No elevation array was available. No synthetic inundation surface was substituted.",
+            "source": "NOT_READ",
+        }
 
     if dem_arr.ndim == 3:
         dem_arr = dem_arr.squeeze()
@@ -529,8 +533,8 @@ def _step_inundation_model(step: PipelineStep, ctx: PipelineContext) -> Dict[str
     ctx.set_var(step.output_var, metrics)
     return {
         "inundated_land_area_ha": metrics.get("inundated_land_area_ha", 0.0),
-        "inundated_percentage": metrics.get("inundated_percentage", 0.0),
-        "mean_depth_m": metrics.get("mean_water_depth_m", 0.0),
+        "inundated_percentage": metrics.get("land_inundation_percentage", metrics.get("inundated_percentage", 0.0)),
+        "mean_depth_m": metrics.get("mean_inundation_depth_m", metrics.get("mean_water_depth_m", 0.0)),
         "rise_m": rise,
         "surge_m": surge
     }
