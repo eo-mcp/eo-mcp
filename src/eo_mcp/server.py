@@ -1651,6 +1651,9 @@ def monitor_atmospheric_emissions(
             "openaq_ground_stations": openaq_stations,
             "openaq_station_count": len(openaq_stations)
         }
+        if not openaq_stations:
+            note = "OpenAQ v2 is retired and v3 requires an API key, so no ground stations were added."
+            results["notice"] = f"{results.get('notice', '')} {note}".strip()
 
         if format.lower() == "geojson":
             return json.dumps(emissions_to_geojson(results), indent=2)
