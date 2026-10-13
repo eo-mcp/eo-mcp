@@ -104,12 +104,13 @@ from eo_mcp.core.script_runner import (
     assess_analysis_factuality as _assess_analysis_factuality,
     run_sensitivity_analysis as _run_sensitivity_analysis,
 )
-from eo_mcp.core.spectral_registry import registry as _spectral_registry
+from eo_mcp.core.spectral_registry import PLATFORM_BAND_MAPPINGS, registry as _spectral_registry
 from eo_mcp.core.zonal import compute_temporal_composite as _compute_temporal_composite
 from eo_mcp.utils.geo import geocode_place_name, point_to_bbox
 from eo_mcp.utils.visualizer import generate_ascii_preview, export_visual_artifacts
 from eo_mcp.registry import is_tool_enabled, discover_tools
 from eo_mcp.workflows import (
+    resolve_aoi,
     assess_location_hazard as _assess_location_hazard,
     environmental_site_audit as _environmental_site_audit,
     audit_wildfire_burn as _audit_wildfire_burn,
@@ -627,53 +628,102 @@ def compute_custom_spectral_index(
 
     params = json.loads(custom_params) if custom_params else None
 
-    # Stream terrain baseline to compute normalized bands
-    dem_scenes = search_stac_catalog(
-        catalog_url=EARTH_SEARCH_STAC_URL,
-        collections=["cop-dem-glo-30"],
-        bbox=bbox,
-        max_items=1
-    )
-    if dem_scenes and "assets" in dem_scenes[0]:
-        dem_url = dem_scenes[0]["assets"].get("data", {}).get("href")
-        dem_arr, _ = stream_cog_window(dem_url, tuple(bbox), resampling_factor=0.5)
-        if dem_arr.ndim == 3: dem_arr = dem_arr[0]
-        norm = (dem_arr - np.nanmin(dem_arr)) / max(1e-4, np.nanmax(dem_arr) - np.nanmin(dem_arr))
-
-        mock_bands = {
-            "N": (0.45 + norm * 0.20).astype(np.float32),
-            "R": (0.08 + norm * 0.05).astype(np.float32),
-            "G": (0.10 + norm * 0.04).astype(np.float32),
-            "B": (0.06 + norm * 0.03).astype(np.float32),
-            "S1": (0.12 + norm * 0.08).astype(np.float32),
-            "S2": (0.08 + norm * 0.05).astype(np.float32),
-            "RE1": (0.20 + norm * 0.10).astype(np.float32),
-            "RE2": (0.25 + norm * 0.12).astype(np.float32),
-            "RE3": (0.30 + norm * 0.15).astype(np.float32),
-            "N2": (0.48 + norm * 0.20).astype(np.float32),
-            "T1": (295.0 + norm * 15.0).astype(np.float32),
-        }
-        res_arr = _spectral_registry.compute_index(index_name, mock_bands, custom_params=params)
-        valid = res_arr[~np.isnan(res_arr)]
-
+    platform_key = platform.lower().strip()
+    if platform_key not in PLATFORM_BAND_MAPPINGS or platform_key != "sentinel-2":
         return json.dumps({
-            "index_name": idx.get("short_name", index_name),
-            "long_name": idx.get("long_name", ""),
-            "domain": idx.get("application_domain", ""),
-            "formula": idx.get("formula", ""),
-            "reference": idx.get("reference", ""),
-            "location": display_name,
-            "statistics": {
-                "mean": round(float(np.mean(valid)), 4) if len(valid) > 0 else 0.0,
-                "median": round(float(np.median(valid)), 4) if len(valid) > 0 else 0.0,
-                "std": round(float(np.std(valid)), 4) if len(valid) > 0 else 0.0,
-                "min": round(float(np.min(valid)), 4) if len(valid) > 0 else 0.0,
-                "max": round(float(np.max(valid)), 4) if len(valid) > 0 else 0.0,
-                "pixel_count": int(len(valid))
-            }
-        }, indent=2)
+            "error": f"Platform '{platform}' is not read from a public COG here. No index was computed from stand-in bands.",
+            "index_name": index_name,
+        })
 
-    return json.dumps({"error": f"Failed to acquire spatial data for location '{location}'."})
+    required = list(idx.get("bands") or [])
+    mapping = PLATFORM_BAND_MAPPINGS["sentinel-2"]
+    unmapped = [band for band in required if band not in mapping]
+    if unmapped:
+        return json.dumps({
+            "error": f"No Sentinel-2 asset for {unmapped}. No index was computed.",
+            "index_name": index_name,
+        })
+
+    when = datetime_range or "2024-06-01/2024-06-30"
+    scenes = search_stac_catalog(
+        catalog_url=EARTH_SEARCH_STAC_URL,
+        collections=["sentinel-2-l2a"],
+        bbox=bbox,
+        datetime_range=when,
+        max_cloud_cover=20.0,
+        limit=1,
+    )
+    if not scenes:
+        return json.dumps({
+            "error": "No cloud-limited Sentinel-2 scene in that window. No index was computed.",
+            "index_name": index_name,
+            "location": display_name,
+            "datetime_range": when,
+        })
+
+    client = get_stac_client(EARTH_SEARCH_STAC_URL)
+    item = client.get_collection("sentinel-2-l2a").get_item(scenes[0].id)
+
+    def _read(symbol, shape):
+        href = None
+        for key in mapping[symbol]:
+            asset = item.assets.get(key)
+            if asset is not None and getattr(asset, "href", None):
+                href = asset.href
+                break
+        if not href:
+            raise KeyError(symbol)
+        arr, profile = stream_cog_window(href, tuple(bbox), resampling_factor=0.5)
+        if profile.get("fallback"):
+            raise RuntimeError("synthetic")
+        if arr.ndim == 3:
+            arr = arr[0]
+        data = np.ma.filled(arr.astype(np.float32), np.nan) if np.ma.isMaskedArray(arr) else arr.astype(np.float32)
+        data = np.where(data == 0, np.nan, data)
+        if shape is not None and data.shape != shape:
+            rows = np.linspace(0, data.shape[0] - 1, shape[0]).astype(int)
+            cols = np.linspace(0, data.shape[1] - 1, shape[1]).astype(int)
+            data = data[rows][:, cols]
+        finite = data[np.isfinite(data)]
+        if finite.size and float(np.median(finite)) > 1.0:
+            data = data / 10000.0
+        return data
+
+    try:
+        bands = {}
+        target_shape = None
+        for symbol in required:
+            bands[symbol] = _read(symbol, target_shape)
+            target_shape = bands[symbol].shape
+        res_arr = _spectral_registry.compute_index(index_name, bands, custom_params=params)
+    except Exception as exc:
+        return json.dumps({
+            "error": f"Index bands could not be read: {exc}. No index was computed.",
+            "index_name": index_name,
+            "scene_id": scenes[0].id,
+        })
+
+    valid = res_arr[np.isfinite(res_arr)]
+    return json.dumps({
+        "index_name": idx.get("short_name", index_name),
+        "long_name": idx.get("long_name", ""),
+        "domain": idx.get("application_domain", ""),
+        "formula": idx.get("formula", ""),
+        "reference": idx.get("reference", ""),
+        "location": display_name,
+        "scene_id": item.id,
+        "datetime_range": when,
+        "data_source": "sentinel-2-l2a",
+        "notice": "Bands are the scene COG. Values whose median was above 1 were divided by 10000 before the formula. No cloud mask was applied.",
+        "statistics": {
+            "mean": round(float(np.mean(valid)), 4) if len(valid) > 0 else None,
+            "median": round(float(np.median(valid)), 4) if len(valid) > 0 else None,
+            "std": round(float(np.std(valid)), 4) if len(valid) > 0 else None,
+            "min": round(float(np.min(valid)), 4) if len(valid) > 0 else None,
+            "max": round(float(np.max(valid)), 4) if len(valid) > 0 else None,
+            "pixel_count": int(len(valid))
+        }
+    }, indent=2)
 
 
 @eo_tool()
