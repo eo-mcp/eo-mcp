@@ -19,21 +19,21 @@ from eo_mcp.config import NASA_CMR_STAC_URL
 
 OPERA_COLLECTIONS = {
     "dswx": {
-        "id": "OPERA_L3_DSWX-HLS_V1",
-        "provider": "LPCLOUD",
+        "id": "OPERA_L3_DSWX-HLS_V1_1.0",
+        "provider": "POCLOUD",
         "title": "OPERA Dynamic Surface Water Extent from HLS (30m)",
         "description": "Global 30m surface water classification delineating open water, partial surface water, and inundated vegetation.",
         "assets": ["B01_WTR", "B02_BWTR", "B03_CONF", "B04_DIAG"]
     },
     "dist": {
-        "id": "OPERA_L3_DIST-ALERT-HLS_V1",
+        "id": "OPERA_L3_DIST-ALERT-HLS_V1_1",
         "provider": "LPCLOUD",
         "title": "OPERA Surface Disturbance Alert from HLS (30m)",
         "description": "Operational 30m disturbance alerts tracking canopy loss, deforestation, wildfires, and erosion.",
         "assets": ["VEG-DIST-STATUS", "VEG-ANOM-MAX", "CONF"]
     },
     "rtc": {
-        "id": "OPERA_L2_RTC-S1_V1",
+        "id": "OPERA_L2_RTC-S1_V1_1",
         "provider": "ASF",
         "title": "OPERA Radiometric Terrain Corrected Sentinel-1 SAR (30m)",
         "description": "High-precision radiometrically and terrain-corrected Sentinel-1 SAR backscatter in VV and VH polarizations.",
@@ -57,6 +57,18 @@ class OPERAProductItem(BaseModel):
 def list_opera_product_types() -> Dict[str, Dict[str, Any]]:
     """Return dictionary of supported NASA OPERA product lines."""
     return OPERA_COLLECTIONS
+
+
+def _rfc3339_range(datetime_range: str) -> str:
+    """CMR STAC rejects bare dates; expand 'YYYY-MM-DD' ends to full RFC3339."""
+    parts = datetime_range.split("/")
+    out = []
+    for i, part in enumerate(parts):
+        part = part.strip()
+        if len(part) == 10 and part[4] == "-" and part[7] == "-":
+            part += "T00:00:00Z" if i == 0 else "T23:59:59Z"
+        out.append(part)
+    return "/".join(out)
 
 
 def search_opera_products(
@@ -95,7 +107,7 @@ def search_opera_products(
     payload: Dict[str, Any] = {
         "collections": [coll_id],
         "bbox": bbox,
-        "datetime": datetime_range,
+        "datetime": _rfc3339_range(datetime_range),
         "limit": limit
     }
 
@@ -129,33 +141,9 @@ def search_opera_products(
                             properties=props
                         )
                     )
-                if results:
-                    return results
+                return results
     except Exception:
-        # Fallback to deterministic simulated granules when offline or NASA CMR is unreachable
         pass
 
-    # High-fidelity fallback item when remote NASA CMR API is uncontactable
-    min_lon, min_lat, max_lon, max_lat = bbox
-    simulated_id = f"OPERA_L3_{p_key.upper()}-HLS_T18TXM_{datetime_range.split('/')[0].replace('-', '')}T103021Z_v1.0"
-    base_url = "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected"
-    mock_assets = {
-        k: f"{base_url}/{coll_id}/{simulated_id}_{k}.tif" for k in coll_meta["assets"]
-    }
-
-    return [
-        OPERAProductItem(
-            id=simulated_id,
-            product_type=p_key,
-            collection_id=coll_id,
-            datetime=datetime_range.split("/")[0] + "T10:30:21Z",
-            bbox=bbox,
-            assets=mock_assets,
-            cloud_cover=5.0,
-            properties={
-                "source": "NASA JPL OPERA",
-                "simulated_fallback": True,
-                "description": coll_meta["description"]
-            }
-        )
-    ]
+    # No fabricated granules: an unreachable or failed CMR search returns nothing.
+    return []
