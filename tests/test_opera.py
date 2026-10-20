@@ -15,7 +15,8 @@ def test_list_opera_product_types():
     assert "dswx" in coll
     assert "dist" in coll
     assert "rtc" in coll
-    assert coll["dswx"]["id"] == "OPERA_L3_DSWX-HLS_V1"
+    assert coll["dswx"]["id"] == "OPERA_L3_DSWX-HLS_V1_1.0"
+    assert coll["dswx"]["provider"] == "POCLOUD"
 
 
 def test_search_opera_products():
@@ -62,3 +63,21 @@ def test_query_nasa_opera_tool_geojson():
     assert data["type"] == "FeatureCollection"
     assert len(data["features"]) >= 1
     assert data["features"][0]["geometry"]["type"] == "Polygon"
+
+
+def test_search_opera_products_no_simulated_granule(monkeypatch):
+    import eo_mcp.providers.opera as opera
+    monkeypatch.setattr(opera, "NASA_CMR_STAC_URL", "http://127.0.0.1:9/stac")
+    products = opera.search_opera_products(
+        product_type="dswx",
+        bbox=[-0.42, 39.42, -0.32, 39.50],
+        datetime_range="2024-06-01/2024-06-30",
+        limit=2,
+        timeout_sec=2.0,
+    )
+    assert products == []
+
+
+def test_rfc3339_range_expands_bare_dates():
+    from eo_mcp.providers.opera import _rfc3339_range
+    assert _rfc3339_range("2024-06-01/2024-06-30") == "2024-06-01T00:00:00Z/2024-06-30T23:59:59Z"
