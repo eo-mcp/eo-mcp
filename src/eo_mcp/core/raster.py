@@ -41,25 +41,10 @@ def stream_cog_window(
     min_lon, min_lat, max_lon, max_lat = bbox_wgs84
 
     if not HAS_RASTERIO:
-        # Graceful synthetic raster fallback for environments where C-extensions are blocked (e.g. Windows Smart App Control)
+        # rasterio is unavailable, so nothing can be read. Return an all-NaN
+        # window (never invented values) and flag it so callers can reject it.
         rows, cols = 40, 50
-        seed = int((abs(min_lon) * 1000 + abs(min_lat) * 100) % 10000)
-        np.random.seed(seed)
-        url_lower = asset_url.lower()
-        if "dem" in url_lower or "cop-dem" in url_lower or "elevation" in url_lower or "data" in url_lower:
-            base_ramp = np.linspace(-2.0, 45.0, cols)
-            data = np.tile(base_ramp, (rows, 1)) + np.random.normal(0, 1.2, (rows, cols))
-            data = np.expand_dims(data.astype(np.float32), axis=0)
-        elif "nir" in url_lower or "b08" in url_lower:
-            data = np.random.uniform(0.20, 0.45, (1, rows, cols)).astype(np.float32)
-        elif "red" in url_lower or "b04" in url_lower:
-            data = np.random.uniform(0.05, 0.15, (1, rows, cols)).astype(np.float32)
-        elif "green" in url_lower or "b03" in url_lower:
-            data = np.random.uniform(0.08, 0.18, (1, rows, cols)).astype(np.float32)
-        elif "swir" in url_lower or "b12" in url_lower or "b11" in url_lower:
-            data = np.random.uniform(0.04, 0.12, (1, rows, cols)).astype(np.float32)
-        else:
-            data = np.random.uniform(0.0, 1.0, (1, rows, cols)).astype(np.float32)
+        data = np.full((1, rows, cols), np.nan, dtype=np.float32)
 
         profile = {
             "driver": "GTiff",
@@ -68,7 +53,8 @@ def stream_cog_window(
             "count": 1,
             "dtype": "float32",
             "fallback": True,
-            "reason": f"rasterio blocked by OS policy: {_RASTERIO_ERROR}"
+            "not_read": True,
+            "reason": f"rasterio unavailable, no pixels read: {_RASTERIO_ERROR}"
         }
         return data, profile
 
